@@ -14,6 +14,7 @@
     "cors": "^2.8.6",
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
+<<<<<<< HEAD
     "morgan": "^1.10.1",
     "mysql2": "^3.17.2",
     "nodemon": "^3.1.11",
@@ -21,5 +22,8 @@
   },
   "devDependencies": {
     "sequelize-cli": "^6.6.5"
+=======
+    "nodemon": "^3.1.11"
+>>>>>>> d6dfc231f1b0a57a00f049d751ad4d9f51af2908
   }
 }
