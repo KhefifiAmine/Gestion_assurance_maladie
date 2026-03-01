@@ -1,5 +1,6 @@
 const { Sequelize } = require("sequelize");
-require("dotenv").config(); // charge le .env
+const path = require('path');
+require("dotenv").config({ path: path.resolve(__dirname, '../../src/.env') }); // charge le .env
 
 const sequelize = new Sequelize(
   process.env.DB_NAME,
@@ -7,7 +8,7 @@ const sequelize = new Sequelize(
   process.env.DB_PASSWORD,
   {
     host: process.env.DB_HOST,
-    dialect: process.env.DB_DIALECT,
+    dialect: process.env.DB_DIALECT || 'mysql',
     logging: false,
     define: {
       timestamps: true,
