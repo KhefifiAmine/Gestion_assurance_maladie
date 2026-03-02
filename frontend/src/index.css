@@ -1,0 +1,30 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Reset global propre ─────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #f4f7f9;
+  color: #1e293b;
+}
+
+/* ── Styles partagés pour les pages Auth (Login / Register) ──── */
+a {
+  font-weight: 500;
+  color: #00B2FF;
+  text-decoration: none;
+}
+
+a:hover {
+  color: #0077FF;
+}
