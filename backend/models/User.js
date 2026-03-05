@@ -36,11 +36,15 @@ const User = sequelize.define('User', {
     },
     mot_de_passe: {
         type: DataTypes.STRING,
-        allowNull: false
+        allowNull: true
     },
     statut: {
         type: DataTypes.INTEGER,
-        defaultValue: 1 // 1: Actif, 0: Inactif
+        defaultValue: 0 // 1: Actif, 0: Inactif, 2: Refusé, 3: Bloqué
+    },
+    motif_blocage: {
+        type: DataTypes.STRING,
+        allowNull: true
     },
     adresse: {
         type: DataTypes.STRING,
@@ -54,6 +58,14 @@ const User = sequelize.define('User', {
         type: DataTypes.ENUM('ADMIN', 'ADHERENT'),
         defaultValue: 'ADHERENT',
         allowNull: false
+    },
+    resetPasswordCode: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    resetPasswordExpires: {
+        type: DataTypes.DATE,
+        allowNull: true
     }
 }, {
     tableName: 'users',

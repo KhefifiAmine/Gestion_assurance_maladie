@@ -42,6 +42,42 @@ export const registerUser = async (formData) => {
     return data;
 };
 
+
+export const forgotPassword = async (email) => {
+    const res = await fetch(`${API_BASE}/reset-password/forgot-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Erreur lors de la demande de réinitialisation.');
+    return data;
+};
+
+export const verifyResetCode = async (code) => {
+    const res = await fetch(`${API_BASE}/reset-password/verify-reset-code`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Code invalide ou expiré.');
+    return data;
+};
+
+export const resetPassword = async (code, newPassword) => {
+    const res = await fetch(`${API_BASE}/reset-password/reset-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, newPassword })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Erreur lors de la réinitialisation.');
+    return data;
+};
+
+
+
 // ─── PROFILE ─────────────────────────────────────────────
 export const fetchProfile = async () => {
     const res = await fetch(`${API_BASE}/profile`, {

@@ -1,14 +1,13 @@
 import React, { useState } from "react";
 import "./Auth.css";
-import tunisieTelecomImg from "../assets/Tunisie_Telecom.jpg";
-import { validateEmail, validatePassword } from "../utils/authUtils";
+import { validateEmail } from "../utils/authUtils";
 import { Link, useNavigate } from "react-router-dom";
 import { loginUser } from "../services/api";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 import { Moon, Sun } from "lucide-react";
 
-const Login = ({ onGoToRegister }) => {
+const Login = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
   const { theme, toggleTheme } = useTheme();
@@ -16,7 +15,6 @@ const Login = ({ onGoToRegister }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [emailError, setEmailError] = useState("");
-  const [passwordError, setPasswordError] = useState("");
   const [apiError, setApiError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isShaking, setIsShaking] = useState(false);
@@ -26,22 +24,18 @@ const Login = ({ onGoToRegister }) => {
     setApiError("");
 
     const mailErr = validateEmail(email);
-    const passErr = validatePassword(password);
 
-    if (mailErr || passErr) {
+    if (mailErr) {
       setEmailError(mailErr);
-      setPasswordError(passErr);
       return;
     }
     setEmailError("");
-    setPasswordError("");
 
     try {
       setIsLoading(true);
       const data = await loginUser(email, password);
-      login(data.token, data.user); // Stocker dans le Context
-      
-      // Redirection intelligente selon le rôle
+      login(data.token, data.user);
+
       if (data.user.role === 'ADMIN') {
         navigate("/admin/users");
       } else {
@@ -50,7 +44,6 @@ const Login = ({ onGoToRegister }) => {
     } catch (err) {
       setApiError(err.message);
       setIsShaking(true);
-      // Reset shaking after animation finishes so it can be triggered again
       setTimeout(() => setIsShaking(false), 500);
     } finally {
       setIsLoading(false);
@@ -59,24 +52,22 @@ const Login = ({ onGoToRegister }) => {
 
   return (
     <div className={isShaking ? "shake-animation" : ""}>
-      {/* Formulaire de connexion */}
       <div className="auth-header" style={{ position: 'relative' }}>
-        <button 
+        <button
           onClick={toggleTheme}
-          style={{ 
-            position: 'absolute', 
-            top: '-20px', 
-            right: '-10px',
+          style={{
+            position: 'absolute',
+            top: '0px',
+            right: '0px',
             background: 'transparent',
             border: 'none',
             cursor: 'pointer',
-            padding: '10px',
-            borderRadius: '50%',
+            padding: '5px',
             color: theme === 'dark' ? '#facc15' : '#475569'
           }}
           type="button"
         >
-          {theme === 'dark' ? <Sun size={24} /> : <Moon size={24} />}
+          {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
         </button>
         <h2>Connexion</h2>
         <p>Connectez-vous à votre compte</p>
@@ -89,7 +80,7 @@ const Login = ({ onGoToRegister }) => {
           </div>
         )}
         <div className="form-group">
-          <label>Email :</label>
+          <label>Emaill :</label>
           <input
             type="text"
             placeholder="Entrer votre Email"
@@ -112,30 +103,24 @@ const Login = ({ onGoToRegister }) => {
             value={password}
             onChange={(e) => {
               setPassword(e.target.value);
-              if (passwordError) setPasswordError("");
               if (apiError) setApiError("");
             }}
-            className={passwordError ? "invalid" : ""}
+            className={emailError ? "invalid" : ""}
             required
           />
-          {passwordError && (
-            <span className="error-message">{passwordError}</span>
+          {emailError && (
+            <span className="error-message">{emailError}</span>
           )}
-          <div style={{ textAlign: "right", marginTop: "8px" }}>
-            <span
-              className="auth-link"
-              style={{ fontSize: "14px", fontWeight: "500" }}
-            >
-              Mot de passe oublié ?
-            </span>
-          </div>
         </div>
-        <button type="submit" className="submit-btn" disabled={isLoading}>
+        <Link to="/forgot-password" style={{ marginLeft: '10px', textDecoration: 'underline' }}>
+          Mot de passe oublié ?
+        </Link>
+        <button type="submit" className="submit-btn" disabled={isLoading} style={{ width: '80%', margin: '20px auto', display: 'block' }}>
           {isLoading ? "Connexion..." : "Se connecter"}
         </button>
       </form>
       <div className="auth-footer">
-        <span>Vous n'avez pas de compte ? </span>
+        <span>Vous n'avez un compte? </span>
         <Link to="/register">
           <span className="auth-link">S'inscrire</span>
         </Link>

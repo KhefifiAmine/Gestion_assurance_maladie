@@ -76,8 +76,12 @@ const changePassword = async (req, res) => {
             return res.status(401).json({ message: 'L\'ancien mot de passe est incorrect.' });
         }
 
-        if (nouveauMdp.length < 6) {
-            return res.status(400).json({ message: 'Le nouveau mot de passe doit contenir au moins 6 caractères.' });
+        // Validation de la force du mot de passe
+        const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
+        if (!passwordRegex.test(nouveauMdp)) {
+            return res.status(400).json({
+                message: 'Le mot de passe doit contenir au moins 8 caractères, une majuscule, une minuscule, un chiffre et un symbole.'
+            });
         }
 
         // Hasher le nouveau mot de passe

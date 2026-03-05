@@ -7,7 +7,7 @@ const { sequelize } = require("./models");
 const authRoutes = require("./src/routes/auth.routes");
 const profileRoutes = require("./src/routes/profile.routes");
 const userRoutes = require("./src/routes/user.routes");
-
+const resetPasswordRoutes = require("./src/routes/resetPassword.routes");   
 const app = express();
 
 app.use(cors());
@@ -17,6 +17,7 @@ app.use(express.json());
 app.use(morgan(":method :url :status :res[content-length] - :response-time ms"));
 
 // Routes
+app.use("/api/reset-password", resetPasswordRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/profile", profileRoutes);
 app.use("/api/users", userRoutes);

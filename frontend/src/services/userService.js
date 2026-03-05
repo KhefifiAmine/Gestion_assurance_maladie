@@ -23,11 +23,11 @@ export const getAllUsers = async () => {
     return response.json();
 };
 
-export const updateUserStatus = async (id, statut) => {
+export const updateUserStatus = async (id, statut, raison = null) => {
     const response = await fetch(`${API_URL}/${id}/status`, {
         method: 'PUT',
         headers: getAuthHeaders(),
-        body: JSON.stringify({ statut }),
+        body: JSON.stringify({ statut, raison }),
     });
 
     if (!response.ok) {

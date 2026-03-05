@@ -10,6 +10,9 @@ import AdminLayout from './layouts/AdminLayout';
 import UserLayout from './layouts/UserLayout';
 import UsersDashboard from './pages/UsersDashboard';
 import BulletinsSoin from './pages/BulletinsSoin';
+import ForgotPassword from './pages/ForgotPassword';
+import VerifyResetCode from './pages/VerifyResetCode';
+import ResetPassword from './pages/ResetPassword';
 import { ToastProvider } from './context/ToastContext';
 import { ThemeProvider } from './context/ThemeContext';
 
@@ -48,42 +51,45 @@ function App() {
         <ThemeProvider>
           <ToastProvider>
             <Routes>
-            {/* Redirection intelligente à la racine */}
-            <Route path="/" element={<HomeRedirect />} />
+              {/* Redirection intelligente à la racine */}
+              <Route path="/" element={<HomeRedirect />} />
 
-            {/* Authentification */}
-            <Route element={<AuthLayout reverse={false} />}>
-              <Route path="/login" element={<Login />} />
-            </Route>
+              {/* Authentification */}
+              <Route element={<AuthLayout reverse={false} />}>
+                <Route path="/login" element={<Login />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
+                <Route path="/verify-reset-code" element={<VerifyResetCode />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
+              </Route>
 
-            <Route element={<AuthLayout reverse={true} />}>
-              <Route path="/register" element={<Register />} />
-            </Route>
+              <Route element={<AuthLayout reverse={true} />}>
+                <Route path="/register" element={<Register />} />
+              </Route>
 
-            {/* Espace Adhérent (User) */}
-            <Route element={<ProtectedRoute><UserLayout /></ProtectedRoute>}>
-              <Route path="/profile" element={<Profile />} />
-              <Route path="/bulletins" element={<BulletinsSoin />} />
-              <Route path="/reclamations" element={<div className="p-8 text-2xl font-semibold text-slate-800 dark:text-white">Mes Réclamations (En construction)</div>} />
-            </Route>
+              {/* Espace Adhérent (User) */}
+              <Route element={<ProtectedRoute><UserLayout /></ProtectedRoute>}>
+                <Route path="/profile" element={<Profile />} />
+                <Route path="/bulletins" element={<BulletinsSoin />} />
+                <Route path="/reclamations" element={<div className="p-8 text-2xl font-semibold text-slate-800 dark:text-white">Mes Réclamations (En construction)</div>} />
+              </Route>
 
-            {/* Espace Administration (Admin) */}
-            <Route path="/admin" element={<ProtectedRoute requireAdmin={true}><AdminLayout /></ProtectedRoute>}>
-              <Route index element={<Navigate to="users" replace />} />
-              <Route path="users" element={<UsersDashboard />} />
-              <Route path="bulletins" element={<BulletinsSoin />} />
-              <Route path="reclamations" element={<div className="p-8 text-2xl font-semibold text-slate-800 dark:text-white">Réclamations (En construction)</div>} />
-              <Route path="statistiques" element={<div className="p-8 text-2xl font-semibold text-slate-800 dark:text-white">Statistiques (En construction)</div>} />
-              <Route path="securite" element={<div className="p-8 text-2xl font-semibold text-slate-800 dark:text-white">Sécurité (En construction)</div>} />
-            </Route>
+              {/* Espace Administration (Admin) */}
+              <Route path="/admin" element={<ProtectedRoute requireAdmin={true}><AdminLayout /></ProtectedRoute>}>
+                <Route index element={<Navigate to="users" replace />} />
+                <Route path="users" element={<UsersDashboard />} />
+                <Route path="bulletins" element={<BulletinsSoin />} />
+                <Route path="reclamations" element={<div className="p-8 text-2xl font-semibold text-slate-800 dark:text-white">Réclamations (En construction)</div>} />
+                <Route path="statistiques" element={<div className="p-8 text-2xl font-semibold text-slate-800 dark:text-white">Statistiques (En construction)</div>} />
+                <Route path="securite" element={<div className="p-8 text-2xl font-semibold text-slate-800 dark:text-white">Sécurité (En construction)</div>} />
+              </Route>
 
-            {/* Catch-all redirection */}
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </ToastProvider>
-      </ThemeProvider>
-    </AuthProvider>
-  </BrowserRouter>
+              {/* Catch-all redirection */}
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </ToastProvider>
+        </ThemeProvider>
+      </AuthProvider>
+    </BrowserRouter>
   );
 }
 

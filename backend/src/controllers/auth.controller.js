@@ -1,10 +1,10 @@
-const bcrypt = require('bcrypt');
+const { hashPassword, comparePassword } = require('../utils/bcrypt');
 const jwt = require('jsonwebtoken');
 const { User } = require('../../models');
 
 const register = async (req, res) => {
     try {
-        const { nom, matricule, prenom, telephone, ddn, adresse, email, password } = req.body;
+        const { nom, matricule, prenom, telephone, ddn, adresse, email } = req.body;
 
         // Check if user already exists
         const existingUser = await User.findOne({ where: { email } });
@@ -12,9 +12,16 @@ const register = async (req, res) => {
             return res.status(400).json({ message: 'Un utilisateur avec cet email existe déjà.' });
         }
 
-        // Hash the password
-        const saltRounds = 10;
-        const hashedPassword = await bcrypt.hash(password, saltRounds);
+        // Format DD/MM/YYYY to YYYY-MM-DD
+        let formattedDdn = null;
+        if (ddn) {
+            const parts = ddn.split('/');
+            if (parts.length === 3) {
+                formattedDdn = `${parts[2]}-${parts[1]}-${parts[0]}`; // YYYY-MM-DD
+            } else {
+                formattedDdn = ddn;
+            }
+        }
 
         // Create user object based on STI requirements
         const newUser = await User.create({
@@ -22,12 +29,11 @@ const register = async (req, res) => {
             matricule,
             prenom,
             telephone,
-            ddn: ddn || null, // Parse if empty string
+            ddn: formattedDdn,
             adresse,
             email,
-            mot_de_passe: hashedPassword,
             role: 'ADHERENT', // Par défaut
-            statut: 1
+            statut: 0
         });
 
         res.status(201).json({
@@ -55,14 +61,25 @@ const login = async (req, res) => {
         }
 
         // Validate password
-        const validPassword = await bcrypt.compare(password, user.mot_de_passe);
+        const validPassword = await comparePassword(password, user.mot_de_passe);
         if (!validPassword) {
             return res.status(401).json({ message: 'Email ou mot de passe incorrect.' });
         }
 
         // Checking status
         if (user.statut === 0) {
-            return res.status(403).json({ message: 'Votre compte est inactif.' });
+            return res.status(403).json({ message: 'Votre compte est en attente d\'activation par un administrateur.' });
+        }
+        if (user.statut === 2) {
+            return res.status(403).json({ message: 'L\'accès à ce compte a été refusé par un administrateur.' });
+        }
+        if (user.statut === 3) {
+            return res.status(403).json({
+                message: `Votre compte a été bloqué par un administrateur.${user.motif_blocage ? ` Raison : ${user.motif_blocage}` : ''}`
+            });
+        }
+        if (user.statut !== 1) {
+            return res.status(403).json({ message: 'Votre compte n\'est pas actif.' });
         }
 
         // Generate JWT token

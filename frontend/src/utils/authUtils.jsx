@@ -24,8 +24,11 @@ export const validateEmail = (email) => {
 
 // Validation du mot de passe
 export const validatePassword = (password) => {
-  if (!password) return 'Veuillez entrer votre mot de passe.';
-  if (password.length < 6) return 'Le mot de passe doit contenir au moins 6 caractères.';
+  if (!password) return 'Veuillez entrer un mot de passe.';
+  const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
+  if (!passwordRegex.test(password)) {
+    return 'Le mot de passe doit contenir au moins 8 caractères, une majuscule, une minuscule, un chiffre et un symbole.';
+  }
   return '';
 };
 

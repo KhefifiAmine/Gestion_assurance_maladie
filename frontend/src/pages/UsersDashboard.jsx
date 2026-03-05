@@ -1,28 +1,28 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { 
-  getAllUsers, 
-  updateUserStatus, 
-  updateUserRole, 
-  deleteUser 
+import {
+    getAllUsers,
+    updateUserStatus,
+    updateUserRole,
+    deleteUser
 } from '../services/userService';
-import { 
-  Search, 
-  Filter, 
-  Plus, 
-  Edit, 
-  Trash2, 
-  ChevronLeft, 
-  ChevronRight,
-  UserCheck,
-  UserX,
-  Clock,
-  Users as UsersIcon,
-  Shield,
-  User,
-  MoreVertical,
-  Loader2,
-  Mail,
-  Smartphone
+import {
+    Search,
+    Filter,
+    Plus,
+    Edit,
+    Trash2,
+    ChevronLeft,
+    ChevronRight,
+    UserCheck,
+    UserX,
+    Clock,
+    Users as UsersIcon,
+    Shield,
+    User,
+    MoreVertical,
+    Loader2,
+    Mail,
+    Smartphone
 } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import ConfirmModal from '../components/ConfirmModal';
@@ -35,18 +35,20 @@ const UsersDashboard = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [activeFilter, setActiveFilter] = useState('Tous');
 
-    const [modalConfig, setModalConfig] = useState({ isOpen: false, userId: null, type: 'delete' });
+    const [modalConfig, setModalConfig] = useState({ isOpen: false, userId: null, type: 'delete', requireReason: false, reasonLabel: '' });
 
     const fetchUsers = async () => {
         try {
             setLoading(true);
             const data = await getAllUsers();
             setUsers(data);
+            setError('');
         } catch (err) {
-            setError(err.message);
-            showToast("Erreur de connexion au serveur", "error");
+            console.error("Erreur lors de la récupération des utilisateurs:", err);
+            setError(err.message || 'Erreur lors du chargement des utilisateurs');
+            showToast("Erreur lors du chargement des utilisateurs", "error");
         } finally {
-            setTimeout(() => setLoading(false), 800);
+            setLoading(false);
         }
     };
 
@@ -55,12 +57,40 @@ const UsersDashboard = () => {
     }, []);
 
     const handleStatusChange = async (id, newStatus) => {
-        try {
-            await updateUserStatus(id, newStatus);
-            showToast("Statut mis à jour avec succès", "success");
-            fetchUsers();
-        } catch (err) {
-            showToast("Échec de la mise à jour du statut", "error");
+        // Direct changes without reason
+        if (newStatus === 1) {
+            try {
+                await updateUserStatus(id, newStatus);
+                showToast("Statut mis à jour avec succès", "success");
+                fetchUsers();
+            } catch (err) {
+                showToast("Échec de la mise à jour du statut", "error");
+            }
+        }
+        // Changes that require a reason
+        else if (newStatus === 2) {
+            setModalConfig({
+                isOpen: true,
+                userId: id,
+                type: 'status',
+                title: "Refuser l'utilisateur",
+                message: "Veuillez indiquer la raison du refus qui sera envoyée par email.",
+                newStatus: 2,
+                requireReason: true,
+                reasonLabel: "Motif du refus"
+            });
+        }
+        else if (newStatus === 3) {
+            setModalConfig({
+                isOpen: true,
+                userId: id,
+                type: 'status',
+                title: "Bloquer l'utilisateur",
+                message: "Veuillez indiquer la raison du blocage (l'utilisateur recevra un e-mail et ne pourra plus se connecter).",
+                newStatus: 3,
+                requireReason: true,
+                reasonLabel: "Motif du blocage"
+            });
         }
     };
 
@@ -86,8 +116,8 @@ const UsersDashboard = () => {
         });
     };
 
-    const handleConfirmAction = async () => {
-        const { userId, type, newRole } = modalConfig;
+    const handleConfirmAction = async (reason) => {
+        const { userId, type, newRole, newStatus } = modalConfig;
         setModalConfig(prev => ({ ...prev, isOpen: false }));
 
         try {
@@ -97,6 +127,9 @@ const UsersDashboard = () => {
             } else if (type === 'role') {
                 await updateUserRole(userId, newRole);
                 showToast(`Rôle mis à jour : ${newRole}`, "info");
+            } else if (type === 'status') {
+                await updateUserStatus(userId, newStatus, reason);
+                showToast("Statut mis à jour", "success");
             }
             fetchUsers();
         } catch (err) {
@@ -113,17 +146,18 @@ const UsersDashboard = () => {
     }, [users]);
 
     const filteredUsers = users.filter((user) => {
-        const matchesSearch = 
+        const matchesSearch =
             user.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
             user.prenom.toLowerCase().includes(searchTerm.toLowerCase()) ||
             user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
             (user.matricule && user.matricule.toString().includes(searchTerm));
-        
-        const matchesTab = 
+
+        const matchesTab =
             activeFilter === 'Tous' ||
             (activeFilter === 'Actifs' && user.statut === 1) ||
             (activeFilter === 'En attente' && user.statut === 0) ||
-            (activeFilter === 'Refusés' && user.statut === 2);
+            (activeFilter === 'Refusés' && user.statut === 2) ||
+            (activeFilter === 'Bloqués' && user.statut === 3);
 
         return matchesSearch && matchesTab;
     });
@@ -160,8 +194,8 @@ const UsersDashboard = () => {
                             <p className="text-slate-500 dark:text-slate-400 font-medium tracking-tight">Dashboard d'administration sécurisé</p>
                         </div>
                     </div>
-                    
-                    <button 
+
+                    <button
                         onClick={() => showToast("Fonction bientôt disponible", "info")}
                         className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-blue-200 transition-all transform hover:scale-105 active:scale-95 group"
                     >
@@ -206,15 +240,15 @@ const UsersDashboard = () => {
                     <div className="flex flex-col lg:flex-row gap-4 justify-between items-center">
                         <div className="relative w-full lg:flex-1 group">
                             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors" size={20} />
-                            <input 
-                                type="text" 
+                            <input
+                                type="text"
                                 placeholder="Rechercher par nom, email ou matricule..."
                                 className="w-full pl-12 pr-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:bg-white dark:focus:bg-slate-700 transition-all text-slate-700 dark:text-slate-200 font-bold tracking-tight"
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                             />
                         </div>
-                        
+
                         <button className="flex items-center gap-2 px-6 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-all font-bold text-slate-600 dark:text-slate-300 text-sm">
                             <Filter size={18} />
                             <span>Filtres avancés</span>
@@ -222,15 +256,14 @@ const UsersDashboard = () => {
                     </div>
 
                     <div className="flex flex-wrap gap-3">
-                        {['Tous', 'Actifs', 'En attente', 'Refusés'].map((tab) => (
+                        {['Tous', 'Actifs', 'En attente', 'Refusés', 'Bloqués'].map((tab) => (
                             <button
                                 key={tab}
                                 onClick={() => setActiveFilter(tab)}
-                                className={`px-5 py-2 rounded-full text-xs font-black uppercase tracking-widest transition-all ${
-                                    activeFilter === tab 
-                                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30' 
+                                className={`px-5 py-2 rounded-full text-xs font-black uppercase tracking-widest transition-all ${activeFilter === tab
+                                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30'
                                     : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
-                                }`}
+                                    }`}
                             >
                                 {tab}
                             </button>
@@ -281,51 +314,86 @@ const UsersDashboard = () => {
                                                     {user.email}
                                                 </td>
                                                 <td className="px-6 py-5">
-                                                    <button 
+                                                    <button
                                                         onClick={() => handleRoleChange(user.id, user.role)}
-                                                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest cursor-pointer transition-all hover:scale-105 active:scale-95 ${
-                                                            user.role === 'ADMIN' 
-                                                            ? 'bg-blue-600 text-white shadow-lg shadow-blue-100 dark:shadow-none' 
+                                                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest cursor-pointer transition-all hover:scale-105 active:scale-95 ${user.role === 'ADMIN'
+                                                            ? 'bg-blue-600 text-white shadow-lg shadow-blue-100 dark:shadow-none'
                                                             : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
-                                                        }`}
+                                                            }`}
                                                     >
                                                         {user.role}
                                                     </button>
                                                 </td>
                                                 <td className="px-6 py-5">
                                                     <div className="flex items-center">
-                                                    {user.statut === 1 ? (
-                                                        <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 rounded-full text-[10px] font-black uppercase tracking-wider border border-emerald-100 dark:border-emerald-900/30">
-                                                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-600 animate-pulse"></span>
-                                                            Actif
-                                                        </span>
-                                                    ) : user.statut === 2 ? (
-                                                        <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 rounded-full text-[10px] font-black uppercase tracking-wider border border-red-100 dark:border-red-900/30">
-                                                            <span className="h-1.5 w-1.5 rounded-full bg-red-600"></span>
-                                                            Refusé
-                                                        </span>
-                                                    ) : (
-                                                        <select 
-                                                            value={user.statut}
-                                                            onChange={(e) => handleStatusChange(user.id, parseInt(e.target.value))}
-                                                            className="appearance-none bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider border border-amber-100 dark:border-amber-900/30 focus:outline-none cursor-pointer"
-                                                        >
-                                                            <option value={0}>En attente</option>
-                                                            <option value={1}>Actif</option>
-                                                            <option value={2}>Refusé</option>
-                                                        </select>
-                                                    )}
+                                                        {user.statut === 1 ? (
+                                                            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 rounded-full text-[10px] font-black uppercase tracking-wider border border-emerald-100 dark:border-emerald-900/30">
+                                                                <span className="h-1.5 w-1.5 rounded-full bg-emerald-600 animate-pulse"></span>
+                                                                Actif
+                                                            </span>
+                                                        ) : user.statut === 2 ? (
+                                                            <span title={user.motif_blocage || ''} className="inline-flex items-center gap-1.5 px-3 py-1 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 rounded-full text-[10px] font-black uppercase tracking-wider border border-red-100 dark:border-red-900/30 cursor-help">
+                                                                <span className="h-1.5 w-1.5 rounded-full bg-red-600"></span>
+                                                                Refusé
+                                                            </span>
+                                                        ) : user.statut === 3 ? (
+                                                            <span title={user.motif_blocage || ''} className="inline-flex items-center gap-1.5 px-3 py-1 bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-400 rounded-full text-[10px] font-black uppercase tracking-wider border border-orange-100 dark:border-orange-900/30 cursor-help">
+                                                                <span className="h-1.5 w-1.5 rounded-full bg-orange-600"></span>
+                                                                Bloqué
+                                                            </span>
+                                                        ) : (
+                                                            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 rounded-full text-[10px] font-black uppercase tracking-wider border border-amber-100 dark:border-amber-900/30">
+                                                                <span className="h-1.5 w-1.5 rounded-full bg-amber-600"></span>
+                                                                En attente
+                                                            </span>
+                                                        )}
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-5 text-right">
                                                     <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0">
-                                                        <button 
+                                                        {user.statut === 0 && (
+                                                            <>
+                                                                <button
+                                                                    onClick={() => handleStatusChange(user.id, 1)}
+                                                                    title="Accepter"
+                                                                    className="p-2 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-xl transition-all"
+                                                                >
+                                                                    <UserCheck size={16} />
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => handleStatusChange(user.id, 2)}
+                                                                    title="Refuser"
+                                                                    className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all"
+                                                                >
+                                                                    <UserX size={16} />
+                                                                </button>
+                                                            </>
+                                                        )}
+                                                        {user.statut === 1 && (
+                                                            <button
+                                                                onClick={() => handleStatusChange(user.id, 3)}
+                                                                title="Bloquer / Désactiver"
+                                                                className="p-2 text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-900/20 rounded-xl transition-all"
+                                                            >
+                                                                <UserX size={16} />
+                                                            </button>
+                                                        )}
+                                                        {(user.statut === 2 || user.statut === 3) && (
+                                                            <button
+                                                                onClick={() => handleStatusChange(user.id, 1)}
+                                                                title="Activer / Réapprouver"
+                                                                className="p-2 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-xl transition-all"
+                                                            >
+                                                                <UserCheck size={16} />
+                                                            </button>
+                                                        )}
+                                                        <button
                                                             className="p-2 text-blue-600 dark:text-blue-400 hover:bg-white dark:hover:bg-slate-700 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 transition-all font-bold text-xs"
                                                             onClick={() => showToast("Mode édition bientôt disponible", "info")}
                                                         >
                                                             <Edit size={16} />
                                                         </button>
-                                                        <button 
+                                                        <button
                                                             onClick={() => openDeleteModal(user.id)}
                                                             className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all"
                                                         >
@@ -333,6 +401,7 @@ const UsersDashboard = () => {
                                                         </button>
                                                     </div>
                                                 </td>
+
                                             </tr>
                                         ))
                                     ) : (
@@ -350,15 +419,17 @@ const UsersDashboard = () => {
             </div>
 
             {/* Modal de Confirmation pour les actions Admin */}
-            <ConfirmModal 
+            <ConfirmModal
                 isOpen={modalConfig.isOpen}
                 onClose={() => setModalConfig(prev => ({ ...prev, isOpen: false }))}
                 onConfirm={handleConfirmAction}
                 title={modalConfig.title}
                 message={modalConfig.message}
-                type={modalConfig.type === 'delete' ? 'danger' : 'warning'}
-                confirmText={modalConfig.type === 'delete' ? "Supprimer" : "Changer"}
+                type={modalConfig.type === 'delete' || modalConfig.type === 'status' ? 'danger' : 'warning'}
+                confirmText={modalConfig.type === 'delete' ? "Supprimer" : modalConfig.type === 'status' ? "Confirmer" : "Changer"}
                 cancelText="Annuler"
+                requireReason={modalConfig.requireReason}
+                reasonLabel={modalConfig.reasonLabel}
             />
         </div>
     );

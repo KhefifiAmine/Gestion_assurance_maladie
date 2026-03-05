@@ -1,34 +1,36 @@
-import { Outlet } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 import '../pages/Auth.css';
-import tunisieTelecomImg from '../assets/Tunisie_Telecom.jpg';
+import loginIllustration from '../assets/image 2.png';
+import registerIllustration from '../assets/image 1.png';
 
 export default function AuthLayout({ reverse = false }) {
+  const location = useLocation();
+  const isRegister = location.pathname === '/register' || reverse;
+  const illustration = isRegister ? registerIllustration : loginIllustration;
+
   return (
-    <div style={{ 
-      display: 'flex', 
-      justifyContent: 'center', 
-      alignItems: 'center', 
-      minHeight: '100vh', 
-      width: '100vw',
-      backgroundColor: '#f0f2f5'
-    }}>
-      <div className="auth-container">
-        {/* Sidebar gauche */}
+    <div className="auth-wrapper">
+      <div className={`auth-container ${isRegister ? "reverse-layout" : ""}`}>
+        {/* Colorful Sidebar */}
         <div className="auth-sidebar">
-          <div className="logo-container">
-            <div className="logo-circle">
-              <span style={{ fontSize: '24px', fontWeight: 'bold', color: '#00B2FF' }}>TT</span>
+          <div className="sidebar-header">
+            <div className="logo-wrapper">
+              <div className="logo-placeholder">
+                <span className="logo-tt">TT</span>
+              </div>
+              <span className="brand-text">Tunisie Telecom</span>
             </div>
-            <h1 className="brand-name">Tunisie Telecom</h1>
           </div>
-          <div className="illustration-container">
-            <img src={tunisieTelecomImg} alt="Tunisie Telecom" className="illustration-img" />
+          <div className="illustration-wrapper">
+            <img src={illustration} alt="Illustration" className="illustration-img" />
           </div>
         </div>
 
-        <div className={`auth-content ${reverse ? "order-1" : "order-2"}`}>
-            <Outlet />
+        {/* Content white */}
+        <div className="auth-content">
+          <Outlet />
         </div>
       </div>
     </div>
-)}
+  );
+}
