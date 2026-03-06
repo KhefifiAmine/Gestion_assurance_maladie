@@ -4,7 +4,8 @@ import {
     updateUserStatus,
     updateUserRole,
     deleteUser
-} from '../services/userService';
+} from '../../services/userService';
+import { useAuth } from '../../context/AuthContext';
 import {
     Search,
     Filter,
@@ -22,18 +23,23 @@ import {
     MoreVertical,
     Loader2,
     Mail,
-    Smartphone
+    Smartphone,
+    UserPlus
 } from 'lucide-react';
-import { useToast } from '../context/ToastContext';
-import ConfirmModal from '../components/ConfirmModal';
+import { useToast } from '../../context/ToastContext';
+import ConfirmModal from '../../components/ConfirmModal';
+import AddUserModal from '../../components/AddUserModal';
+import { createUser } from '../../services/userService';
 
-const UsersDashboard = () => {
+const AdminDashboard = ({ mode = 'adherents' }) => {
+    const { user: currentUser } = useAuth();
     const { showToast } = useToast();
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
     const [activeFilter, setActiveFilter] = useState('Tous');
+    const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
 
     const [modalConfig, setModalConfig] = useState({ isOpen: false, userId: null, type: 'delete', requireReason: false, reasonLabel: '' });
 
@@ -46,7 +52,7 @@ const UsersDashboard = () => {
         } catch (err) {
             console.error("Erreur lors de la récupération des utilisateurs:", err);
             setError(err.message || 'Erreur lors du chargement des utilisateurs');
-            showToast("Erreur lors du chargement des utilisateurs", "error");
+            showToast(err.message || "Erreur lors du chargement des utilisateurs", "error");
         } finally {
             setLoading(false);
         }
@@ -95,7 +101,11 @@ const UsersDashboard = () => {
     };
 
     const handleRoleChange = async (id, currentRole) => {
-        const newRole = currentRole === 'ADMIN' ? 'ADHERENT' : 'ADMIN';
+        let newRole;
+        if (currentRole === 'ADHERENT') newRole = 'ADMIN';
+        else if (currentRole === 'ADMIN') newRole = 'SUPER_ADMIN';
+        else newRole = 'ADHERENT';
+
         setModalConfig({
             isOpen: true,
             userId: id,
@@ -114,6 +124,18 @@ const UsersDashboard = () => {
             title: "Confirmer la suppression",
             message: "Êtes-vous sûr de vouloir supprimer cet utilisateur ? Cette action est définitive et irréversible."
         });
+    };
+
+    const handleAddUser = async (userData) => {
+        try {
+            await createUser(userData);
+            showToast("Utilisateur créé avec succès ! Un email a été envoyé.", "success");
+            fetchUsers();
+        } catch (error) {
+            showToast(error.message || "Erreur lors de la création de l'utilisateur", "error");
+        } finally {
+            setIsAddUserModalOpen(false);
+        }
     };
 
     const handleConfirmAction = async (reason) => {
@@ -141,26 +163,36 @@ const UsersDashboard = () => {
         return {
             total: users.length,
             adherents: users.filter(u => u.role === 'ADHERENT').length,
-            admins: users.filter(u => u.role === 'ADMIN').length
+            admins: users.filter(u => u.role === 'ADMIN').length,
+            superAdmins: users.filter(u => u.role === 'SUPER_ADMIN').length
         };
     }, [users]);
 
-    const filteredUsers = users.filter((user) => {
-        const matchesSearch =
-            user.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            user.prenom.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            (user.matricule && user.matricule.toString().includes(searchTerm));
+    const filteredUsers = useMemo(() => {
+        return users.filter(user => {
+            // Ne pas afficher l'utilisateur connecté
+            if (user.id === currentUser?.id) return false;
 
-        const matchesTab =
-            activeFilter === 'Tous' ||
-            (activeFilter === 'Actifs' && user.statut === 1) ||
-            (activeFilter === 'En attente' && user.statut === 0) ||
-            (activeFilter === 'Refusés' && user.statut === 2) ||
-            (activeFilter === 'Bloqués' && user.statut === 3);
+            // Filtrer par rôle selon le mode
+            if (mode === 'adherents' && user.role !== 'ADHERENT') return false;
+            if (mode === 'admins' && user.role === 'ADHERENT') return false;
 
-        return matchesSearch && matchesTab;
-    });
+            const matchesSearch =
+                user.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                user.prenom.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                (user.matricule && user.matricule.toLowerCase().includes(searchTerm.toLowerCase()));
+
+            const matchesStatus =
+                activeFilter === 'Tous' ||
+                (activeFilter === 'Actifs' && user.statut === 1) ||
+                (activeFilter === 'En attente' && user.statut === 0) ||
+                (activeFilter === 'Refusés' && user.statut === 2) ||
+                (activeFilter === 'Bloqués' && user.statut === 3);
+
+            return matchesSearch && matchesStatus;
+        });
+    }, [users, searchTerm, activeFilter, mode, currentUser]);
 
     const getInitials = (user) => {
         return `${user.nom.charAt(0)}${user.prenom.charAt(0)}`.toUpperCase();
@@ -190,46 +222,68 @@ const UsersDashboard = () => {
                             <UsersIcon size={28} />
                         </div>
                         <div>
-                            <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Gestion des utilisateurs</h1>
-                            <p className="text-slate-500 dark:text-slate-400 font-medium tracking-tight">Dashboard d'administration sécurisé</p>
+                            <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter">
+                                {mode === 'adherents' ? 'Gestion des Adhérents' : 'Gestion des Administrateurs'}
+                            </h1>
+                            <p className="text-slate-500 dark:text-slate-400 font-medium tracking-tight">
+                                {mode === 'adherents'
+                                    ? 'Consultez et gérez les dossiers des adhérents de la plateforme.'
+                                    : 'Gérez les accès et les permissions du personnel administratif.'}
+                            </p>
                         </div>
                     </div>
 
                     <button
-                        onClick={() => showToast("Fonction bientôt disponible", "info")}
-                        className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-blue-200 transition-all transform hover:scale-105 active:scale-95 group"
+                        onClick={() => setIsAddUserModalOpen(true)}
+                        className="flex items-center gap-3 bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-8 rounded-2xl shadow-lg transition-all transform hover:scale-105 active:scale-95 group"
                     >
-                        <Plus size={20} className="group-hover:rotate-90 transition-transform duration-300" />
-                        <span>Ajouter un utilisateur</span>
+                        <UserPlus size={22} className="group-hover:rotate-12 transition-transform" />
+                        Ajouter un utilisateur
                     </button>
                 </div>
 
                 {/* STATS CARDS */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 flex items-center justify-between group hover:shadow-md transition-all">
-                        <div>
-                            <p className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">Total Utilisateurs</p>
-                            <h3 className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter">{stats.total}</h3>
+                <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-${mode === 'adherents' ? '4' : '3'} gap-6`}>
+                    {mode === 'adherents' && (
+                        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 flex items-center justify-between group hover:shadow-md transition-all">
+                            <div>
+                                <p className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">Total Utilisateurs</p>
+                                <h3 className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter">{stats.total}</h3>
+                            </div>
+                            <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-2xl text-blue-600 dark:text-blue-400">
+                                <UsersIcon size={24} />
+                            </div>
                         </div>
-                        <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-2xl text-blue-600 dark:text-blue-400">
-                            <UsersIcon size={24} />
+                    )}
+
+                    {mode === 'adherents' && (
+                        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 flex items-center justify-between group hover:shadow-md transition-all">
+                            <div>
+                                <p className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">Adhérents</p>
+                                <h3 className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter">{stats.adherents}</h3>
+                            </div>
+                            <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-2xl text-green-600 dark:text-green-400">
+                                <Shield size={24} />
+                            </div>
                         </div>
-                    </div>
-                    <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 flex items-center justify-between group hover:shadow-md transition-all">
-                        <div>
-                            <p className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">Adhérents</p>
-                            <h3 className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter">{stats.adherents}</h3>
-                        </div>
-                        <div className="bg-emerald-50 dark:bg-emerald-900/20 p-4 rounded-2xl text-emerald-600 dark:text-emerald-400">
-                            <User size={24} />
-                        </div>
-                    </div>
+                    )}
+
                     <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 flex items-center justify-between group hover:shadow-md transition-all">
                         <div>
                             <p className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">Administrateurs</p>
                             <h3 className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter">{stats.admins}</h3>
                         </div>
                         <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-2xl text-purple-600 dark:text-purple-400">
+                            <Shield size={24} />
+                        </div>
+                    </div>
+
+                    <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 flex items-center justify-between group hover:shadow-md transition-all">
+                        <div>
+                            <p className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">Super Admins</p>
+                            <h3 className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter">{stats.superAdmins}</h3>
+                        </div>
+                        <div className="bg-amber-50 dark:bg-amber-900/20 p-4 rounded-2xl text-amber-600 dark:text-amber-400">
                             <Shield size={24} />
                         </div>
                     </div>
@@ -316,10 +370,13 @@ const UsersDashboard = () => {
                                                 <td className="px-6 py-5">
                                                     <button
                                                         onClick={() => handleRoleChange(user.id, user.role)}
-                                                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest cursor-pointer transition-all hover:scale-105 active:scale-95 ${user.role === 'ADMIN'
-                                                            ? 'bg-blue-600 text-white shadow-lg shadow-blue-100 dark:shadow-none'
-                                                            : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
-                                                            }`}
+                                                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest cursor-pointer transition-all hover:scale-105 active:scale-95 ${
+                                                            user.role === 'SUPER_ADMIN'
+                                                                ? 'bg-amber-500 text-slate-950 shadow-lg shadow-amber-200 dark:shadow-none'
+                                                                : user.role === 'ADMIN'
+                                                                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-100 dark:shadow-none'
+                                                                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                                                        }`}
                                                     >
                                                         {user.role}
                                                     </button>
@@ -431,8 +488,14 @@ const UsersDashboard = () => {
                 requireReason={modalConfig.requireReason}
                 reasonLabel={modalConfig.reasonLabel}
             />
+
+            <AddUserModal
+                isOpen={isAddUserModalOpen}
+                onClose={() => setIsAddUserModalOpen(false)}
+                onSubmit={handleAddUser}
+            />
         </div>
     );
 };
 
-export default UsersDashboard;
+export default AdminDashboard;

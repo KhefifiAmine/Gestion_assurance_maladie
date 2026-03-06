@@ -1,174 +1,244 @@
-import React, { useState } from 'react';
-import './Auth.css';
-import { validateEmail, validatePhone, validateText, validateDate, SuccessModal } from '../utils/authUtils';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from "react-router-dom";
 import { registerUser } from '../services/api';
-import { useTheme } from '../context/ThemeContext';
-import { Moon, Sun } from 'lucide-react';
+import { useToast } from '../context/ToastContext';
+import { 
+  User, 
+  Mail, 
+  Lock, 
+  Phone, 
+  Calendar, 
+  MapPin, 
+  Hash, 
+  Eye, 
+  EyeOff, 
+  Loader2, 
+  ArrowRight,
+  CheckCircle2,
+  AlertCircle
+} from 'lucide-react';
+import ttLogo from '../assets/Tunisie_Telecom.jpg';
 
-const Register = ({ onGoToLogin }) => {
+// Composant InputField pour une cohérence parfaite et aucun problème de focus
+const InputField = ({ label, name, placeholder, icon: Icon, type = "text", error, value, onChange, onBlur, showToggle, onToggle, isVisible, max }) => (
+  <div className="space-y-1 w-full">
+    <div className="flex justify-between items-center ml-1">
+      <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{label}</label>
+      {error && <span className="text-red-500 text-[10px] font-bold">{error}</span>}
+    </div>
+    <div className="relative group">
+      <div className={`absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none group-focus-within:text-blue-500 ${error ? 'text-red-400' : 'text-slate-300'}`}>
+        <Icon size={16} />
+      </div>
+      <input
+        type={showToggle ? (isVisible ? "text" : "password") : type}
+        name={name}
+        placeholder={placeholder}
+        value={value}
+        onChange={onChange}
+        onBlur={onBlur}
+        max={max}
+        className={`w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-900 border-2 rounded-xl transition-all outline-none text-sm font-semibold text-slate-900 dark:text-white placeholder:text-slate-300/60 appearance-none ${
+          error ? "border-red-400 focus:border-red-400" : "border-slate-100 dark:border-slate-800 focus:border-blue-500"
+        } ${type === 'date' ? 'cursor-pointer hover:bg-slate-100/50 dark:hover:bg-slate-800/50' : ''}`}
+        required
+      />
+      {showToggle && (
+        <button 
+          type="button" 
+          onClick={onToggle} 
+          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-300 hover:text-blue-500 transition-colors"
+        >
+          {isVisible ? <EyeOff size={16} /> : <Eye size={16} />}
+        </button>
+      )}
+    </div>
+  </div>
+);
+
+const Register = () => {
   const navigate = useNavigate();
-  const { theme, toggleTheme } = useTheme();
+  const { showToast } = useToast();
+  
   const [formData, setFormData] = useState({
-    nom: '', matricule: '', prenom: '', telephone: '', ddn: '', adresse: '', email: ''
+    nom: '', 
+    prenom: '', 
+    matricule: '', 
+    telephone: '', 
+    ddn: '', 
+    adresse: '', 
+    email: '',
+    password: '',
+    confirmPassword: ''
   });
+
   const [errors, setErrors] = useState({});
-  const [apiError, setApiError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [successInfo, setSuccessInfo] = useState({ show: false, message: '' });
+  const [acceptTerms, setAcceptTerms] = useState(false);
+  const [passwordStrength, setPasswordStrength] = useState(0);
+
+  // Date maximale pour la naissance (aujourd'hui)
+  const today = new Date().toISOString().split('T')[0];
+
+  useEffect(() => {
+    let strength = 0;
+    if (formData.password.length >= 8) strength += 25;
+    if (/[A-Z]/.test(formData.password)) strength += 25;
+    if (/[0-9]/.test(formData.password)) strength += 25;
+    if (/[^A-Za-z0-9]/.test(formData.password)) strength += 25;
+    setPasswordStrength(strength);
+  }, [formData.password]);
+
+  const validateField = (name, value) => {
+    let error = "";
+    switch (name) {
+      case 'email':
+        if (!/^[a-zA-Z0-9._%+-]+@(tunisietelecom\.tn|gmail\.com)$/.test(value)) error = "Email TT ou Gmail requis";
+        break;
+      case 'telephone':
+        if (!/^\d{8}$/.test(value)) error = "8 chiffres";
+        break;
+      case 'password':
+        if (value.length < 8) error = "8+ carac.";
+        break;
+      case 'confirmPassword':
+        if (value !== formData.password) error = "Différent";
+        break;
+      case 'ddn':
+        if (!value) error = "Requis";
+        break;
+      default:
+        if (!value) error = "Requis";
+    }
+    setErrors(prev => ({ ...prev, [name]: error }));
+    return error === "";
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
-    if (errors[name]) setErrors({ ...errors, [name]: '' });
+    setFormData(prev => ({ ...prev, [name]: value }));
+    if (errors[name]) validateField(name, value);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setApiError('');
-    const newErrors = {};
-
-    const nomErr = validateText(formData.nom, 'Nom');
-    if (nomErr) newErrors.nom = nomErr;
-
-    const matriculeErr = validateText(formData.matricule, 'Matricule');
-    if (matriculeErr) newErrors.matricule = matriculeErr;
-
-    const prenomErr = validateText(formData.prenom, 'Prénom');
-    if (prenomErr) newErrors.prenom = prenomErr;
-
-    const telErr = validatePhone(formData.telephone);
-    if (telErr) newErrors.telephone = telErr;
-
-    const ddnErr = validateDate(formData.ddn);
-    if (ddnErr) newErrors.ddn = ddnErr;
-
-    const adresseErr = validateText(formData.adresse, 'Adresse');
-    if (adresseErr) newErrors.adresse = adresseErr;
-
-    const emailErr = validateEmail(formData.email);
-    if (emailErr) newErrors.email = emailErr;
-
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
+    const allValid = Object.keys(formData).every(key => validateField(key, formData[key]));
+    if (!allValid || !acceptTerms) {
+      showToast(allValid ? "Acceptez les conditions" : "Corrigez les erreurs", "error");
       return;
     }
 
     try {
       setIsLoading(true);
       await registerUser(formData);
-      setSuccessInfo({
-        show: true,
-        message: "Votre demande d'inscription a été enregistrée avec succès. Nos services vérifieront vos informations et vous recevrez une confirmation par mail d'ici 24h.",
-      });
+      showToast("Succès ! Redirection...", "success");
+      setTimeout(() => navigate('/login'), 2000);
     } catch (err) {
-      setApiError(err.message);
+      showToast(err.message, "error");
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <>
-      <div className="auth-header" style={{ textAlign: 'left', position: 'relative' }}>
-        <button
-          onClick={toggleTheme}
-          style={{
-            position: 'absolute',
-            top: '0px',
-            right: '0px',
-            background: 'transparent',
-            border: 'none',
-            cursor: 'pointer',
-            padding: '5px',
-            color: theme === 'dark' ? '#facc15' : '#475569'
-          }}
-          type="button"
-        >
-          {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
-        </button>
-        <h2>Créer votre compte</h2>
+    <div className="bg-white dark:bg-slate-800 p-5 md:p-8 rounded-[2rem] shadow-2xl border border-slate-50 dark:border-slate-700">
+      <style>{`
+        input[type="date"]::-webkit-calendar-picker-indicator {
+          background: transparent;
+          bottom: 0;
+          color: transparent;
+          cursor: pointer;
+          height: auto;
+          left: 0;
+          position: absolute;
+          right: 0;
+          top: 0;
+          width: auto;
+        }
+      `}</style>
+      <div className="text-center mb-5">
+        <img src={ttLogo} alt="TT" className="h-10 mx-auto mb-2 object-contain" />
+        <h2 className="text-xl font-black text-slate-900 dark:text-white tracking-tight uppercase">Créer un compte</h2>
       </div>
-      <form onSubmit={handleSubmit}>
-        {apiError && <div className="api-error-banner">{apiError}</div>}
-        <div className="form-row">
-          <div className="form-group">
-            <label>Nom :</label>
-            <input type="text" name="nom" placeholder="Entrer votre Nom" value={formData.nom} onChange={handleChange} className={errors.nom ? 'invalid' : ''} required />
-            {errors.nom && <span className="error-message">{errors.nom}</span>}
-          </div>
-          <div className="form-group">
-            <label>Matricule :</label>
-            <input type="text" name="matricule" placeholder="Entrer votre Matricule" value={formData.matricule} onChange={handleChange} className={errors.matricule ? 'invalid' : ''} required />
-            {errors.matricule && <span className="error-message">{errors.matricule}</span>}
-          </div>
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="grid grid-cols-2 gap-4">
+          <InputField label="Nom" name="nom" placeholder="Nom" icon={User} error={errors.nom} value={formData.nom} onChange={handleChange} onBlur={() => validateField('nom', formData.nom)} />
+          <InputField label="Prénom" name="prenom" placeholder="Prénom" icon={User} error={errors.prenom} value={formData.prenom} onChange={handleChange} onBlur={() => validateField('prenom', formData.prenom)} />
         </div>
-        <div className="form-row">
-          <div className="form-group">
-            <label>Prénom :</label>
-            <input type="text" name="prenom" placeholder="Entrer votre Prénom" value={formData.prenom} onChange={handleChange} className={errors.prenom ? 'invalid' : ''} required />
-            {errors.prenom && <span className="error-message">{errors.prenom}</span>}
-          </div>
-          <div className="form-group">
-            <label>Téléphone :</label>
-            <input type="text" name="telephone" placeholder="Entrer votre Matricule" value={formData.telephone} onChange={handleChange} className={errors.telephone ? 'invalid' : ''} required />
-            {errors.telephone && <span className="error-message">{errors.telephone}</span>}
-          </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <InputField label="Matricule" name="matricule" placeholder="N°" icon={Hash} error={errors.matricule} value={formData.matricule} onChange={handleChange} onBlur={() => validateField('matricule', formData.matricule)} />
+          <InputField label="Téléphone" name="telephone" placeholder="Tel" icon={Phone} error={errors.telephone} value={formData.telephone} onChange={handleChange} onBlur={() => validateField('telephone', formData.telephone)} />
         </div>
-        <div className="form-row">
-          <div className="form-group">
-            <label>Date de naissance :</label>
-            <input type="text" name="ddn" placeholder="JJ/MM/AAAA" value={formData.ddn} onChange={handleChange} className={errors.ddn ? 'invalid' : ''} required />
-            {errors.ddn && <span className="error-message">{errors.ddn}</span>}
-          </div>
-          <div className="form-group">
-            <label>Adresse :</label>
-            <input type="text" name="adresse" placeholder="Entrer votre Adresse" value={formData.adresse} onChange={handleChange} className={errors.adresse ? 'invalid' : ''} required />
-            {errors.adresse && <span className="error-message">{errors.adresse}</span>}
-          </div>
-        </div>
-        <div className="form-group">
-          <label>Email :</label>
-          <input
-            type="text"
-            name="email"
-            placeholder="Entrer votre Email"
-            value={formData.email}
-            onChange={handleChange}
-            className={errors.email ? 'invalid' : ''}
-            required
+
+        <div className="grid grid-cols-2 gap-4">
+          <InputField 
+            label="Date de Naissance" 
+            name="ddn" 
+            type="date" 
+            icon={Calendar} 
+            max={today}
+            error={errors.ddn} 
+            value={formData.ddn} 
+            onChange={handleChange} 
+            onBlur={() => validateField('ddn', formData.ddn)} 
           />
-          {errors.email && <span className="error-message">{errors.email}</span>}
+          <InputField label="Ville / Adresse" name="adresse" placeholder="Ville" icon={MapPin} error={errors.adresse} value={formData.adresse} onChange={handleChange} onBlur={() => validateField('adresse', formData.adresse)} />
         </div>
 
-        <div className="captcha-placeholder">
-          <div className="captcha-left">
-            <input type="checkbox" />
-            <span>Je ne suis pas un robot</span>
-          </div>
-          <div className="captcha-right">
-            <img src="https://www.gstatic.com/recaptcha/api2/logo_48.png" alt="reCAPTCHA" />
-            <span>reCAPTCHA<br />Confidentialité - Conditions</span>
-          </div>
+        <InputField label="Email Pro" name="email" placeholder="email@tunisietelecom.tn" icon={Mail} error={errors.email} value={formData.email} onChange={handleChange} onBlur={() => validateField('email', formData.email)} />
+
+        <div className="grid grid-cols-2 gap-4">
+          <InputField 
+            label="Mot de passe" 
+            name="password" 
+            placeholder="••••" 
+            icon={Lock} 
+            error={errors.password} 
+            value={formData.password} 
+            onChange={handleChange} 
+            onBlur={() => validateField('password', formData.password)}
+            showToggle={true}
+            isVisible={showPassword}
+            onToggle={() => setShowPassword(!showPassword)}
+          />
+          <InputField 
+            label="Confirmation" 
+            name="confirmPassword" 
+            placeholder="••••" 
+            icon={Lock} 
+            error={errors.confirmPassword} 
+            value={formData.confirmPassword} 
+            onChange={handleChange} 
+            onBlur={() => validateField('confirmPassword', formData.confirmPassword)}
+            showToggle={true}
+            isVisible={showConfirmPassword}
+            onToggle={() => setShowConfirmPassword(!showConfirmPassword)}
+          />
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '30px', marginTop: '10px' }}>
-          <button type="submit" className="submit-btn" style={{ width: '200px', margin: '0' }} disabled={isLoading}>
-            {isLoading ? 'Envoi...' : 'Demander'}
-          </button>
-          <Link to="/login" style={{ textDecoration: 'underline' }}>
-            <span className="auth-link" style={{ fontSize: '20px' }}>Login</span>
-          </Link>
-        </div>
+        <label className="flex items-center gap-3 cursor-pointer group px-1">
+          <input type="checkbox" checked={acceptTerms} onChange={() => setAcceptTerms(!acceptTerms)} className="w-4 h-4 rounded border-slate-200 text-blue-600 focus:ring-blue-500" />
+          <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">J'accepte les conditions d'utilisation</span>
+        </label>
+
+        <button
+          type="submit"
+          disabled={isLoading}
+          className="w-full py-4 bg-[#005aab] hover:bg-blue-700 text-white rounded-xl font-bold text-sm shadow-xl shadow-blue-500/20 transition-all flex items-center justify-center gap-2 group"
+        >
+          {isLoading ? <Loader2 className="animate-spin" size={18} /> : <span className="uppercase tracking-widest text-xs">Demander l'accès</span>}
+          <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+        </button>
+
+        <p className="text-center text-[10px] font-bold text-slate-400">
+          DÉJÀ UN COMPTE ? <Link to="/login" className="text-blue-600 hover:underline">SE CONNECTER</Link>
+        </p>
       </form>
-
-      {successInfo.show && (
-        <SuccessModal
-          message={successInfo.message}
-          onClose={() => { setSuccessInfo({ show: false, message: '' }); navigate('/login'); }}
-        />
-      )}
-    </>
+    </div>
   );
 };
 

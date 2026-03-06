@@ -100,7 +100,7 @@ const updateUserRole = async (req, res) => {
         const { id } = req.params;
         const { role } = req.body;
 
-        if (!['ADMIN', 'ADHERENT'].includes(role)) {
+        if (!['ADMIN', 'ADHERENT', 'SUPER_ADMIN'].includes(role)) {
             return res.status(400).json({ message: 'Rôle invalide.' });
         }
 
@@ -149,9 +149,50 @@ const deleteUser = async (req, res) => {
     }
 };
 
+// Créer un utilisateur (par un administrateur)
+const createUser = async (req, res) => {
+    try {
+        const { nom, prenom, email, role, matricule } = req.body;
+
+        if (!nom || !prenom || !email || !role) {
+            return res.status(400).json({ message: 'Veuillez remplir tous les champs obligatoires.' });
+        }
+
+        const existingUser = await User.findOne({ where: { email } });
+        if (existingUser) {
+            return res.status(400).json({ message: 'Cet email est déjà utilisé.' });
+        }
+
+        const plainPassword = generateRandomPassword();
+        const hashedPassword = await hashPassword(plainPassword);
+
+        const user = await User.create({
+            nom,
+            prenom,
+            email,
+            role,
+            matricule: matricule || null,
+            mot_de_passe: hashedPassword,
+            statut: 1
+        });
+
+        sendApprovalEmail(user.email, plainPassword).catch(err => console.error("Could not send credentials email: ", err));
+
+        res.status(201).json({ 
+            message: 'Utilisateur créé avec succès.', 
+            user: { id: user.id, nom: user.nom, email: user.email, role: user.role } 
+        });
+
+    } catch (error) {
+        console.error('Erreur lors de la création de l\'utilisateur:', error);
+        res.status(500).json({ message: 'Erreur serveur lors de la création de l\'utilisateur.' });
+    }
+};
+
 module.exports = {
     getAllUsers,
     updateUserStatus,
     updateUserRole,
-    deleteUser
+    deleteUser,
+    createUser
 };

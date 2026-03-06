@@ -38,16 +38,18 @@ const AdminLayout = () => {
 
     const confirmLogout = () => {
         logout();
-        navigate('/login');
+        navigate('/admin/login');
     };
 
     const menuItems = [
-        { name: 'Utilisateurs', path: '/admin/users', icon: <Users size={20} /> },
-        { name: 'Bulletins', path: '/admin/bulletins', icon: <FileText size={20} /> },
-        { name: 'Réclamation', path: '/admin/reclamations', icon: <AlertTriangle size={20} /> },
-        { name: 'Statistiques', path: '/admin/statistiques', icon: <BarChart2 size={20} /> },
-        { name: 'Sécurité', path: '/admin/securite', icon: <ShieldCheck size={20} /> },
+        { name: 'Adhérents', path: '/admin/users', icon: <Users size={20} />, roles: ['ADMIN', 'SUPER_ADMIN'] },
+        { name: 'Bulletins de Soin', path: '/admin/bulletins', icon: <FileText size={20} />, roles: ['ADMIN'] },
+        { name: 'Réclamations', path: '/admin/reclamations', icon: <AlertTriangle size={20} />, roles: ['ADMIN', 'SUPER_ADMIN'] },
+        { name: 'Finances & Stats', path: '/admin/statistiques', icon: <BarChart2 size={20} />, roles: ['SUPER_ADMIN'] },
+        { name: 'Gestion Admins', path: '/admin/securite', icon: <ShieldCheck size={20} />, roles: ['SUPER_ADMIN'] },
     ];
+
+    const filteredMenuItems = menuItems.filter(item => item.roles.includes(user?.role));
 
     return (
     <div className="flex h-screen bg-gray-50 dark:bg-slate-950 overflow-hidden font-sans transition-colors duration-300">
@@ -65,7 +67,7 @@ const AdminLayout = () => {
           </div>
           
           <nav className="mt-6 flex flex-col w-full px-4 gap-1">
-            {menuItems.map((item) => (
+            {filteredMenuItems.map((item) => (
               <NavLink
                 key={item.name}
                 to={item.path}
@@ -114,9 +116,18 @@ const AdminLayout = () => {
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-8 h-8 text-black dark:text-blue-500"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
                 </div>
                 <div className="flex flex-col">
-                    <span className="text-lg font-black text-black dark:text-white leading-none">
-                        {user?.prenom || 'Admin'}
-                    </span>
+                    <div className="flex items-center gap-2">
+                        <span className="text-lg font-black text-black dark:text-white leading-none">
+                            {user?.prenom || 'Admin'}
+                        </span>
+                        <span className={`px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest border ${
+                            user?.role === 'SUPER_ADMIN' 
+                                ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-800' 
+                                : 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800'
+                        }`}>
+                            {user?.role === 'SUPER_ADMIN' ? 'Super Admin' : 'Admin'}
+                        </span>
+                    </div>
                     <span className="text-[10px] uppercase font-black text-slate-400 dark:text-slate-500 tracking-widest mt-1">Status: En ligne</span>
                 </div>
             </div>

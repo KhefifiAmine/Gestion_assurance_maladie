@@ -13,8 +13,12 @@ import {
   Clock,
   ArrowUpRight
 } from 'lucide-react';
+import AddBulletinModal from '../../components/AddBulletinModal';
+import { useToast } from '../../context/ToastContext';
 
-const BulletinsSoin = () => {
+const UserDashboard = () => {
+    const { showToast } = useToast();
+    const [isModalOpen, setIsModalOpen] = useState(false);
     // Données mockées (Tunisie)
     const [bulletins] = useState([
         { id: 'BS-2024-001', patient: 'Ahmed Mansour', date: '2024-02-15', expertise: 'Approuvée', depense: 125.500, rembourse: 100.400, type: 'Consultation' },
@@ -70,6 +74,12 @@ const BulletinsSoin = () => {
         });
     }, [searchTerm, statusFilter, dateFilter, bulletins]);
 
+    const handleAddBulletin = (data) => {
+        console.log('New Bulletin Data:', data);
+        showToast("Demande de remboursement envoyée avec succès !", "success");
+        // Ici on pourrait ajouter l'appel API
+    };
+
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 p-6 md:p-10 font-sans transition-colors duration-300">
             <div className="max-w-7xl mx-auto space-y-8">
@@ -84,7 +94,10 @@ const BulletinsSoin = () => {
                         <p className="text-slate-500 dark:text-slate-400 font-medium">Gérez vos demandes de remboursement en toute simplicité</p>
                     </div>
                     
-                    <button className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-6 py-3.5 rounded-xl font-bold shadow-lg shadow-blue-200 dark:shadow-none transition-all transform hover:scale-105 active:scale-95 group">
+                    <button 
+                        onClick={() => setIsModalOpen(true)}
+                        className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-6 py-3.5 rounded-xl font-bold shadow-lg shadow-blue-200 dark:shadow-none transition-all transform hover:scale-105 active:scale-95 group"
+                    >
                         <Plus size={20} className="group-hover:rotate-90 transition-transform duration-300" />
                         <span>Nouveau Bulletin</span>
                     </button>
@@ -234,8 +247,15 @@ const BulletinsSoin = () => {
                     </table>
                 </div>
             </div>
+
+            {/* Modal d'ajout */}
+            <AddBulletinModal 
+                isOpen={isModalOpen} 
+                onClose={() => setIsModalOpen(false)} 
+                onSubmit={handleAddBulletin}
+            />
         </div>
     );
 };
 
-export default BulletinsSoin;
+export default UserDashboard;

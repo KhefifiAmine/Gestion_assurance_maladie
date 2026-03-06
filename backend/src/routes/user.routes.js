@@ -9,6 +9,9 @@ router.use(verifyToken, isAdmin);
 // GET /api/users
 router.get('/', userController.getAllUsers);
 
+// POST /api/users
+router.post('/', userController.createUser);
+
 // PUT /api/users/:id/status
 router.put('/:id/status', userController.updateUserStatus);
 

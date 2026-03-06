@@ -1,132 +1,174 @@
-import React, { useState } from "react";
-import "./Auth.css";
-import { validateEmail } from "../utils/authUtils";
-import { Link, useNavigate } from "react-router-dom";
-import { loginUser } from "../services/api";
-import { useAuth } from "../context/AuthContext";
-import { useTheme } from "../context/ThemeContext";
-import { Moon, Sun } from "lucide-react";
+import React, { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import { loginUser } from '../services/api';
+import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
+import { Mail, Lock, Eye, EyeOff, ArrowRight, ShieldCheck, Loader2 } from 'lucide-react';
+import ttLogo from '../assets/Tunisie_Telecom.jpg';
 
 const Login = () => {
-  const navigate = useNavigate();
-  const { login } = useAuth();
-  const { theme, toggleTheme } = useTheme();
+    const [credentials, setCredentials] = useState({ email: '', password: '' });
+    const [showPassword, setShowPassword] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
+    const [emailError, setEmailError] = useState('');
+    
+    const { login: authLogin } = useAuth();
+    const { showToast } = useToast();
+    const navigate = useNavigate();
 
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [emailError, setEmailError] = useState("");
-  const [apiError, setApiError] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [isShaking, setIsShaking] = useState(false);
+    const validateEmail = (email) => {
+        if (!email) return "L'email est requis";
+        if (!/^[a-zA-Z0-9._%+-]+@(tunisietelecom\.tn|gmail\.com)$/.test(email)) return "Email @tunisietelecom.tn ou @gmail.com requis";
+        return "";
+    };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setApiError("");
+    const handleChange = (e) => {
+        const { name, value } = e.target;
+        setCredentials(prev => ({ ...prev, [name]: value }));
+        if (name === 'email' && emailError) setEmailError('');
+    };
 
-    const mailErr = validateEmail(email);
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        
+        const error = validateEmail(credentials.email);
+        if (error) {
+            setEmailError(error);
+            return;
+        }
 
-    if (mailErr) {
-      setEmailError(mailErr);
-      return;
-    }
-    setEmailError("");
+        try {
+            setIsLoading(true);
+            const data = await loginUser(credentials.email, credentials.password);
+            authLogin(data.token, data.user);
+            showToast(`Bienvenue, ${data.user.nom}!`, "success");
+            
+            if (data.user.role === 'ADMIN') {
+              navigate("/admin/users");
+            } else {
+              navigate("/profile");
+            }
+        } catch (err) {
+            showToast(err.message || "Échec de la connexion", "error");
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
-    try {
-      setIsLoading(true);
-      const data = await loginUser(email, password);
-      login(data.token, data.user);
+    return (
+        <div className="bg-white dark:bg-slate-800 p-6 md:p-10 rounded-[2rem] shadow-2xl border border-slate-50 dark:border-slate-700">
+            {/* Logo */}
+            <div className="flex justify-center mb-6">
+                <img src={ttLogo} alt="Tunisie Telecom" className="h-12 w-auto object-contain" />
+            </div>
 
-      if (data.user.role === 'ADMIN') {
-        navigate("/admin/users");
-      } else {
-        navigate("/profile");
-      }
-    } catch (err) {
-      setApiError(err.message);
-      setIsShaking(true);
-      setTimeout(() => setIsShaking(false), 500);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+            {/* Badge Sécurisé (Style BTK) */}
+            <div className="flex justify-center mb-6">
+                <div className="flex items-center gap-2 bg-[#e8f2ff] dark:bg-blue-900/30 px-5 py-1.5 rounded-full border border-blue-50 dark:border-blue-800">
+                    <ShieldCheck className="w-3.5 h-3.5 text-[#005aab]" />
+                    <span className="text-[10px] font-bold text-[#004a8d] dark:text-blue-300 uppercase tracking-widest">
+                        Secure Access
+                    </span>
+                </div>
+            </div>
 
-  return (
-    <div className={isShaking ? "shake-animation" : ""}>
-      <div className="auth-header" style={{ position: 'relative' }}>
-        <button
-          onClick={toggleTheme}
-          style={{
-            position: 'absolute',
-            top: '0px',
-            right: '0px',
-            background: 'transparent',
-            border: 'none',
-            cursor: 'pointer',
-            padding: '5px',
-            color: theme === 'dark' ? '#facc15' : '#475569'
-          }}
-          type="button"
-        >
-          {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
-        </button>
-        <h2>Connexion</h2>
-        <p>Connectez-vous à votre compte</p>
-      </div>
-      <form onSubmit={handleSubmit}>
-        {apiError && (
-          <div className="api-error-banner">
-            <span style={{ marginRight: "8px" }}>⚠️</span>
-            {apiError}
-          </div>
-        )}
-        <div className="form-group">
-          <label>Emaill :</label>
-          <input
-            type="text"
-            placeholder="Entrer votre Email"
-            value={email}
-            onChange={(e) => {
-              setEmail(e.target.value);
-              if (emailError) setEmailError("");
-              if (apiError) setApiError("");
-            }}
-            className={emailError ? "invalid" : ""}
-            required
-          />
-          {emailError && <span className="error-message">{emailError}</span>}
+            {/* Titres */}
+            <div className="text-center mb-8">
+                <h2 className="text-2xl font-black text-slate-900 dark:text-white mb-1 tracking-tight">
+                    Connexion
+                </h2>
+                <p className="text-slate-400 dark:text-slate-500 text-sm font-medium">
+                    Espace de gestion Assurance Maladie
+                </p>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-500 dark:text-slate-400 ml-1 uppercase tracking-wider">Email Pro</label>
+                    <div className="relative group">
+                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-300 group-focus-within:text-[#005aab]">
+                            <Mail size={16} />
+                        </div>
+                        <input
+                            type="email"
+                            name="email"
+                            placeholder="email@tunisietelecom.tn"
+                            value={credentials.email}
+                            onChange={handleChange}
+                            className={`w-full pl-11 pr-4 py-3 bg-slate-50 dark:bg-slate-900/50 border-2 rounded-xl transition-all outline-none text-sm text-slate-900 dark:text-white placeholder:text-slate-200 ${
+                                emailError ? "border-red-400" : "border-slate-100 dark:border-slate-800 focus:border-[#005aab]"
+                            }`}
+                            required
+                        />
+                    </div>
+                </div>
+
+                <div className="space-y-1.5">
+                    <div className="flex justify-between items-center ml-1">
+                        <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Mot de passe</label>
+                        <Link to="/forgot-password" size="sm" className="text-[10px] font-bold text-blue-600 hover:text-blue-700 uppercase">
+                            Oublié ?
+                        </Link>
+                    </div>
+                    <div className="relative group">
+                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-300 group-focus-within:text-[#005aab]">
+                            <Lock size={16} />
+                        </div>
+                        <input
+                            type={showPassword ? "text" : "password"}
+                            name="password"
+                            placeholder="••••••••"
+                            value={credentials.password}
+                            onChange={handleChange}
+                            className="w-full pl-11 pr-11 py-3 bg-slate-50 dark:bg-slate-900/50 border-2 border-slate-100 dark:border-slate-800 rounded-xl transition-all outline-none text-sm text-slate-900 dark:text-white placeholder:text-slate-200 focus:border-[#005aab]"
+                            required
+                        />
+                        <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-300 hover:text-slate-500"
+                        >
+                            {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                        </button>
+                    </div>
+                </div>
+
+                <button
+                    type="submit"
+                    disabled={isLoading}
+                    className="w-full py-4 bg-[#005aab] hover:bg-blue-700 active:scale-[0.98] disabled:opacity-70 text-white rounded-xl font-bold text-sm shadow-xl shadow-blue-500/10 transition-all flex items-center justify-center gap-2 group mt-2"
+                >
+                    {isLoading ? (
+                        <Loader2 className="animate-spin" size={18} />
+                    ) : (
+                        <>
+                            <span>Se connecter </span>
+                            <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                        </>
+                    )}
+                </button>
+            </form>
+
+            {/* Footer compact */}
+            <div className="mt-8 pt-6 border-t border-slate-50 dark:border-slate-800/50 text-center">
+                <div className="flex flex-col items-center gap-2 opacity-50">
+                    <div className="flex items-center gap-2 text-[8px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                        <ShieldCheck size={12} className="text-[#005aab]" />
+                        Authorized Personnel Only
+                    </div>
+                    <p className="text-[9px] text-slate-400 max-w-[200px] leading-tight mx-auto font-medium">
+                        Système d'accès sécurisé et crypté.
+                    </p>
+                </div>
+            </div>
+            
+            <div className="mt-4 text-center">
+                <Link to="/register" className="text-[10px] font-bold text-slate-400 hover:text-[#005aab] uppercase tracking-wider transition-colors">
+                    Nouveau ? Créer un compte
+                </Link>
+            </div>
         </div>
-        <div className="form-group">
-          <label>Mot de passe :</label>
-          <input
-            type="password"
-            placeholder="Entrer votre Mot de passe"
-            value={password}
-            onChange={(e) => {
-              setPassword(e.target.value);
-              if (apiError) setApiError("");
-            }}
-            className={emailError ? "invalid" : ""}
-            required
-          />
-          {emailError && (
-            <span className="error-message">{emailError}</span>
-          )}
-        </div>
-        <Link to="/forgot-password" style={{ marginLeft: '10px', textDecoration: 'underline' }}>
-          Mot de passe oublié ?
-        </Link>
-        <button type="submit" className="submit-btn" disabled={isLoading} style={{ width: '80%', margin: '20px auto', display: 'block' }}>
-          {isLoading ? "Connexion..." : "Se connecter"}
-        </button>
-      </form>
-      <div className="auth-footer">
-        <span>Vous n'avez un compte? </span>
-        <Link to="/register">
-          <span className="auth-link">S'inscrire</span>
-        </Link>
-      </div>
-    </div>
-  );
+    );
 };
 
 export default Login;

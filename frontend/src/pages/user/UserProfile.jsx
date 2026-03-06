@@ -27,12 +27,12 @@ import {
   Key
 } from 'lucide-react';
 import './Profile.css';
-import { useAuth } from '../context/AuthContext';
-import { updateProfile, changePassword, deleteAccount } from '../services/api';
+import { useAuth } from '../../context/AuthContext';
+import { updateProfile, changePassword, deleteAccount } from '../../services/api';
 import { useNavigate } from 'react-router-dom';
-import { useTheme } from '../context/ThemeContext';
+import { useTheme } from '../../context/ThemeContext';
 import { Moon, Sun } from 'lucide-react';
-import ConfirmModal from '../components/ConfirmModal';
+import ConfirmModal from '../../components/ConfirmModal';
 
 const DetailCard = ({ 
   icon: Icon, 
@@ -94,7 +94,7 @@ const DetailCard = ({
   );
 };
 
-const Profile = () => {
+const UserProfile = () => {
   const { user, logout, refreshUser } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
@@ -496,4 +496,4 @@ const Profile = () => {
   );
 };
 
-export default Profile;
+export default UserProfile;
