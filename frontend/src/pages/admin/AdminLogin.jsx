@@ -10,7 +10,7 @@ const AdminLogin = () => {
     const [credentials, setCredentials] = useState({ email: '', password: '' });
     const [showPassword, setShowPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
-    
+
     const { login: authLogin } = useAuth();
     const { showToast } = useToast();
     const navigate = useNavigate();
@@ -22,7 +22,7 @@ const AdminLogin = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        
+
         // Validation du domaine
         if (!/^[a-zA-Z0-9._%+-]+@(tunisietelecom\.tn|gmail\.com)$/.test(credentials.email)) {
             showToast("Identifiant invalide. Utilisez @tunisietelecom.tn ou @gmail.com", "error");
@@ -32,9 +32,9 @@ const AdminLogin = () => {
         try {
             setIsLoading(true);
             const data = await loginUser(credentials.email, credentials.password);
-            
-            // Vérification stricte du rôle ADMIN ou SUPER_ADMIN
-            if (!['ADMIN', 'SUPER_ADMIN'].includes(data.user.role)) {
+
+            // Vérification stricte du rôle ADMIN ou RESPONSABLE_RH
+            if (!['ADMIN', 'RESPONSABLE_RH'].includes(data.user.role)) {
                 showToast("Accès refusé. Cette interface est réservée au personnel autorisé.", "error");
                 return;
             }
@@ -42,7 +42,7 @@ const AdminLogin = () => {
             authLogin(data.token, data.user);
             showToast(`Session Administrative ouverte : ${data.user.nom}`, "success");
             navigate("/admin/dashboard");
-            
+
         } catch (err) {
             showToast(err.message || "Identifiants administratifs incorrects", "error");
         } finally {
@@ -54,7 +54,7 @@ const AdminLogin = () => {
         <div className="bg-white dark:bg-[#1e293b] border-2 border-slate-100 dark:border-slate-700 p-6 md:p-8 rounded-[2rem] shadow-2xl dark:shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] max-w-md w-full mx-auto overflow-hidden relative transition-colors duration-300">
             {/* Décoration subtile en arrière-plan */}
             <div className="absolute -top-10 -right-10 w-40 h-40 bg-blue-600/5 dark:bg-blue-600/10 rounded-full blur-3xl"></div>
-            
+
             {/* Logo */}
             <div className="flex justify-center mb-5 relative z-10">
                 <div className="bg-white p-2.5 rounded-xl shadow-sm border border-slate-50">
@@ -147,9 +147,9 @@ const AdminLogin = () => {
                     </p>
                 </div>
             </div>
-            
+
             <div className="mt-4 text-center">
-                <button 
+                <button
                     onClick={() => navigate('/')}
                     className="text-[10px] font-black text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white uppercase tracking-[0.2em] transition-colors"
                 >

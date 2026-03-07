@@ -42,11 +42,11 @@ const AdminLayout = () => {
     };
 
     const menuItems = [
-        { name: 'Adhérents', path: '/admin/users', icon: <Users size={20} />, roles: ['ADMIN', 'SUPER_ADMIN'] },
+        { name: 'Adhérents', path: '/admin/users', icon: <Users size={20} />, roles: ['ADMIN', 'RESPONSABLE_RH'] },
         { name: 'Bulletins de Soin', path: '/admin/bulletins', icon: <FileText size={20} />, roles: ['ADMIN'] },
-        { name: 'Réclamations', path: '/admin/reclamations', icon: <AlertTriangle size={20} />, roles: ['ADMIN', 'SUPER_ADMIN'] },
-        { name: 'Finances & Stats', path: '/admin/statistiques', icon: <BarChart2 size={20} />, roles: ['SUPER_ADMIN'] },
-        { name: 'Gestion Admins', path: '/admin/securite', icon: <ShieldCheck size={20} />, roles: ['SUPER_ADMIN'] },
+        { name: 'Réclamations', path: '/admin/reclamations', icon: <AlertTriangle size={20} />, roles: ['ADMIN', 'RESPONSABLE_RH'] },
+        { name: 'Finances & Stats', path: '/admin/statistiques', icon: <BarChart2 size={20} />, roles: ['RESPONSABLE_RH'] },
+        { name: 'Gestion Admins', path: '/admin/securite', icon: <ShieldCheck size={20} />, roles: ['RESPONSABLE_RH'] },
     ];
 
     const filteredMenuItems = menuItems.filter(item => item.roles.includes(user?.role));
@@ -121,11 +121,11 @@ const AdminLayout = () => {
                             {user?.prenom || 'Admin'}
                         </span>
                         <span className={`px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest border ${
-                            user?.role === 'SUPER_ADMIN' 
+                            user?.role === 'RESPONSABLE_RH' 
                                 ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-800' 
                                 : 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800'
                         }`}>
-                            {user?.role === 'SUPER_ADMIN' ? 'Super Admin' : 'Admin'}
+                            {user?.role === 'RESPONSABLE_RH' ? 'Responsable RH' : 'Admin'}
                         </span>
                     </div>
                     <span className="text-[10px] uppercase font-black text-slate-400 dark:text-slate-500 tracking-widest mt-1">Status: En ligne</span>

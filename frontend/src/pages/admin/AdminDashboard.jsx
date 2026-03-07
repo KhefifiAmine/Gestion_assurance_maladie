@@ -2,8 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import {
     getAllUsers,
     updateUserStatus,
-    updateUserRole,
-    deleteUser
+    updateUserRole
 } from '../../services/userService';
 import { useAuth } from '../../context/AuthContext';
 import {
@@ -29,7 +28,6 @@ import {
 import { useToast } from '../../context/ToastContext';
 import ConfirmModal from '../../components/ConfirmModal';
 import AddUserModal from '../../components/AddUserModal';
-import { createUser } from '../../services/userService';
 
 const AdminDashboard = ({ mode = 'adherents' }) => {
     const { user: currentUser } = useAuth();
@@ -41,7 +39,7 @@ const AdminDashboard = ({ mode = 'adherents' }) => {
     const [activeFilter, setActiveFilter] = useState('Tous');
     const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
 
-    const [modalConfig, setModalConfig] = useState({ isOpen: false, userId: null, type: 'delete', requireReason: false, reasonLabel: '' });
+    const [modalConfig, setModalConfig] = useState({ isOpen: false, userId: null, type: 'role', requireReason: false, reasonLabel: '' });
 
     const fetchUsers = async () => {
         try {
@@ -103,7 +101,7 @@ const AdminDashboard = ({ mode = 'adherents' }) => {
     const handleRoleChange = async (id, currentRole) => {
         let newRole;
         if (currentRole === 'ADHERENT') newRole = 'ADMIN';
-        else if (currentRole === 'ADMIN') newRole = 'SUPER_ADMIN';
+        else if (currentRole === 'ADMIN') newRole = 'RESPONSABLE_RH';
         else newRole = 'ADHERENT';
 
         setModalConfig({
@@ -116,37 +114,13 @@ const AdminDashboard = ({ mode = 'adherents' }) => {
         });
     };
 
-    const openDeleteModal = (id) => {
-        setModalConfig({
-            isOpen: true,
-            userId: id,
-            type: 'delete',
-            title: "Confirmer la suppression",
-            message: "Êtes-vous sûr de vouloir supprimer cet utilisateur ? Cette action est définitive et irréversible."
-        });
-    };
-
-    const handleAddUser = async (userData) => {
-        try {
-            await createUser(userData);
-            showToast("Utilisateur créé avec succès ! Un email a été envoyé.", "success");
-            fetchUsers();
-        } catch (error) {
-            showToast(error.message || "Erreur lors de la création de l'utilisateur", "error");
-        } finally {
-            setIsAddUserModalOpen(false);
-        }
-    };
 
     const handleConfirmAction = async (reason) => {
         const { userId, type, newRole, newStatus } = modalConfig;
         setModalConfig(prev => ({ ...prev, isOpen: false }));
 
         try {
-            if (type === 'delete') {
-                await deleteUser(userId);
-                showToast("Utilisateur supprimé définitivement", "success");
-            } else if (type === 'role') {
+            if (type === 'role') {
                 await updateUserRole(userId, newRole);
                 showToast(`Rôle mis à jour : ${newRole}`, "info");
             } else if (type === 'status') {
@@ -164,7 +138,7 @@ const AdminDashboard = ({ mode = 'adherents' }) => {
             total: users.length,
             adherents: users.filter(u => u.role === 'ADHERENT').length,
             admins: users.filter(u => u.role === 'ADMIN').length,
-            superAdmins: users.filter(u => u.role === 'SUPER_ADMIN').length
+            responsableRH: users.filter(u => u.role === 'RESPONSABLE_RH').length
         };
     }, [users]);
 
@@ -174,8 +148,6 @@ const AdminDashboard = ({ mode = 'adherents' }) => {
             if (user.id === currentUser?.id) return false;
 
             // Filtrer par rôle selon le mode
-            if (mode === 'adherents' && user.role !== 'ADHERENT') return false;
-            if (mode === 'admins' && user.role === 'ADHERENT') return false;
 
             const matchesSearch =
                 user.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -232,14 +204,6 @@ const AdminDashboard = ({ mode = 'adherents' }) => {
                             </p>
                         </div>
                     </div>
-
-                    <button
-                        onClick={() => setIsAddUserModalOpen(true)}
-                        className="flex items-center gap-3 bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-8 rounded-2xl shadow-lg transition-all transform hover:scale-105 active:scale-95 group"
-                    >
-                        <UserPlus size={22} className="group-hover:rotate-12 transition-transform" />
-                        Ajouter un utilisateur
-                    </button>
                 </div>
 
                 {/* STATS CARDS */}
@@ -280,8 +244,8 @@ const AdminDashboard = ({ mode = 'adherents' }) => {
 
                     <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 flex items-center justify-between group hover:shadow-md transition-all">
                         <div>
-                            <p className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">Super Admins</p>
-                            <h3 className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter">{stats.superAdmins}</h3>
+                            <p className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">Responsable RH</p>
+                            <h3 className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter">{stats.responsableRH}</h3>
                         </div>
                         <div className="bg-amber-50 dark:bg-amber-900/20 p-4 rounded-2xl text-amber-600 dark:text-amber-400">
                             <Shield size={24} />
@@ -368,18 +332,17 @@ const AdminDashboard = ({ mode = 'adherents' }) => {
                                                     {user.email}
                                                 </td>
                                                 <td className="px-6 py-5">
-                                                    <button
-                                                        onClick={() => handleRoleChange(user.id, user.role)}
-                                                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest cursor-pointer transition-all hover:scale-105 active:scale-95 ${
-                                                            user.role === 'SUPER_ADMIN'
+                                                    <span
+                                                        
+                                                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest cursor-pointer transition-all hover:scale-105 active:scale-95 ${user.role === 'RESPONSABLE_RH'
                                                                 ? 'bg-amber-500 text-slate-950 shadow-lg shadow-amber-200 dark:shadow-none'
                                                                 : user.role === 'ADMIN'
                                                                     ? 'bg-blue-600 text-white shadow-lg shadow-blue-100 dark:shadow-none'
                                                                     : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
-                                                        }`}
+                                                            }`}
                                                     >
                                                         {user.role}
-                                                    </button>
+                                                    </span>
                                                 </td>
                                                 <td className="px-6 py-5">
                                                     <div className="flex items-center">
@@ -446,15 +409,9 @@ const AdminDashboard = ({ mode = 'adherents' }) => {
                                                         )}
                                                         <button
                                                             className="p-2 text-blue-600 dark:text-blue-400 hover:bg-white dark:hover:bg-slate-700 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 transition-all font-bold text-xs"
-                                                            onClick={() => showToast("Mode édition bientôt disponible", "info")}
+                                                            onClick={() => handleRoleChange(user.id, user.role)}
                                                         >
                                                             <Edit size={16} />
-                                                        </button>
-                                                        <button
-                                                            onClick={() => openDeleteModal(user.id)}
-                                                            className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all"
-                                                        >
-                                                            <Trash2 size={16} />
                                                         </button>
                                                     </div>
                                                 </td>
@@ -482,18 +439,13 @@ const AdminDashboard = ({ mode = 'adherents' }) => {
                 onConfirm={handleConfirmAction}
                 title={modalConfig.title}
                 message={modalConfig.message}
-                type={modalConfig.type === 'delete' || modalConfig.type === 'status' ? 'danger' : 'warning'}
-                confirmText={modalConfig.type === 'delete' ? "Supprimer" : modalConfig.type === 'status' ? "Confirmer" : "Changer"}
+                type='warning'
+                confirmText="Changer"
                 cancelText="Annuler"
                 requireReason={modalConfig.requireReason}
                 reasonLabel={modalConfig.reasonLabel}
             />
 
-            <AddUserModal
-                isOpen={isAddUserModalOpen}
-                onClose={() => setIsAddUserModalOpen(false)}
-                onSubmit={handleAddUser}
-            />
         </div>
     );
 };

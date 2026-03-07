@@ -2,17 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from "react-router-dom";
 import { registerUser } from '../services/api';
 import { useToast } from '../context/ToastContext';
-import { 
-  User, 
-  Mail, 
-  Lock, 
-  Phone, 
-  Calendar, 
-  MapPin, 
-  Hash, 
-  Eye, 
-  EyeOff, 
-  Loader2, 
+import {
+  User,
+  Mail,
+  Lock,
+  Phone,
+  Calendar,
+  MapPin,
+  Hash,
+  Eye,
+  EyeOff,
+  Loader2,
   ArrowRight,
   CheckCircle2,
   AlertCircle
@@ -31,22 +31,21 @@ const InputField = ({ label, name, placeholder, icon: Icon, type = "text", error
         <Icon size={16} />
       </div>
       <input
-        type={showToggle ? (isVisible ? "text" : "password") : type}
+        type="text"
         name={name}
         placeholder={placeholder}
         value={value}
         onChange={onChange}
         onBlur={onBlur}
         max={max}
-        className={`w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-900 border-2 rounded-xl transition-all outline-none text-sm font-semibold text-slate-900 dark:text-white placeholder:text-slate-300/60 appearance-none ${
-          error ? "border-red-400 focus:border-red-400" : "border-slate-100 dark:border-slate-800 focus:border-blue-500"
-        } ${type === 'date' ? 'cursor-pointer hover:bg-slate-100/50 dark:hover:bg-slate-800/50' : ''}`}
+        className={`w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-900 border-2 rounded-xl transition-all outline-none text-sm font-semibold text-slate-900 dark:text-white placeholder:text-slate-300/60 appearance-none ${error ? "border-red-400 focus:border-red-400" : "border-slate-100 dark:border-slate-800 focus:border-blue-500"
+          } ${type === 'date' ? 'cursor-pointer hover:bg-slate-100/50 dark:hover:bg-slate-800/50' : ''}`}
         required
       />
       {showToggle && (
-        <button 
-          type="button" 
-          onClick={onToggle} 
+        <button
+          type="button"
+          onClick={onToggle}
           className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-300 hover:text-blue-500 transition-colors"
         >
           {isVisible ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -59,37 +58,24 @@ const InputField = ({ label, name, placeholder, icon: Icon, type = "text", error
 const Register = () => {
   const navigate = useNavigate();
   const { showToast } = useToast();
-  
+
   const [formData, setFormData] = useState({
-    nom: '', 
-    prenom: '', 
-    matricule: '', 
-    telephone: '', 
-    ddn: '', 
-    adresse: '', 
-    email: '',
-    password: '',
-    confirmPassword: ''
+    nom: '',
+    prenom: '',
+    matricule: '',
+    telephone: '',
+    ddn: '',
+    adresse: '',
+    email: ''
   });
 
   const [errors, setErrors] = useState({});
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [acceptTerms, setAcceptTerms] = useState(false);
-  const [passwordStrength, setPasswordStrength] = useState(0);
 
   // Date maximale pour la naissance (aujourd'hui)
   const today = new Date().toISOString().split('T')[0];
 
-  useEffect(() => {
-    let strength = 0;
-    if (formData.password.length >= 8) strength += 25;
-    if (/[A-Z]/.test(formData.password)) strength += 25;
-    if (/[0-9]/.test(formData.password)) strength += 25;
-    if (/[^A-Za-z0-9]/.test(formData.password)) strength += 25;
-    setPasswordStrength(strength);
-  }, [formData.password]);
 
   const validateField = (name, value) => {
     let error = "";
@@ -99,12 +85,6 @@ const Register = () => {
         break;
       case 'telephone':
         if (!/^\d{8}$/.test(value)) error = "8 chiffres";
-        break;
-      case 'password':
-        if (value.length < 8) error = "8+ carac.";
-        break;
-      case 'confirmPassword':
-        if (value !== formData.password) error = "Différent";
         break;
       case 'ddn':
         if (!value) error = "Requis";
@@ -175,50 +155,22 @@ const Register = () => {
         </div>
 
         <div className="grid grid-cols-2 gap-4">
-          <InputField 
-            label="Date de Naissance" 
-            name="ddn" 
-            type="date" 
-            icon={Calendar} 
+          <InputField
+            label="Date de Naissance"
+            name="ddn"
+            type="date"
+            icon={Calendar}
             max={today}
-            error={errors.ddn} 
-            value={formData.ddn} 
-            onChange={handleChange} 
-            onBlur={() => validateField('ddn', formData.ddn)} 
+            error={errors.ddn}
+            value={formData.ddn}
+            onChange={handleChange}
+            onBlur={() => validateField('ddn', formData.ddn)}
           />
           <InputField label="Ville / Adresse" name="adresse" placeholder="Ville" icon={MapPin} error={errors.adresse} value={formData.adresse} onChange={handleChange} onBlur={() => validateField('adresse', formData.adresse)} />
         </div>
 
-        <InputField label="Email Pro" name="email" placeholder="email@tunisietelecom.tn" icon={Mail} error={errors.email} value={formData.email} onChange={handleChange} onBlur={() => validateField('email', formData.email)} />
+        <InputField label="Email" name="email" placeholder="email@gmail.com" icon={Mail} error={errors.email} value={formData.email} onChange={handleChange} onBlur={() => validateField('email', formData.email)} />
 
-        <div className="grid grid-cols-2 gap-4">
-          <InputField 
-            label="Mot de passe" 
-            name="password" 
-            placeholder="••••" 
-            icon={Lock} 
-            error={errors.password} 
-            value={formData.password} 
-            onChange={handleChange} 
-            onBlur={() => validateField('password', formData.password)}
-            showToggle={true}
-            isVisible={showPassword}
-            onToggle={() => setShowPassword(!showPassword)}
-          />
-          <InputField 
-            label="Confirmation" 
-            name="confirmPassword" 
-            placeholder="••••" 
-            icon={Lock} 
-            error={errors.confirmPassword} 
-            value={formData.confirmPassword} 
-            onChange={handleChange} 
-            onBlur={() => validateField('confirmPassword', formData.confirmPassword)}
-            showToggle={true}
-            isVisible={showConfirmPassword}
-            onToggle={() => setShowConfirmPassword(!showConfirmPassword)}
-          />
-        </div>
 
         <label className="flex items-center gap-3 cursor-pointer group px-1">
           <input type="checkbox" checked={acceptTerms} onChange={() => setAcceptTerms(!acceptTerms)} className="w-4 h-4 rounded border-slate-200 text-blue-600 focus:ring-blue-500" />

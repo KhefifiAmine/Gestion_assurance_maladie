@@ -11,9 +11,9 @@ import AdminLayout from './layouts/AdminLayout';
 import UserLayout from './layouts/UserLayout';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import UserDashboard from './pages/user/UserDashboard';
-import ForgotPassword from './pages/ForgotPassword';
-import VerifyResetCode from './pages/VerifyResetCode';
-import ResetPassword from './pages/ResetPassword';
+import ForgotPassword from './pages/Résinstaller mot de passe/ForgotPassword';
+import VerifyResetCode from './pages/Résinstaller mot de passe/VerifyResetCode';
+import ResetPassword from './pages/Résinstaller mot de passe/ResetPassword';
 import { ToastProvider } from './context/ToastContext';
 import { ThemeProvider } from './context/ThemeContext';
 
@@ -33,7 +33,7 @@ const ProtectedRoute = ({ children, requireAdmin = false }) => {
     return <Navigate to={requireAdmin ? "/admin/login" : "/login"} replace />;
   }
 
-  if (requireAdmin && !['ADMIN', 'SUPER_ADMIN'].includes(user?.role)) {
+  if (requireAdmin && !['ADMIN', 'RESPONSABLE_RH'].includes(user?.role)) {
     return <Navigate to="/dashboard" replace />; // Redirige les adhérents
   }
 

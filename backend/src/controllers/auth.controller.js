@@ -8,10 +8,14 @@ const register = async (req, res) => {
 
         // Check if user already exists
         const existingUser = await User.findOne({ where: { email } });
+        const existingUser2 = await User.findOne({ where: { matricule } });
         if (existingUser) {
             return res.status(400).json({ message: 'Un utilisateur avec cet email existe déjà.' });
         }
-
+        if (existingUser2) {
+            return res.status(400).json({ message: 'Un utilisateur avec ce matricule existe déjà.' });
+        }
+        
         // Format DD/MM/YYYY to YYYY-MM-DD
         let formattedDdn = null;
         if (ddn) {

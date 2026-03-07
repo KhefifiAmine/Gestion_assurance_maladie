@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { forgotPassword } from '../services/api';
-import { useToast } from '../context/ToastContext';
+import { forgotPassword } from '../../services/api';
+import { useToast } from '../../context/ToastContext';
 import { Mail, ArrowRight, Loader2, KeyRound, AlertCircle } from 'lucide-react';
-import ttLogo from '../assets/Tunisie_Telecom.jpg';
+
 
 const ForgotPassword = () => {
     const [email, setEmail] = useState('');

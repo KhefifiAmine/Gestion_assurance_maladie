@@ -22,8 +22,8 @@ const verifyToken = (req, res, next) => {
 };
 
 const isAdmin = (req, res, next) => {
-    if (!['ADMIN', 'SUPER_ADMIN'].includes(req.userRole)) {
-        return res.status(403).json({ message: 'Nécessite le rôle d\'Administrateur ou Super Admin!' });
+    if (!['ADMIN', 'RESPONSABLE_RH'].includes(req.userRole)) {
+        return res.status(403).json({ message: 'Nécessite le rôle d\'Administrateur ou RESPONSABLE_RH!' });
     }
     next();
 };

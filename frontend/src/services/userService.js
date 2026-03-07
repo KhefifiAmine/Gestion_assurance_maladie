@@ -24,20 +24,6 @@ export const getAllUsers = async () => {
     return response.json();
 };
 
-export const createUser = async (userData) => {
-    const response = await fetch(API_URL, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify(userData),
-    });
-
-    if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || 'Erreur lors de la création de l\'utilisateur');
-    }
-    return response.json();
-};
-
 export const updateUserStatus = async (id, statut, raison = null) => {
     const response = await fetch(`${API_URL}/${id}/status`, {
         method: 'PUT',
@@ -60,18 +46,6 @@ export const updateUserRole = async (id, role) => {
 
     if (!response.ok) {
         throw new Error('Erreur lors de la mise à jour du rôle');
-    }
-    return response.json();
-};
-
-export const deleteUser = async (id) => {
-    const response = await fetch(`${API_URL}/${id}`, {
-        method: 'DELETE',
-        headers: getAuthHeaders(),
-    });
-
-    if (!response.ok) {
-        throw new Error('Erreur lors de la suppression de l\'utilisateur');
     }
     return response.json();
 };

@@ -28,7 +28,7 @@ import {
 } from 'lucide-react';
 import './Profile.css';
 import { useAuth } from '../../context/AuthContext';
-import { updateProfile, changePassword, deleteAccount } from '../../services/api';
+import { updateProfile, changePassword } from '../../services/api';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../../context/ThemeContext';
 import { Moon, Sun } from 'lucide-react';
@@ -115,7 +115,6 @@ const UserProfile = () => {
   // État pour le changement de mot de passe
   const [pwdForm, setPwdForm] = useState({ ancienMdp: '', nouveauMdp: '', confirmMdp: '' });
   const [pwdErrors, setPwdErrors] = useState({});
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -191,19 +190,6 @@ const UserProfile = () => {
     }
   };
 
-  const handleDeleteAccount = async () => {
-    try {
-      setIsSaving(true);
-      await deleteAccount();
-      logout();
-      navigate('/login');
-    } catch (e) {
-      setNotif({ type: 'error', text: e.message || 'Erreur lors de la suppression' });
-    } finally {
-      setIsSaving(false);
-      setIsDeleteModalOpen(false);
-    }
-  };
 
   const handleLogout = () => {
     logout();
@@ -461,37 +447,10 @@ const UserProfile = () => {
                 )}
               </div>
 
-              <div style={{ maxWidth: '500px', borderTop: '1px solid #e2e8f0', paddingTop: '30px' }}>
-                <h4 style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px', color: '#dc2626' }}>
-                  <Trash2 size={18} /> Zone de danger
-                </h4>
-                <p style={{ fontSize: '14px', color: '#64748b', marginBottom: '15px' }}>
-                  Une fois votre compte supprimé, toutes vos données (bulletins, profil) seront définitivement effacées du système.
-                </p>
-                <button
-                  onClick={() => setIsDeleteModalOpen(true)}
-                  style={{ padding: '10px 20px', background: '#fee2e2', color: '#dc2626', border: '1px solid #fecaca', borderRadius: '8px', cursor: 'pointer', fontWeight: 600 }}
-                >
-                  Supprimer mon compte définitivement
-                </button>
-              </div>
-
             </div>
           )}
         </div>
       </div>
-
-      {/* Modal de Confirmation de Suppression */}
-      <ConfirmModal 
-        isOpen={isDeleteModalOpen}
-        onClose={() => setIsDeleteModalOpen(false)}
-        onConfirm={handleDeleteAccount}
-        title="Confirmer la suppression"
-        message="Êtes-vous sûr de vouloir supprimer ce compte ? Cette action est définitive et ne pourra pas être annulée."
-        confirmText="Supprimer définitivement"
-        cancelText="Annuler"
-        type="danger"
-      />
     </div>
   );
 };

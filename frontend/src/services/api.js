@@ -29,8 +29,7 @@ export const registerUser = async (formData) => {
         telephone: formData.telephone,
         ddn: formData.ddn,
         adresse: formData.adresse,
-        email: formData.email,
-        password: formData.password
+        email: formData.email
     };
     const res = await fetch(`${API_BASE}/auth/register`, {
         method: 'POST',
@@ -111,12 +110,4 @@ export const changePassword = async (ancienMdp, nouveauMdp) => {
     return data;
 };
 
-export const deleteAccount = async () => {
-    const res = await fetch(`${API_BASE}/profile`, {
-        method: 'DELETE',
-        headers: authHeaders()
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || 'Erreur lors de la suppression du compte.');
-    return data;
-};
+

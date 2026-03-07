@@ -70,7 +70,7 @@ const AddUserModal = ({ isOpen, onClose, onSubmit }) => {
     const roles = [
         { id: 'ADHERENT', label: 'Adhérent', color: 'bg-green-500' },
         { id: 'ADMIN', label: 'Administrateur', color: 'bg-blue-500' },
-        { id: 'SUPER_ADMIN', label: 'Super Admin', color: 'bg-amber-500' }
+        { id: 'RESPONSABLE_RH', label: 'Responsable RH', color: 'bg-amber-500' }
     ];
 
     if (!isOpen) return null;

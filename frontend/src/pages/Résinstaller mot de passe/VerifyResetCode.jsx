@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { verifyResetCode } from '../services/api';
-import { useToast } from '../context/ToastContext';
+import { verifyResetCode } from '../../services/api';
+import { useToast } from '../../context/ToastContext';
 import { ShieldCheck, ArrowRight, Loader2, AlertCircle } from 'lucide-react';
 
 const VerifyResetCode = () => {
