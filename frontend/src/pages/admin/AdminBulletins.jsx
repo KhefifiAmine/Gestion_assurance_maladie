@@ -20,10 +20,12 @@ import {
 } from 'lucide-react';
 import { getAllBulletins, updateBulletinStatus } from '../../services/bulletinService';
 import { useToast } from '../../context/ToastContext';
+import { useAuth } from '../../context/AuthContext';
 import BulletinDetailsModal from '../../components/BulletinDetailsModal';
 import ConfirmModal from '../../components/ConfirmModal';
 
 const AdminBulletins = () => {
+    const { user: currentUser } = useAuth();
     const { showToast } = useToast();
     const [bulletins, setBulletins] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -39,7 +41,9 @@ const AdminBulletins = () => {
         newStatus: null,
         title: '',
         message: '',
-        type: 'info'
+        type: 'info',
+        requireReason: false,
+
     });
 
     const fetchBulletins = async () => {
@@ -59,11 +63,17 @@ const AdminBulletins = () => {
         fetchBulletins();
     }, []);
 
-    const handleStatusUpdate = async () => {
+    const handleStatusUpdate = async (result) => {
         const { id, newStatus } = confirmData;
         try {
             setConfirmData(prev => ({ ...prev, isOpen: false }));
-            await updateBulletinStatus(id, newStatus);
+
+            const updateData = {};
+            if (newStatus === 3) {
+                updateData.motif_refus = result;
+            }
+
+            await updateBulletinStatus(id, newStatus, updateData);
             showToast("Statut mis à jour avec succès !", "success");
             fetchBulletins();
             if (selectedBulletin && selectedBulletin.id === id) {
@@ -104,7 +114,8 @@ const AdminBulletins = () => {
             newStatus: targetStatus,
             title,
             message,
-            type
+            type,
+            requireReason: targetStatus === 3,
         });
     };
 
@@ -280,10 +291,12 @@ const AdminBulletins = () => {
                     <table className="w-full text-left">
                         <thead>
                             <tr className="bg-slate-50/50 dark:bg-white/5 border-b border-slate-100 dark:border-white/5">
-                                <th className="px-10 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.25em]">Dossier</th>
+                                <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.25em]">Dossier</th>
                                 <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.25em]">Adhérent</th>
                                 <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.25em]">Patient</th>
-                                <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.25em]">Estimation</th>
+                                <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.25em]">Administrateur</th>
+                                <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.25em]">Montant</th>
+                                <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.25em]">Reboursement</th>
                                 <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.25em]">Statut</th>
                                 <th className="px-10 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] text-center">Gestion</th>
                             </tr>
@@ -324,9 +337,25 @@ const AdminBulletins = () => {
                                                 <span className="text-[9px] text-slate-400 font-black tracking-widest uppercase">{b.qualite_malade}</span>
                                             </div>
                                         </td>
+                                        <td className="px-8 py-7">
+                                            <div className="flex flex-col">
+                                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                                                    {b.admin ? "Assigné à " : 'Non assigné'}
+                                                </span>
+                                                <span className={`font-black tracking-tight leading-none mb-1 ${b.admin ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400 opacity-50'}`}>
+                                                    {b.admin ? `${b.admin.prenom} ${b.admin.nom}` : 'Prêt pour traitement'}
+                                                </span>
+                                            </div>
+                                        </td>
                                         <td className="px-8 py-7 font-black text-slate-900 dark:text-white">
                                             <div className="flex items-center gap-1">
                                                 <span className="text-lg">{b.montant_total?.toFixed(3)}</span>
+                                                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">TND</span>
+                                            </div>
+                                        </td>
+                                        <td className="px-8 py-7 font-black text-slate-900 dark:text-white">
+                                            <div className="flex items-center gap-1">
+                                                <span className="text-lg">{b.montant_remboursement?.toFixed(3)}</span>
                                                 <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">TND</span>
                                             </div>
                                         </td>
@@ -338,30 +367,39 @@ const AdminBulletins = () => {
                                         </td>
                                         <td className="px-10 py-7">
                                             <div className="flex items-center justify-center gap-3">
-                                                <button
-                                                    onClick={() => initiateStatusUpdate(b, 1)}
-                                                    disabled={b.statut === 1 || b.statut === 2 || b.statut === 3}
-                                                    className="p-3 bg-white dark:bg-slate-800 text-amber-500 rounded-2xl border border-slate-100 dark:border-white/5 shadow-sm hover:bg-amber-500 hover:text-white hover:border-amber-500 transition-all disabled:opacity-30 disabled:hover:bg-inherit disabled:hover:text-amber-500 disabled:hover:border-inherit"
-                                                    title="Mettre en traitement"
-                                                >
-                                                    <Clock size={16} />
-                                                </button>
-                                                <button
-                                                    onClick={() => initiateStatusUpdate(b, 2)}
-                                                    disabled={b.statut === 2 || b.statut === 3}
-                                                    className="p-3 bg-white dark:bg-slate-800 text-emerald-500 rounded-2xl border border-slate-100 dark:border-white/5 shadow-sm hover:bg-emerald-500 hover:text-white hover:border-emerald-500 transition-all disabled:opacity-30 disabled:hover:bg-inherit disabled:hover:text-emerald-500 disabled:hover:border-inherit"
-                                                    title="Accepter"
-                                                >
-                                                    <Check size={16} />
-                                                </button>
-                                                <button
-                                                    onClick={() => initiateStatusUpdate(b, 3)}
-                                                    disabled={b.statut === 2 || b.statut === 3}
-                                                    className="p-3 bg-white dark:bg-slate-800 text-red-500 rounded-2xl border border-slate-100 dark:border-white/5 shadow-sm hover:bg-red-500 hover:text-white hover:border-red-500 transition-all disabled:opacity-30 disabled:hover:bg-inherit disabled:hover:text-red-500 disabled:hover:border-inherit"
-                                                    title="Refuser"
-                                                >
-                                                    <X size={16} />
-                                                </button>
+                                                {/* Logic for assignment conflict avoidance */}
+                                                {(() => {
+                                                    const isAssignedToOther = b.adminId && b.adminId !== currentUser?.id && b.statut === 1;
+
+                                                    return (
+                                                        <>
+                                                            <button
+                                                                onClick={() => initiateStatusUpdate(b, 1)}
+                                                                disabled={b.statut === 1 || b.statut === 2 || b.statut === 3 || isAssignedToOther}
+                                                                className="p-3 bg-white dark:bg-slate-800 text-amber-500 rounded-2xl border border-slate-100 dark:border-white/5 shadow-sm hover:bg-amber-500 hover:text-white hover:border-amber-500 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                                                                title={isAssignedToOther ? `Assigné à ${b.admin?.nom}` : "Mettre en traitement"}
+                                                            >
+                                                                <Clock size={16} />
+                                                            </button>
+                                                            <button
+                                                                onClick={() => initiateStatusUpdate(b, 2)}
+                                                                disabled={b.statut === 2 || b.statut === 3 || isAssignedToOther}
+                                                                className="p-3 bg-white dark:bg-slate-800 text-emerald-500 rounded-2xl border border-slate-100 dark:border-white/5 shadow-sm hover:bg-emerald-500 hover:text-white hover:border-emerald-500 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                                                                title={isAssignedToOther ? `Assigné à ${b.admin?.nom}` : "Accepter"}
+                                                            >
+                                                                <Check size={16} />
+                                                            </button>
+                                                            <button
+                                                                onClick={() => initiateStatusUpdate(b, 3)}
+                                                                disabled={b.statut === 2 || b.statut === 3 || isAssignedToOther}
+                                                                className="p-3 bg-white dark:bg-slate-800 text-red-500 rounded-2xl border border-slate-100 dark:border-white/5 shadow-sm hover:bg-red-500 hover:text-white hover:border-red-500 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                                                                title={isAssignedToOther ? `Assigné à ${b.admin?.nom}` : "Refuser"}
+                                                            >
+                                                                <X size={16} />
+                                                            </button>
+                                                        </>
+                                                    );
+                                                })()}
                                                 <div className="w-px h-6 bg-slate-100 dark:bg-white/5" />
                                                 <button
                                                     onClick={() => { setSelectedBulletin(b); setShowDetailsModal(true); }}
@@ -407,6 +445,7 @@ const AdminBulletins = () => {
                 title={confirmData.title}
                 message={confirmData.message}
                 type={confirmData.type}
+                requireReason={confirmData.requireReason}
                 confirmText="Confirmer"
                 cancelText="Annuler"
             />

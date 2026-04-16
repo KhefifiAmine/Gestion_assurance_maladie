@@ -191,7 +191,8 @@ const getAllBulletins = async (req, res) => {
     try {
         const bulletins = await BulletinSoin.findAll({
             include: [
-                { model: User, as: 'adherent', attributes: ['nom', 'prenom', 'email'] },
+                { model: User, as: 'adherent', attributes: ['matricule', 'nom', 'prenom', 'email'] },
+                { model: User, as: 'admin', attributes: ['id', 'nom', 'prenom'] },
                 { model: ActeMedical, as: 'actes' },
                 { model: Pharmacie, as: 'pharmacie' },
                 { model: SoinDentaire, as: 'soinDentaire' },
@@ -208,7 +209,7 @@ const getAllBulletins = async (req, res) => {
 const updateBulletinStatus = async (req, res) => {
     try {
         const { id } = req.params;
-        const { statut } = req.body;
+        const { statut, motif_refus } = req.body;
         const adminId = req.userId;
 
         const bulletin = await BulletinSoin.findByPk(id);
@@ -219,6 +220,11 @@ const updateBulletinStatus = async (req, res) => {
         bulletin.statut = statut;
         bulletin.adminId = adminId;
         bulletin.date_traitement = new Date();
+        
+        if (motif_refus !== undefined) {
+            bulletin.motif_refus = motif_refus;
+        }
+
         await bulletin.save();
 
         res.status(200).json({ message: 'Statut du bulletin mis à jour', bulletin });

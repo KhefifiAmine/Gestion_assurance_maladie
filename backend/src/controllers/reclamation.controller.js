@@ -127,7 +127,10 @@ const reclamationController = {
 
       // Si c'est l'admin, il peut tout modifier (statut, réponse)
       if (userRole === 'ADMIN') {
-        if (statut) reclamation.statut = statut;
+        if (statut) {
+          reclamation.statut = statut;
+          reclamation.adminId = userId; // Assign admin when updating status
+        }
         if (reponseAdmin) {
           reclamation.reponseAdmin = reponseAdmin;
           reclamation.dateReponse = new Date();

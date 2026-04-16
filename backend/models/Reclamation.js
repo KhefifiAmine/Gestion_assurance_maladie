@@ -48,6 +48,14 @@ const Reclamation = sequelize.define('Reclamation', {
         type: DataTypes.STRING,
         allowNull: true,
         unique: true
+    },
+    adminId: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        references: {
+            model: 'users',
+            key: 'id'
+        }
     }
 }, {
     tableName: 'reclamations',

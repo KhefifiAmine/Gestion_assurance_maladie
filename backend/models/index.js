@@ -10,7 +10,6 @@ const Reclamation = require('./Reclamation');
 
 const Notification = require('./Notification');
 const Journal = require('./Journal');
-const Remboursement = require('./Remboursement');
 const DocumentJustificatif = require('./DocumentJustificatif');
 const Medecin = require('./Medecin');
 const ReclamationMessage = require('./ReclamationMessage');
@@ -46,9 +45,6 @@ Notification.belongsTo(User, { foreignKey: 'userId', as: 'user' });
 User.hasMany(Journal, { foreignKey: 'userId', as: 'journaux' });
 Journal.belongsTo(User, { foreignKey: 'userId', as: 'user' });
 
-// ====== Remboursement, DocumentJustificatif ======
-BulletinSoin.hasOne(Remboursement, { foreignKey: 'bulletinId', as: 'remboursement' });
-Remboursement.belongsTo(BulletinSoin, { foreignKey: 'bulletinId' });
 
 BulletinSoin.hasMany(DocumentJustificatif, { foreignKey: 'bulletinId', as: 'documents' });
 DocumentJustificatif.belongsTo(BulletinSoin, { foreignKey: 'bulletinId' });
@@ -91,7 +87,6 @@ module.exports = {
     Reclamation,
     Notification,
     Journal,
-    Remboursement,
     DocumentJustificatif,
     Medecin,
     ReclamationMessage,

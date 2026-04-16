@@ -157,8 +157,8 @@ const ConfirmModal = ({
                                     onClick={() => requireRoleSelect ? onConfirm(selectedRole) : onConfirm(reason)}
                                     disabled={requireReason && !reason.trim()}
                                     className={`flex-1 px-8 py-4 font-black text-[10px] uppercase tracking-widest rounded-2xl text-white shadow-xl transition-all active:scale-95 order-1 sm:order-2 disabled:opacity-50 disabled:cursor-not-allowed ${type === 'danger'
-                                            ? 'bg-red-600 hover:bg-red-700 shadow-red-500/20'
-                                            : 'bg-purple-600 hover:bg-purple-700 shadow-purple-500/20'
+                                        ? 'bg-red-600 hover:bg-red-700 shadow-red-500/20'
+                                        : 'bg-purple-600 hover:bg-purple-700 shadow-purple-500/20'
                                         }`}
                                 >
                                     {confirmText}

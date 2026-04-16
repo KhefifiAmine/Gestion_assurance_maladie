@@ -28,11 +28,7 @@ const DocumentJustificatif = sequelize.define('DocumentJustificatif', {
         allowNull: false
     },
     resultat_analyse: {
-        type: DataTypes.STRING,
-        allowNull: true
-    },
-    zones_modifiees: {
-        type: DataTypes.STRING,
+        type: DataTypes.TEXT,
         allowNull: true
     },
     hash_fichier: {

@@ -46,9 +46,18 @@ const BulletinSoin = sequelize.define('BulletinSoin', {
         type: DataTypes.DATEONLY,
         allowNull: true
     },
+    montant_remboursement: {
+        type: DataTypes.DOUBLE,
+        allowNull: false,
+        defaultValue: 0.0
+    },
     statut: {
         type: DataTypes.INTEGER,
         defaultValue: 0 // 0: En attente, 1: En cours de traitement, 2: Accepté, 3: Refusé
+    },
+    motif_refus: {
+        type: DataTypes.TEXT,
+        allowNull: true
     },
     date_traitement: {
         type: DataTypes.DATE,

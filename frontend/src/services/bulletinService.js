@@ -46,11 +46,11 @@ export const getAllBulletins = async () => {
     return response.json();
 };
 
-export const updateBulletinStatus = async (id, statut) => {
+export const updateBulletinStatus = async (id, statut, data = {}) => {
     const response = await fetch(`${API_URL}/${id}/status`, {
         method: 'PUT',
         headers: getAuthHeaders(),
-        body: JSON.stringify({ statut }),
+        body: JSON.stringify({ statut, ...data }),
     });
 
     if (!response.ok) {

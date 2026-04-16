@@ -281,7 +281,7 @@ const BulletinsPage = () => {
                                         </td>
                                         <td className="px-8 py-6 whitespace-nowrap text-right font-black text-sm">
                                             <span className="text-slate-500 dark:text-slate-400">
-                                                0.000
+                                                {b.montant_remboursement?.toFixed(3)}
                                             </span>
                                             <span className="text-[10px] text-slate-400 dark:text-slate-500"> TND</span>
                                         </td>

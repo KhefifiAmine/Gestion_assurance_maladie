@@ -12,21 +12,17 @@ import {
   Edit2,
   Camera,
   Eye,
-  AlertCircle,
   Home,
   Lock,
   Calendar,
   MapPin,
   Hash,
-  Activity,
   ChevronRight,
   Loader2,
   X,
   Check,
-  Key,
   ShieldCheck,
   UserPlus,
-  Clock,
   PlusCircle,
   ChevronDown,
   UploadCloud,
@@ -670,15 +666,15 @@ const UserProfile = () => {
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                 {[
+                                    { label: 'Matricule', key: 'matricule', icon: Hash, disabled: true },
+                                    { label: 'Code CNAM', key: 'code_cnam', icon: CreditCard },
                                     { label: 'Nom', key: 'nom', icon: User },
                                     { label: 'Prénom', key: 'prenom', icon: User },
                                     { label: 'Email', key: 'email', icon: Mail, disabled: true },
                                     { label: 'Téléphone', key: 'telephone', icon: Phone },
                                     { label: 'Ville', key: 'ville', icon: Home },
                                     { label: 'Adresse', key: 'adresse', icon: MapPin },
-                                    { label: 'Date de naissance', key: 'ddn', icon: Calendar, type: 'date' },
-                                    { label: 'Matricule', key: 'matricule', icon: Hash, disabled: true },
-                                    ...(user.role === 'ADHERENT' ? [{ label: 'Code CNAM', key: 'code_cnam', icon: CreditCard }] : []),
+                                    { label: 'Date de naissance', key: 'ddn', icon: Calendar, type: 'date' }
                                 ].map((field) => (
                                     <div key={field.key} className="space-y-2">
                                         <label className="flex items-center gap-2 text-[10px] font-black opacity-40 uppercase tracking-widest text-slate-900 dark:text-white">

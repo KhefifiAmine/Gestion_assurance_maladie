@@ -56,6 +56,7 @@ const SectionTitle = ({ icon: Icon, label, color }) => (
 /* ─── Main Component ─── */
 const BulletinDetailsModal = ({ isOpen, onClose, bulletin }) => {
     const { user: currentUser } = useAuth();
+    const isAdmin = currentUser?.role === 'ADMIN';
     const [comments, setComments] = React.useState([]);
     const [newComment, setNewComment] = React.useState('');
     const [loadingComments, setLoadingComments] = React.useState(false);
@@ -136,7 +137,6 @@ const BulletinDetailsModal = ({ isOpen, onClose, bulletin }) => {
         },
     };
     const status = statusMap[bulletin.statut] || statusMap[0];
-    const StatusIcon = status.icon;
 
     return (
         <AnimatePresence>
@@ -189,25 +189,54 @@ const BulletinDetailsModal = ({ isOpen, onClose, bulletin }) => {
                         <div className="flex-1 flex overflow-hidden min-h-0">
 
                             {/* ══ LEFT COLUMN : Details ══ */}
-                            <div className="flex-1 lg:flex-[3] overflow-y-auto custom-scrollbar p-5 md:p-7 space-y-5">
+                            <div className="flex-1 lg:flex-[3] overflow-y-auto custom-scrollbar p-5 md:p-7 space-y-6">
+
+                                {/* ── MOTIF DE REJET (Si applicable) ── */}
+                                {bulletin.statut === 3 && bulletin.motif_refus && (
+                                    <motion.div
+                                        initial={{ opacity: 0, y: -10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        className="p-5 rounded-3xl bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/30 flex items-start gap-4 shadow-sm"
+                                    >
+                                        <div className="w-12 h-12 rounded-2xl bg-red-100 dark:bg-red-900/20 text-red-600 flex items-center justify-center flex-shrink-0">
+                                            <XCircle size={22} />
+                                        </div>
+                                        <div>
+                                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-red-600 mb-1">Motif du refus</p>
+                                            <p className="text-sm font-bold text-red-800 dark:text-red-200 leading-relaxed">
+                                                {bulletin.motif_refus}
+                                            </p>
+                                        </div>
+                                    </motion.div>
+                                )}
 
                                 {/* ── BLOC 1 : Résumé financier ── */}
-                                <div className="grid grid-cols-3 gap-3">
+                                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                                     {/* Montant total */}
-                                    <div className="col-span-3 sm:col-span-1 p-5 rounded-2xl bg-gradient-to-br from-purple-600 to-indigo-700 text-white shadow-lg shadow-purple-500/25">
+                                    <div className="col-span-2 sm:col-span-1 p-5 rounded-2xl bg-gradient-to-br from-purple-600 to-indigo-700 text-white shadow-lg shadow-purple-500/25">
                                         <p className="text-[9px] font-black uppercase tracking-[0.15em] text-purple-200 mb-2">Montant Total</p>
                                         <p className="text-2xl font-black leading-none">{bulletin.montant_total?.toFixed(3)}</p>
                                         <p className="text-[10px] font-bold text-purple-200 mt-1">TND</p>
                                     </div>
+                                    
+                                    {/* Montant Remboursé */}
+                                
+                                    <div className="col-span-2 sm:col-span-1 p-5 rounded-2xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800/30">
+                                        <p className="text-[9px] font-black uppercase tracking-[0.15em] text-emerald-600 mb-2">Montant Remboursé</p>
+                                        <p className="text-2xl font-black leading-none text-emerald-700 dark:text-emerald-300">{bulletin.montant_remboursement?.toFixed(3) || '0.000'}</p>
+                                        <p className="text-[10px] font-bold text-emerald-500 mt-1">TND</p>
+                                    </div>
+                            
+
                                     {/* Date soin */}
-                                    <div className="col-span-3 sm:col-span-1 p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-white/5">
+                                    <div className="col-span-1 p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-white/5">
                                         <p className="text-[9px] font-black uppercase tracking-[0.15em] text-slate-400 mb-2">Date de Soin</p>
                                         <p className="text-sm font-black text-slate-800 dark:text-white">
                                             {new Date(bulletin.date_soin).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })}
                                         </p>
                                     </div>
                                     {/* Date dépôt */}
-                                    <div className="col-span-3 sm:col-span-1 p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-white/5">
+                                    <div className="col-span-1 p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-white/5">
                                         <p className="text-[9px] font-black uppercase tracking-[0.15em] text-slate-400 mb-2">Date de Dépôt</p>
                                         <p className="text-sm font-black text-slate-800 dark:text-white">
                                             {bulletin.date_depot ? new Date(bulletin.date_depot).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
@@ -298,6 +327,9 @@ const BulletinDetailsModal = ({ isOpen, onClose, bulletin }) => {
                                                                             <span className={`w-1.5 h-1.5 rounded-full inline-block ${doc.est_suspect ? 'bg-red-500' : 'bg-emerald-400'}`} />
                                                                             {isPdf ? 'PDF' : 'Image'} · Officiel
                                                                         </p>
+                                                                        
+                                                                        {isAdmin && (
+                                                                            <>
                                                                         {doc.score !== undefined && (
                                                                             <span className={`px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest border ${doc.score > 80 ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : doc.score > 50 ? 'bg-amber-50 text-amber-600 border-amber-100' : 'bg-red-50 text-red-600 border-red-100'}`}>
                                                                                 IA : {doc.score}%
@@ -307,13 +339,16 @@ const BulletinDetailsModal = ({ isOpen, onClose, bulletin }) => {
                                                                             <span className={`px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest border ${doc.niveauRisque === 'aucun' || doc.niveauRisque === 'faible' ? 'bg-emerald-100/50 text-emerald-700 border-emerald-200' : doc.niveauRisque === 'moyen' ? 'bg-amber-100/50 text-amber-700 border-amber-200' : 'bg-red-100/50 text-red-700 border-red-200'}`}>
                                                                                 Niveau Risque : {doc.niveauRisque}
                                                                             </span>
+                                                                        )}</>
                                                                         )}
                                                                     </div>
+                                                                    {isAdmin && (
+                                                                        <>
                                                                     {doc.est_suspect && doc.resultat_analyse && (
                                                                         <p className="text-[8px] text-red-500 font-bold mt-1 bg-red-50 dark:bg-red-900/10 px-2 py-1 rounded-lg border border-red-100 dark:border-red-900/30">
                                                                             ⚠ {doc.resultat_analyse}
                                                                         </p>
-                                                                    )}
+                                                                    )}</>)}
                                                                 </div>
                                                             </div>
                                                             <div className="flex items-center gap-2">
@@ -359,7 +394,6 @@ const BulletinDetailsModal = ({ isOpen, onClose, bulletin }) => {
                                     </div>
                                 )}
 
-                        
                             </div>
 
                             {/* ══ RIGHT COLUMN : Discussion ══ */}
