@@ -1,0 +1,50 @@
+const jwt = require('jsonwebtoken');
+
+const verifyToken = (req, res, next) => {
+    const authHeader = req.headers['authorization'];
+    if (!authHeader) {
+        return res.status(403).json({ message: 'Aucun token fourni!' });
+    }
+
+    const token = authHeader.split(' ')[1]; // Format: Bearer <token>
+    if (!token) {
+        return res.status(403).json({ message: 'Format du token invalide!' });
+    }
+
+    jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret', (err, decoded) => {
+        if (err) {
+            return res.status(401).json({ message: 'Non autorisé! Token invalide.' });
+        }
+        req.userId = decoded.id;
+        req.userRole = decoded.role;
+        next();
+    });
+};
+
+const isAdmin = (req, res, next) => {
+    if (req.userRole !== 'ADMIN') {
+        return res.status(403).json({ message: 'Nécessite le rôle d\'Administrateur!' });
+    }
+    next();
+};
+
+const isRH = (req, res, next) => {
+    if (req.userRole !== 'RESPONSABLE_RH') {
+        return res.status(403).json({ message: 'Nécessite le rôle de Responsable RH!' });
+    }
+    next();
+};
+
+const isAdminOrRH = (req, res, next) => {
+    if (!['ADMIN', 'RESPONSABLE_RH'].includes(req.userRole)) {
+        return res.status(403).json({ message: 'Nécessite le rôle d\'Administrateur ou Responsable RH!' });
+    }
+    next();
+};
+
+module.exports = {
+    verifyToken,
+    isAdmin,
+    isRH,
+    isAdminOrRH
+};
