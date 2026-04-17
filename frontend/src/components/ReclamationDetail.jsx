@@ -144,7 +144,7 @@ const ReclamationDetail = ({
   const bulletin = reclamation.bulletinId ? allBulletins.find(b => b.id === reclamation.bulletinId) : null;
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto animate-scale-in">
+    <div className="space-y-6 mx-auto animate-scale-in">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-white/5">
         <div className="flex items-center gap-4">
           <button onClick={onBack} className="p-2.5 bg-gray-50 dark:bg-slate-800 rounded-xl hover:bg-gray-100 border border-gray-200 transition">
@@ -198,9 +198,7 @@ const ReclamationDetail = ({
             <div className="flex items-center gap-4 mb-8 pb-6 border-b border-slate-100 relative z-10">
               <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-slate-100 to-slate-200 flex justify-center items-center text-xl font-black text-slate-600">{reclamation.adherentNom?.charAt(0) || 'U'}</div>
               <div><h3 className="font-black text-xl text-slate-900 dark:text-white tracking-tight">{reclamation.adherentNom || 'Utilisateur'}</h3><p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-0.5">Adhérent Titulaire</p></div>
-              <div className="ml-auto grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl border border-slate-100"><p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Prestataire</p><p className="font-bold text-slate-900 dark:text-white">{reclamation.prestataire || 'GAT'}</p></div>
-              </div>
+              <div className="ml-auto bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl border border-slate-100"><p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Prestataire</p><p className="font-bold text-slate-900 dark:text-white">{reclamation.prestataire || 'GAT'}</p></div>
             </div>
             <div className="relative z-10">
               <h4 className="text-2xl font-black text-purple-600 dark:text-purple-400 tracking-tight mb-6 flex items-center gap-3"><MessageSquare className="w-6 h-6" /> {reclamation.objet}</h4>
@@ -213,49 +211,6 @@ const ReclamationDetail = ({
               <div className="bg-white dark:bg-slate-900 p-8 rounded-[1.5rem] text-slate-800 dark:text-slate-100 whitespace-pre-wrap font-bold tracking-tight shadow-2xl border border-indigo-100">{reclamation.reponseAdmin}</div>
             </motion.div>
           )}
-
-          <div className="space-y-6">
-            <h3 className="text-xl font-black text-slate-800 dark:text-white flex items-center gap-2"><MessageSquare className="w-5 h-5 text-purple-600" /> Echanges</h3>            
-            {reclamation.isRestricted ? (
-              <motion.div 
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="bg-white dark:bg-slate-900 p-12 rounded-[2.5rem] border border-red-100 dark:border-red-900/20 text-center shadow-xl space-y-4"
-              >
-                <div className="w-20 h-20 bg-red-50 dark:bg-red-900/20 rounded-3xl flex items-center justify-center text-red-500 mx-auto">
-                  <Eye size={36} strokeWidth={1.5} />
-                </div>
-                <div>
-                  <h4 className="text-lg font-black text-red-600 dark:text-red-400 mb-2 uppercase tracking-tight">Accès restreint</h4>
-                  <p className="text-sm text-slate-500 dark:text-slate-400 font-bold max-w-sm mx-auto leading-relaxed">
-                    {reclamation.restrictionMessage || 'Cette discussion est associée à un autre administrateur.'}
-                  </p>
-                </div>
-              </motion.div>
-            ) : (
-              <>
-                <div className="space-y-4">
-                  {messages.map((msg, i) => {
-                    const isMe = (isAdherent && msg.sender?.role === 'ADHERENT') || (!isAdherent && msg.sender?.role === 'ADMIN');
-                    return (
-                      <motion.div key={msg.id || i} initial={{ opacity: 0, x: isMe ? 20 : -20 }} animate={{ opacity: 1, x: 0 }} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
-                        <div className={`max-w-[80%] p-6 rounded-[2rem] shadow-sm border ${isMe ? 'bg-purple-600 text-white border-purple-500 rounded-tr-none' : 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 border-slate-100 rounded-tl-none'}`}><p className="font-bold tracking-tight leading-relaxed whitespace-pre-wrap">{msg.message}</p></div>
-                      </motion.div>
-                    );
-                  })}
-                </div>
-
-                {reclamation.statut !== 'Clôturée' && (
-                  <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-[2.5rem] mt-6 border border-slate-100 dark:border-white/5">
-                    <div className="relative">
-                      <textarea value={newMessage} onChange={e => setNewMessage(e.target.value)} placeholder="Ajouter un commentaire..." className="w-full bg-white dark:bg-slate-900 border border-slate-100 dark:border-white/10 rounded-[2rem] p-6 pr-20 outline-none focus:ring-4 focus:ring-purple-500/10 transition-all font-bold text-slate-700 dark:text-slate-200 resize-none shadow-inner" rows={3} />
-                      <button onClick={handleSendMessage} disabled={isSendingMessage || !newMessage.trim()} className="absolute right-3 bottom-3 p-4 bg-purple-600 text-white rounded-[1.5rem] hover:bg-purple-700 transition active:scale-95 disabled:opacity-50 shadow-lg shadow-purple-500/30">{isSendingMessage ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Send size={20} />}</button>
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
-          </div>
 
           {!isAdherent && reclamation.statut !== 'Clôturée' && !reclamation.isRestricted && (
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-white dark:bg-slate-900 p-8 sm:p-10 rounded-[2.5rem] shadow-2xl border border-slate-100 relative overflow-hidden">
@@ -342,7 +297,7 @@ const ReclamationDetail = ({
         </div>
 
         <div className="space-y-6">
-          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] shadow-xl border border-slate-100 sticky top-6 overflow-hidden">
+          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] shadow-xl border border-slate-100 overflow-hidden">
             <div className="absolute top-0 left-0 w-1.5 h-full bg-purple-600" />
             <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-8 flex items-center gap-3"><FileText size={16} /> Bulletin Associé</h3>
             {bulletin ? (
@@ -352,6 +307,49 @@ const ReclamationDetail = ({
               </div>
             ) : <p className="font-bold text-slate-400 text-center">Aucun bulletin lié.</p>}
           </motion.div>
+
+          <div className="space-y-6">
+            <h3 className="text-xl font-black text-slate-800 dark:text-white flex items-center gap-2"><MessageSquare className="w-5 h-5 text-purple-600" /> Echanges</h3>            
+            {reclamation.isRestricted ? (
+              <motion.div 
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-white dark:bg-slate-900 p-12 rounded-[2.5rem] border border-red-100 dark:border-red-900/20 text-center shadow-xl space-y-4"
+              >
+                <div className="w-20 h-20 bg-red-50 dark:bg-red-900/20 rounded-3xl flex items-center justify-center text-red-500 mx-auto">
+                  <Eye size={36} strokeWidth={1.5} />
+                </div>
+                <div>
+                  <h4 className="text-lg font-black text-red-600 dark:text-red-400 mb-2 uppercase tracking-tight">Accès restreint</h4>
+                  <p className="text-sm text-slate-500 dark:text-slate-400 font-bold max-w-sm mx-auto leading-relaxed">
+                    {reclamation.restrictionMessage || 'Cette discussion est associée à un autre administrateur.'}
+                  </p>
+                </div>
+              </motion.div>
+            ) : (
+              <>
+                <div className="space-y-4">
+                  {messages.map((msg, i) => {
+                    const isMe = (isAdherent && msg.sender?.role === 'ADHERENT') || (!isAdherent && msg.sender?.role === 'ADMIN');
+                    return (
+                      <motion.div key={msg.id || i} initial={{ opacity: 0, x: isMe ? 20 : -20 }} animate={{ opacity: 1, x: 0 }} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
+                        <div className={`max-w-[100%] p-6 rounded-[2rem] shadow-sm border ${isMe ? 'bg-purple-600 text-white border-purple-500 rounded-tr-none' : 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 border-slate-100 rounded-tl-none'}`}><p className="font-bold tracking-tight leading-relaxed whitespace-pre-wrap">{msg.message}</p></div>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+
+                {reclamation.statut !== 'Clôturée' && (
+                  <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-[2.5rem] mt-6 border border-slate-100 dark:border-white/5">
+                    <div className="relative">
+                      <textarea value={newMessage} onChange={e => setNewMessage(e.target.value)} placeholder="Ajouter un commentaire..." className="w-full bg-white dark:bg-slate-900 border border-slate-100 dark:border-white/10 rounded-[2rem] p-6 pr-20 outline-none focus:ring-4 focus:ring-purple-500/10 transition-all font-bold text-slate-700 dark:text-slate-200 resize-none shadow-inner" rows={3} />
+                      <button onClick={handleSendMessage} disabled={isSendingMessage || !newMessage.trim()} className="absolute right-3 bottom-3 p-4 bg-purple-600 text-white rounded-[1.5rem] hover:bg-purple-700 transition active:scale-95 disabled:opacity-50 shadow-lg shadow-purple-500/30">{isSendingMessage ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Send size={20} />}</button>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
         </div>
       </div>
 
