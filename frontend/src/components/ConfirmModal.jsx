@@ -106,18 +106,46 @@ const ConfirmModal = ({
                                 </p>
 
                                 {requireReason && (
-                                    <div className="mt-6 w-full text-left">
-                                        <label className="block text-[10px] font-black text-slate-400 dark:text-slate-500 mb-2 uppercase tracking-widest ml-1">
-                                            {reasonLabel} <span className="text-red-500">*</span>
-                                        </label>
-                                        <textarea
-                                            className="w-full text-sm font-bold p-4 border border-slate-200 dark:border-slate-800 rounded-2xl bg-slate-50 dark:bg-slate-900/50 text-slate-900 dark:text-white outline-none focus:ring-4 focus:ring-purple-500/10 focus:border-purple-500 transition-all resize-none"
-                                            rows="3"
-                                            placeholder="Veuillez indiquer la raison..."
-                                            value={reason}
-                                            onChange={(e) => setReason(e.target.value)}
-                                            required
-                                        />
+                                    <div className="mt-6 w-full text-left space-y-4">
+                                        <div>
+                                            <label className="block text-[10px] font-black text-slate-400 dark:text-slate-500 mb-2 uppercase tracking-widest ml-1">
+                                                Motifs suggérés
+                                            </label>
+                                            <div className="flex flex-wrap gap-2">
+                                                {[
+                                                    "Document illisible ou flou",
+                                                    "Facture non conforme",
+                                                    "Date de soin expirée",
+                                                    "Montant incohérent",
+                                                    "Doublon détecté",
+                                                    "Signature/Cachet manquant",
+                                                    "Acte non couvert"
+                                                ].map((suggestion) => (
+                                                    <button
+                                                        key={suggestion}
+                                                        type="button"
+                                                        onClick={() => setReason(suggestion)}
+                                                        className="px-3 py-1.5 rounded-xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 text-[10px] font-bold text-slate-600 dark:text-slate-300 hover:bg-purple-50 hover:text-purple-600 hover:border-purple-200 transition-all active:scale-95"
+                                                    >
+                                                        {suggestion}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-[10px] font-black text-slate-400 dark:text-slate-500 mb-2 uppercase tracking-widest ml-1">
+                                                {reasonLabel} <span className="text-red-500">*</span>
+                                            </label>
+                                            <textarea
+                                                className="w-full text-sm font-bold p-4 border border-slate-200 dark:border-slate-800 rounded-2xl bg-slate-50 dark:bg-slate-900/50 text-slate-900 dark:text-white outline-none focus:ring-4 focus:ring-purple-500/10 focus:border-purple-500 transition-all resize-none shadow-inner"
+                                                rows="3"
+                                                placeholder="Veuillez indiquer la raison..."
+                                                value={reason}
+                                                onChange={(e) => setReason(e.target.value)}
+                                                required
+                                            />
+                                        </div>
                                     </div>
                                 )}
 

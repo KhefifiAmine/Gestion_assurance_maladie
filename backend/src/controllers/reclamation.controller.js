@@ -99,6 +99,18 @@ const reclamationController = {
         return res.status(403).json({ success: false, message: 'Accès refusé.' });
       }
 
+      // Restriction: Si c'est un Admin et déjà assigné à un autre admin, on masque les messages
+      if (role === 'ADMIN' && reclamation.adminId && reclamation.adminId !== userId) {
+        return res.status(200).json({ 
+          success: true, 
+          data: {
+            ...reclamation.toJSON(),
+            messages: [],
+            isRestricted: true,
+            restrictionMessage: 'Cette discussion est associée à un autre administrateur'
+          } 
+        });
+      }
       res.status(200).json({ success: true, data: reclamation });
     } catch (error) {
       console.error('Erreur lors de la récupération de la réclamation:', error);
@@ -203,6 +215,17 @@ const reclamationController = {
       // Sécurité: un adhérent ne peut écrire que sur sa propre réclamation
       if (userRole === 'ADHERENT' && reclamation.userId !== userId) {
         return res.status(403).json({ success: false, message: 'Accès non autorisé.' });
+      }
+
+      // Restriction: Si c'est un Admin et déjà assigné à un autre admin
+      if (userRole === 'ADMIN' && reclamation.adminId && reclamation.adminId !== userId) {
+        return res.status(403).json({ success: false, message: 'Cette discussion est associée à un autre administrateur.' });
+      }
+
+      // Auto-assignation si admin envoie premier message
+      if (userRole === 'ADMIN' && !reclamation.adminId) {
+        reclamation.adminId = userId;
+        await reclamation.save();
       }
 
       const nouveauMessage = await ReclamationMessage.create({

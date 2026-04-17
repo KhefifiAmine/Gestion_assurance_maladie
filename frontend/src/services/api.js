@@ -1,4 +1,6 @@
+
 const API_BASE = 'http://localhost:5000/api';
+
 
 // Helper: récupérer le token stocké
 const getToken = () => localStorage.getItem('token');

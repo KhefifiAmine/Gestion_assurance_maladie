@@ -271,10 +271,17 @@ const BulletinsPage = () => {
                                             {b.date_depot ? new Date(b.date_depot).toLocaleDateString('fr-FR') : '-'}
                                         </td>
                                         <td className="px-8 py-6 whitespace-nowrap">
-                                            <span className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border ${statusConfig.classes}`}>
-                                                {statusConfig.icon}
-                                                {statusConfig.label}
-                                            </span>
+                                            <div className="flex flex-col gap-1">
+                                                <span className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border ${statusConfig.classes}`}>
+                                                    {statusConfig.icon}
+                                                    {statusConfig.label}
+                                                </span>
+                                                {b.statut === 3 && b.motif_rejet && (
+                                                    <span className="text-[9px] text-red-500 font-bold truncate max-w-[150px]" title={b.motif_rejet}>
+                                                        Motif: {b.motif_rejet}
+                                                    </span>
+                                                )}
+                                            </div>
                                         </td>
                                         <td className="px-8 py-6 whitespace-nowrap text-right font-black text-sm text-slate-800 dark:text-slate-100">
                                             {b.montant_total?.toFixed(3)} <span className="text-[10px] text-slate-400 dark:text-slate-500">TND</span>

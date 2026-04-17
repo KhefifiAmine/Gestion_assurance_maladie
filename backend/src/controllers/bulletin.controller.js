@@ -1,4 +1,5 @@
-const { BulletinSoin, ActeMedical, Pharmacie, SoinDentaire, User, Medecin, DocumentJustificatif, Beneficiary, BulletinComment } = require('../../models');
+
+const { BulletinSoin, ActeMedical, Pharmacie, SoinDentaire, User, Medecin, DocumentJustificatif, Beneficiary, BulletinComment, Notification } = require('../../models');
 
 const createBulletin = async (req, res) => {
     try {
@@ -209,10 +210,13 @@ const getAllBulletins = async (req, res) => {
 const updateBulletinStatus = async (req, res) => {
     try {
         const { id } = req.params;
-        const { statut, motif_refus } = req.body;
+        const { statut, motif_rejet } = req.body;
         const adminId = req.userId;
 
-        const bulletin = await BulletinSoin.findByPk(id);
+        const bulletin = await BulletinSoin.findByPk(id, {
+            include: [{ model: User, as: 'adherent' }]
+        });
+
         if (!bulletin) {
             return res.status(404).json({ message: 'Bulletin non trouvé' });
         }
@@ -220,15 +224,38 @@ const updateBulletinStatus = async (req, res) => {
         bulletin.statut = statut;
         bulletin.adminId = adminId;
         bulletin.date_traitement = new Date();
-        
+
         if (motif_refus !== undefined) {
             bulletin.motif_refus = motif_refus;
         }
 
         await bulletin.save();
 
+        // Création d'une notification pour l'utilisateur
+        let notificationTitle = "";
+        let notificationDesc = "";
+
+        if (statut === 2) {
+            notificationTitle = "Bulletin Approuvé";
+            notificationDesc = `Votre bulletin #${bulletin.numero_bulletin} a été accepté. Montant remboursé: ${bulletin.montant_remboursement || 0} TND.`;
+        } else if (statut === 3) {
+            notificationTitle = "Bulletin Rejeté";
+            notificationDesc = `Votre bulletin #${bulletin.numero_bulletin} a été refusé. Motif : ${motif_rejet || 'Non spécifié'}.`;
+        }
+
+        if (notificationTitle) {
+            await Notification.create({
+                titre: notificationTitle,
+                description: notificationDesc,
+                userId: bulletin.userId,
+                type: statut === 2 ? 'success' : 'error',
+                priorite: 'haute'
+            });
+        }
+
         res.status(200).json({ message: 'Statut du bulletin mis à jour', bulletin });
     } catch (error) {
+        console.error(error);
         res.status(500).json({ message: 'Erreur lors de la mise à jour du statut', error: error.message });
     }
 };
@@ -242,6 +269,21 @@ const addBulletinComment = async (req, res) => {
         const bulletin = await BulletinSoin.findByPk(id);
         if (!bulletin) {
             return res.status(404).json({ message: 'Bulletin non trouvé' });
+        }
+
+
+        const user = await User.findByPk(senderId);
+        const isAdmin = user && user.role === 'ADMIN';
+
+        // Restriction : Si déjà assigné à un autre admin
+        if (isAdmin && bulletin.adminId && bulletin.adminId !== senderId) {
+            return res.status(403).json({ message: 'Cette discussion est associée à un autre administrateur' });
+        }
+
+        // Auto-assignation si admin envoie premier message
+        if (isAdmin && !bulletin.adminId) {
+            bulletin.adminId = senderId;
+            await bulletin.save();
         }
 
         const comment = await BulletinComment.create({
@@ -263,6 +305,25 @@ const addBulletinComment = async (req, res) => {
 const getBulletinComments = async (req, res) => {
     try {
         const { id } = req.params;
+        const requestingUserId = req.userId;
+
+        const bulletin = await BulletinSoin.findByPk(id);
+        if (!bulletin) {
+            return res.status(404).json({ message: 'Bulletin non trouvé' });
+        }
+
+        const user = await User.findByPk(requestingUserId);
+        const isAdmin = user && user.role === 'ADMIN';
+
+        // Restriction : Si déjà assigné à un autre admin, on bloque l'accès aux messages
+        if (isAdmin && bulletin.adminId && bulletin.adminId !== requestingUserId) {
+            return res.status(200).json({
+                isRestricted: true,
+                message: 'Cette discussion est associée à un autre administrateur',
+                comments: []
+            });
+        }
+
         const comments = await BulletinComment.findAll({
             where: { bulletinId: id },
             include: [{ model: User, as: 'sender', attributes: ['nom', 'prenom', 'role'] }],

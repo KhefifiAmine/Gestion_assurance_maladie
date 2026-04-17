@@ -58,11 +58,13 @@ const BulletinDetailsModal = ({ isOpen, onClose, bulletin }) => {
     const { user: currentUser } = useAuth();
     const isAdmin = currentUser?.role === 'ADMIN';
     const [comments, setComments] = React.useState([]);
+    const [expandedAiDocs, setExpandedAiDocs] = React.useState({});
+    const toggleAiDoc = (idx) => setExpandedAiDocs(prev => ({...prev, [idx]: !prev[idx]}));
+    const [isRestricted, setIsRestricted] = React.useState(false);
     const [newComment, setNewComment] = React.useState('');
     const [loadingComments, setLoadingComments] = React.useState(false);
     const [previewDoc, setPreviewDoc] = React.useState(null);
-    const [expandedAiDocs, setExpandedAiDocs] = React.useState({});
-    const toggleAiDoc = (idx) => setExpandedAiDocs(prev => ({...prev, [idx]: !prev[idx]}));
+
     const scrollRef = React.useRef(null);
 
     React.useEffect(() => {
@@ -81,8 +83,14 @@ const BulletinDetailsModal = ({ isOpen, onClose, bulletin }) => {
     const fetchComments = async () => {
         try {
             setLoadingComments(true);
+            setIsRestricted(false);
             const data = await getBulletinComments(bulletin.id);
-            setComments(data);
+            if (data.isRestricted) {
+                setIsRestricted(true);
+                setComments([]);
+            } else {
+                setComments(data);
+            }
         } catch (error) {
             console.error('Erreur comments:', error);
         } finally {
@@ -222,13 +230,11 @@ const BulletinDetailsModal = ({ isOpen, onClose, bulletin }) => {
                                     </div>
 
                                     {/* Montant Remboursé */}
-
                                     <div className="col-span-2 sm:col-span-1 p-5 rounded-2xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800/30">
                                         <p className="text-[9px] font-black uppercase tracking-[0.15em] text-emerald-600 mb-2">Montant Remboursé</p>
                                         <p className="text-2xl font-black leading-none text-emerald-700 dark:text-emerald-300">{bulletin.montant_remboursement?.toFixed(3) || '0.000'}</p>
                                         <p className="text-[10px] font-bold text-emerald-500 mt-1">TND</p>
                                     </div>
-
 
                                     {/* Date soin */}
                                     <div className="col-span-1 p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-white/5">
@@ -306,7 +312,6 @@ const BulletinDetailsModal = ({ isOpen, onClose, bulletin }) => {
 
                                 {/* ── BLOC 5 : Documents Justificatifs ── */}
 
-
                                 {bulletin.documents && bulletin.documents.length > 0 && (
                                     <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-white/5">
                                         <SectionTitle icon={FileText} label={`Documents (${bulletin.documents.length})`} color="bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400" />
@@ -317,7 +322,6 @@ const BulletinDetailsModal = ({ isOpen, onClose, bulletin }) => {
                                                 const isActive = previewDoc?.fichier === doc.fichier;
                                                 return (
                                                     <div key={idx} className="rounded-xl border border-slate-100 dark:border-white/5 overflow-hidden">
-                                                        {/* Document header row */}
                                                         <div className="flex items-center justify-between px-4 py-3 bg-slate-50 dark:bg-slate-800/50">
                                                             <div className="flex items-center gap-3">
                                                                 <div className="w-9 h-9 rounded-xl bg-amber-100 dark:bg-amber-900/20 text-amber-600 flex items-center justify-center flex-shrink-0">
@@ -434,7 +438,6 @@ const BulletinDetailsModal = ({ isOpen, onClose, bulletin }) => {
                                                                 </AnimatePresence>
                                                             </div>
                                                         )}
-
                                                         <AnimatePresence>
                                                             {isActive && (
                                                                 <motion.div
@@ -490,6 +493,19 @@ const BulletinDetailsModal = ({ isOpen, onClose, bulletin }) => {
                                             <div className="w-6 h-6 border-2 border-purple-200 border-t-purple-600 rounded-full animate-spin" />
                                             <p className="text-[10px] font-black uppercase tracking-widest">Chargement...</p>
                                         </div>
+                                    ) : isRestricted ? (
+                                        <div className="h-full flex flex-col items-center justify-center gap-4 text-center px-6">
+                                            <div className="w-16 h-16 rounded-2xl bg-red-50 dark:bg-red-900/10 flex items-center justify-center text-red-500">
+                                                <ShieldAlert size={28} strokeWidth={1.5} />
+                                            </div>
+                                            <div>
+                                                <p className="text-xs font-black uppercase tracking-widest text-red-600 mb-1">Accès restreint</p>
+                                                <p className="text-[10px] text-slate-500 font-bold leading-relaxed px-4">
+                                                    Cette discussion est associée à un autre administrateur. 
+                                                    Vous ne pouvez ni lire ni participer à cet échange.
+                                                </p>
+                                            </div>
+                                        </div>
                                     ) : comments.length === 0 ? (
                                         <div className="h-full flex flex-col items-center justify-center gap-4 text-center px-6">
                                             <div className="w-16 h-16 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-300 dark:text-slate-600">
@@ -503,13 +519,13 @@ const BulletinDetailsModal = ({ isOpen, onClose, bulletin }) => {
                                     ) : (
                                         comments.map((comment, idx) => {
                                             const isMe = comment.senderId === currentUser?.id;
-                                            const isAdmin = comment.sender?.role !== 'ADHERENT';
+                                            const isAdminMsg = comment.sender?.role !== 'ADHERENT';
                                             return (
                                                 <div key={idx} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
                                                     {!isMe && (
                                                         <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1.5 px-1">
                                                             {comment.sender?.prenom} {comment.sender?.nom}
-                                                            {isAdmin && <span className="ml-1.5 text-purple-500 dark:text-purple-400">(Admin)</span>}
+                                                            {isAdminMsg && <span className="ml-1.5 text-purple-500 dark:text-purple-400">(Admin)</span>}
                                                         </p>
                                                     )}
                                                     <div className={`max-w-[88%] px-4 py-3 rounded-2xl text-sm ${isMe ? 'bg-gradient-to-br from-purple-600 to-indigo-700 text-white rounded-tr-sm shadow-md shadow-purple-500/20' : 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-100 rounded-tl-sm'}`}>
@@ -526,29 +542,36 @@ const BulletinDetailsModal = ({ isOpen, onClose, bulletin }) => {
 
                                 {/* Input */}
                                 <div className="flex-shrink-0 p-4 border-t border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-slate-950">
-                                    <form onSubmit={handleSendComment} className="relative">
-                                        <textarea
-                                            rows={2}
-                                            value={newComment}
-                                            onChange={e => setNewComment(e.target.value)}
-                                            placeholder="Écrire un message..."
-                                            className="w-full pl-4 pr-14 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-2xl focus:outline-none focus:ring-4 focus:ring-purple-500/10 focus:border-purple-500/50 transition-all text-sm font-semibold dark:text-white resize-none"
-                                            onKeyDown={e => {
-                                                if (e.key === 'Enter' && !e.shiftKey) {
-                                                    e.preventDefault();
-                                                    handleSendComment(e);
-                                                }
-                                            }}
-                                        />
-                                        <button
-                                            type="submit"
-                                            disabled={!newComment.trim()}
-                                            className="absolute right-2.5 bottom-2.5 p-2.5 bg-purple-600 text-white rounded-xl shadow-md shadow-purple-500/30 hover:bg-purple-700 active:scale-95 transition-all disabled:opacity-40 disabled:hover:bg-purple-600 disabled:active:scale-100"
-                                        >
-                                            <Send size={15} />
-                                        </button>
-                                    </form>
-                                    <p className="text-[8px] text-center text-slate-400 font-bold uppercase tracking-widest mt-2">Entrée pour envoyer · Maj+Entrée pour sauter une ligne</p>
+                                    {isRestricted ? (
+                                        <div className="flex items-center gap-3 p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-2xl text-center shadow-inner">
+                                            <ShieldAlert size={16} className="text-red-500 flex-shrink-0" />
+                                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Discussion verrouillée</p>
+                                        </div>
+                                    ) : (
+                                        <form onSubmit={handleSendComment} className="relative">
+                                            <textarea
+                                                rows={2}
+                                                value={newComment}
+                                                onChange={e => setNewComment(e.target.value)}
+                                                placeholder="Écrire un message..."
+                                                className="w-full pl-4 pr-14 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-2xl focus:outline-none focus:ring-4 focus:ring-purple-500/10 focus:border-purple-500/50 transition-all text-sm font-semibold dark:text-white resize-none"
+                                                onKeyDown={e => {
+                                                    if (e.key === 'Enter' && !e.shiftKey) {
+                                                        e.preventDefault();
+                                                        handleSendComment(e);
+                                                    }
+                                                }}
+                                            />
+                                            <button
+                                                type="submit"
+                                                disabled={!newComment.trim()}
+                                                className="absolute right-2.5 bottom-2.5 p-2.5 bg-purple-600 text-white rounded-xl shadow-md shadow-purple-500/30 hover:bg-purple-700 active:scale-95 transition-all disabled:opacity-40 disabled:hover:bg-purple-600 disabled:active:scale-100"
+                                            >
+                                                <Send size={15} />
+                                            </button>
+                                        </form>
+                                    )}
+                                    {!isRestricted && <p className="text-[8px] text-center text-slate-400 font-bold uppercase tracking-widest mt-2">Entrée pour envoyer · Maj+Entrée pour sauter une ligne</p>}
                                 </div>
                             </div>
                         </div>
