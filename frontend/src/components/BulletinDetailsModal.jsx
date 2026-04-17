@@ -61,6 +61,8 @@ const BulletinDetailsModal = ({ isOpen, onClose, bulletin }) => {
     const [newComment, setNewComment] = React.useState('');
     const [loadingComments, setLoadingComments] = React.useState(false);
     const [previewDoc, setPreviewDoc] = React.useState(null);
+    const [expandedAiDocs, setExpandedAiDocs] = React.useState({});
+    const toggleAiDoc = (idx) => setExpandedAiDocs(prev => ({...prev, [idx]: !prev[idx]}));
     const scrollRef = React.useRef(null);
 
     React.useEffect(() => {
@@ -218,15 +220,15 @@ const BulletinDetailsModal = ({ isOpen, onClose, bulletin }) => {
                                         <p className="text-2xl font-black leading-none">{bulletin.montant_total?.toFixed(3)}</p>
                                         <p className="text-[10px] font-bold text-purple-200 mt-1">TND</p>
                                     </div>
-                                    
+
                                     {/* Montant Remboursé */}
-                                
+
                                     <div className="col-span-2 sm:col-span-1 p-5 rounded-2xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800/30">
                                         <p className="text-[9px] font-black uppercase tracking-[0.15em] text-emerald-600 mb-2">Montant Remboursé</p>
                                         <p className="text-2xl font-black leading-none text-emerald-700 dark:text-emerald-300">{bulletin.montant_remboursement?.toFixed(3) || '0.000'}</p>
                                         <p className="text-[10px] font-bold text-emerald-500 mt-1">TND</p>
                                     </div>
-                            
+
 
                                     {/* Date soin */}
                                     <div className="col-span-1 p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-white/5">
@@ -304,7 +306,7 @@ const BulletinDetailsModal = ({ isOpen, onClose, bulletin }) => {
 
                                 {/* ── BLOC 5 : Documents Justificatifs ── */}
 
-                                
+
                                 {bulletin.documents && bulletin.documents.length > 0 && (
                                     <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-white/5">
                                         <SectionTitle icon={FileText} label={`Documents (${bulletin.documents.length})`} color="bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400" />
@@ -315,6 +317,7 @@ const BulletinDetailsModal = ({ isOpen, onClose, bulletin }) => {
                                                 const isActive = previewDoc?.fichier === doc.fichier;
                                                 return (
                                                     <div key={idx} className="rounded-xl border border-slate-100 dark:border-white/5 overflow-hidden">
+                                                        {/* Document header row */}
                                                         <div className="flex items-center justify-between px-4 py-3 bg-slate-50 dark:bg-slate-800/50">
                                                             <div className="flex items-center gap-3">
                                                                 <div className="w-9 h-9 rounded-xl bg-amber-100 dark:bg-amber-900/20 text-amber-600 flex items-center justify-center flex-shrink-0">
@@ -322,33 +325,10 @@ const BulletinDetailsModal = ({ isOpen, onClose, bulletin }) => {
                                                                 </div>
                                                                 <div>
                                                                     <p className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-tight">{doc.type_document || 'Document'}</p>
-                                                                    <div className="flex flex-wrap items-center gap-2 mt-1">
-                                                                        <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1">
-                                                                            <span className={`w-1.5 h-1.5 rounded-full inline-block ${doc.est_suspect ? 'bg-red-500' : 'bg-emerald-400'}`} />
-                                                                            {isPdf ? 'PDF' : 'Image'} · Officiel
-                                                                        </p>
-                                                                        
-                                                                        {isAdmin && (
-                                                                            <>
-                                                                        {doc.score !== undefined && (
-                                                                            <span className={`px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest border ${doc.score > 80 ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : doc.score > 50 ? 'bg-amber-50 text-amber-600 border-amber-100' : 'bg-red-50 text-red-600 border-red-100'}`}>
-                                                                                IA : {doc.score}%
-                                                                            </span>
-                                                                        )}
-                                                                        {doc.niveauRisque && (
-                                                                            <span className={`px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest border ${doc.niveauRisque === 'aucun' || doc.niveauRisque === 'faible' ? 'bg-emerald-100/50 text-emerald-700 border-emerald-200' : doc.niveauRisque === 'moyen' ? 'bg-amber-100/50 text-amber-700 border-amber-200' : 'bg-red-100/50 text-red-700 border-red-200'}`}>
-                                                                                Niveau Risque : {doc.niveauRisque}
-                                                                            </span>
-                                                                        )}</>
-                                                                        )}
-                                                                    </div>
-                                                                    {isAdmin && (
-                                                                        <>
-                                                                    {doc.est_suspect && doc.resultat_analyse && (
-                                                                        <p className="text-[8px] text-red-500 font-bold mt-1 bg-red-50 dark:bg-red-900/10 px-2 py-1 rounded-lg border border-red-100 dark:border-red-900/30">
-                                                                            ⚠ {doc.resultat_analyse}
-                                                                        </p>
-                                                                    )}</>)}
+                                                                    <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1 mt-0.5">
+                                                                        <span className={`w-1.5 h-1.5 rounded-full inline-block ${doc.est_suspect ? 'bg-red-500' : 'bg-emerald-400'}`} />
+                                                                        {isPdf ? 'PDF' : 'Image'} · {doc.est_suspect ? <span className="text-red-500">Suspect</span> : 'Officiel'}
+                                                                    </p>
                                                                 </div>
                                                             </div>
                                                             <div className="flex items-center gap-2">
@@ -366,6 +346,95 @@ const BulletinDetailsModal = ({ isOpen, onClose, bulletin }) => {
                                                                 </a>
                                                             </div>
                                                         </div>
+
+                                                        {/* ── AI Analysis Card (Admin only) ── */}
+                                                        {isAdmin && (doc.score !== undefined || doc.niveauRisque || doc.resultat_analyse) && (
+                                                            <div className="px-4 py-3 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-white/5">
+                                                                <div className="flex items-center justify-between mb-2">
+                                                                    <p className="text-[8px] font-black uppercase tracking-[0.2em] text-black-400 flex items-center gap-1.5">
+                                                                        <ShieldCheck size={9} />
+                                                                        Analyse IA
+                                                                    </p>
+                                                                    <button 
+                                                                        onClick={() => toggleAiDoc(idx)}
+                                                                        className="flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-black-400 hover:text-purple-600 transition-colors active:scale-95 px-2 py-1 rounded-md hover:bg-slate-50 dark:hover:bg-slate-800"
+                                                                    >
+                                                                        {expandedAiDocs[idx] ? "Moins d'infos" : "Plus d'infos"}
+                                                                        <ChevronRight size={11} className={`transform transition-transform ${expandedAiDocs[idx] ? '-rotate-90' : 'rotate-90'}`} />
+                                                                    </button>
+                                                                </div>
+
+                                                                <AnimatePresence>
+                                                                    {expandedAiDocs[idx] && (
+                                                                        <motion.div
+                                                                            initial={{ height: 0, opacity: 0 }}
+                                                                            animate={{ height: 'auto', opacity: 1 }}
+                                                                            exit={{ height: 0, opacity: 0 }}
+                                                                            transition={{ duration: 0.3, ease: 'easeInOut' }}
+                                                                            className="overflow-hidden"
+                                                                        >
+                                                                            <div className="pt-2">
+                                                                                <div className="grid grid-cols-2 gap-3">
+                                                                                    {/* Score IA */}
+                                                                                    {doc.score !== undefined && (
+                                                                                        <div className={`col-span-2 sm:col-span-1 p-3 rounded-xl border ${doc.score > 80 ? 'bg-emerald-50 dark:bg-emerald-900/10 border-emerald-100 dark:border-emerald-800/30' : doc.score > 50 ? 'bg-amber-50 dark:bg-amber-900/10 border-amber-100 dark:border-amber-800/30' : 'bg-red-50 dark:bg-red-900/10 border-red-100 dark:border-red-800/30'}`}>
+                                                                                            <p className="text-[8px] font-black uppercase tracking-widest text-slate-400 mb-2">Score de confiance</p>
+                                                                                            <div className="flex items-end justify-between mb-1.5">
+                                                                                                <span className={`text-xl font-black leading-none ${doc.score > 80 ? 'text-emerald-600 dark:text-emerald-400' : doc.score > 50 ? 'text-amber-600 dark:text-amber-400' : 'text-red-600 dark:text-red-400'}`}>
+                                                                                                    {doc.score}%
+                                                                                                </span>
+                                                                                                <span className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded-md ${doc.score > 80 ? 'bg-emerald-100 text-emerald-700' : doc.score > 50 ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'}`}>
+                                                                                                    {doc.score > 80 ? 'Élevé' : doc.score > 50 ? 'Moyen' : 'Faible'}
+                                                                                                </span>
+                                                                                            </div>
+                                                                                            <div className="w-full h-1.5 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
+                                                                                                <div
+                                                                                                    className={`h-full rounded-full transition-all ${doc.score > 80 ? 'bg-emerald-500' : doc.score > 50 ? 'bg-amber-500' : 'bg-red-500'}`}
+                                                                                                    style={{ width: `${doc.score}%` }}
+                                                                                                />
+                                                                                            </div>
+                                                                                        </div>
+                                                                                    )}
+
+                                                                                    {/* Niveau de risque */}
+                                                                                    {doc.niveauRisque && (
+                                                                                        <div className={`col-span-2 sm:col-span-1 p-3 rounded-xl border flex flex-col justify-between ${doc.niveauRisque === 'aucun' || doc.niveauRisque === 'faible' ? 'bg-emerald-50 dark:bg-emerald-900/10 border-emerald-100 dark:border-emerald-800/30' : doc.niveauRisque === 'moyen' ? 'bg-amber-50 dark:bg-amber-900/10 border-amber-100 dark:border-amber-800/30' : 'bg-red-50 dark:bg-red-900/10 border-red-100 dark:border-red-800/30'}`}>
+                                                                                            <p className="text-[8px] font-black uppercase tracking-widest text-slate-400 mb-2">Niveau de risque</p>
+                                                                                            <div className="flex items-center gap-2">
+                                                                                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${doc.niveauRisque === 'aucun' || doc.niveauRisque === 'faible' ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600' : doc.niveauRisque === 'moyen' ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-600' : 'bg-red-100 dark:bg-red-900/30 text-red-600'}`}>
+                                                                                                    {doc.niveauRisque === 'aucun' || doc.niveauRisque === 'faible'
+                                                                                                        ? <ShieldCheck size={14} />
+                                                                                                        : <ShieldAlert size={14} />}
+                                                                                                </div>
+                                                                                                <span className={`text-sm font-black capitalize ${doc.niveauRisque === 'aucun' || doc.niveauRisque === 'faible' ? 'text-emerald-700 dark:text-emerald-400' : doc.niveauRisque === 'moyen' ? 'text-amber-700 dark:text-amber-400' : 'text-red-700 dark:text-red-400'}`}>
+                                                                                                    {doc.niveauRisque}
+                                                                                                </span>
+                                                                                            </div>
+                                                                                        </div>
+                                                                                    )}
+                                                                                </div>
+
+                                                                                {/* Résultat analyse */}
+                                                                                {doc.resultat_analyse && (
+                                                                                    <div className={`mt-3 flex items-start gap-2.5 p-3 rounded-xl border ${doc.est_suspect ? 'bg-red-50 dark:bg-red-900/10 border-red-100 dark:border-red-900/30' : 'bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-white/5'}`}>
+                                                                                        <div className={`w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5 ${doc.est_suspect ? 'bg-red-100 dark:bg-red-900/30 text-red-500' : 'bg-slate-200 dark:bg-slate-700 text-slate-500'}`}>
+                                                                                            {doc.est_suspect ? <AlertTriangle size={11} /> : <Activity size={11} />}
+                                                                                        </div>
+                                                                                        <div>
+                                                                                            <p className="text-[8px] font-black uppercase tracking-widest text-slate-400 mb-1">Résultat de l'analyse</p>
+                                                                                            <p className={`text-xs font-semibold leading-relaxed ${doc.est_suspect ? 'text-red-700 dark:text-red-300' : 'text-slate-700 dark:text-slate-300'}`}>
+                                                                                                {doc.resultat_analyse}
+                                                                                            </p>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                )}
+                                                                            </div>
+                                                                        </motion.div>
+                                                                    )}
+                                                                </AnimatePresence>
+                                                            </div>
+                                                        )}
+
                                                         <AnimatePresence>
                                                             {isActive && (
                                                                 <motion.div

@@ -178,6 +178,7 @@ const AdminTable = ({ reclamations, onView, showConfirm, showToast, onActionSucc
                                 return (
                                     <tr key={r.id} className="group hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                                         <td className="px-10 py-7 font-black text-purple-600">#{r.reference || r.id}</td>
+                                        <td className="px-8 py-7 font-bold dark:text-white">{new Date(r.createdAt).toLocaleDateString('fr-FR')}</td>
                                         <td className="px-8 py-7 font-bold dark:text-white">{r.adherentNom || (r.adherent ? `${r.adherent.prenom} ${r.adherent.nom}` : 'N/A')}</td>
                                         <td className="px-8 py-7">
                                             <div className="flex flex-col">

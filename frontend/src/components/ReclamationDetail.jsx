@@ -144,7 +144,7 @@ const ReclamationDetail = ({
   const bulletin = reclamation.bulletinId ? allBulletins.find(b => b.id === reclamation.bulletinId) : null;
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto animate-scale-in">
+    <div className="space-y-6 mx-auto animate-scale-in">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-white/5">
         <div className="flex items-center gap-4">
           <button onClick={onBack} className="p-2.5 bg-gray-50 dark:bg-slate-800 rounded-xl hover:bg-gray-100 border border-gray-200 transition">
@@ -245,7 +245,7 @@ const ReclamationDetail = ({
                 <div className="flex flex-col lg:flex-row gap-6 items-end justify-between bg-slate-50 dark:bg-slate-800/50 p-6 rounded-[1.5rem] border border-slate-100 dark:border-slate-700">
                   <div className="flex-1 w-full space-y-2">
                     <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1 flex items-center gap-2">
-                       <RefreshCw size={12} className="text-purple-500" /> Statut de la résolution
+                      <RefreshCw size={12} className="text-purple-500" /> Statut de la résolution
                     </label>
                     <div className="relative">
                       <button
@@ -254,12 +254,11 @@ const ReclamationDetail = ({
                         className="w-full flex items-center justify-between px-6 py-4 bg-white dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-2xl outline-none font-black text-[11px] uppercase tracking-widest cursor-pointer transition-all hover:border-purple-300 dark:hover:border-purple-900"
                       >
                         <div className="flex items-center gap-3">
-                          <div className={`w-2 h-2 rounded-full ${
-                            status === 'Ouverte' ? 'bg-purple-500 shadow-[0_0_10px_rgba(168,85,247,0.5)]' :
-                            status === 'En cours' ? 'bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.5)]' :
-                            status === 'Traitée' ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]' :
-                            'bg-slate-400'
-                          }`} />
+                          <div className={`w-2 h-2 rounded-full ${status === 'Ouverte' ? 'bg-purple-500 shadow-[0_0_10px_rgba(168,85,247,0.5)]' :
+                              status === 'En cours' ? 'bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.5)]' :
+                                status === 'Traitée' ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]' :
+                                  'bg-slate-400'
+                            }`} />
                           <span className="text-slate-700 dark:text-slate-200">{status}</span>
                         </div>
                         <ChevronDown className={`text-slate-400 transition-transform duration-300 ${isStatusOpen ? 'rotate-180' : ''}`} size={16} />
@@ -283,18 +282,16 @@ const ReclamationDetail = ({
                                     setStatus(opt);
                                     setIsStatusOpen(false);
                                   }}
-                                  className={`w-full text-left px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-3 ${
-                                    status === opt 
-                                    ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/20' 
-                                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
-                                  }`}
+                                  className={`w-full text-left px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-3 ${status === opt
+                                      ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/20'
+                                      : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+                                    }`}
                                 >
-                                  <div className={`w-1.5 h-1.5 rounded-full ${
-                                    opt === 'Ouverte' ? (status === opt ? 'bg-white' : 'bg-purple-500') :
-                                    opt === 'En cours' ? (status === opt ? 'bg-white' : 'bg-amber-500') :
-                                    opt === 'Traitée' ? (status === opt ? 'bg-white' : 'bg-emerald-500') :
-                                    (status === opt ? 'bg-white' : 'bg-slate-400')
-                                  }`} />
+                                  <div className={`w-1.5 h-1.5 rounded-full ${opt === 'Ouverte' ? (status === opt ? 'bg-white' : 'bg-purple-500') :
+                                      opt === 'En cours' ? (status === opt ? 'bg-white' : 'bg-amber-500') :
+                                        opt === 'Traitée' ? (status === opt ? 'bg-white' : 'bg-emerald-500') :
+                                          (status === opt ? 'bg-white' : 'bg-slate-400')
+                                    }`} />
                                   {opt}
                                 </button>
                               ))}
@@ -306,9 +303,9 @@ const ReclamationDetail = ({
                   </div>
 
                   <div className="w-full sm:w-auto pt-6 lg:pt-0">
-                    <button 
-                      onClick={handleUpdate} 
-                      disabled={isSubmitting} 
+                    <button
+                      onClick={handleUpdate}
+                      disabled={isSubmitting}
                       className="w-full sm:w-auto flex items-center justify-center gap-3 bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-10 py-5 rounded-2xl font-black text-[11px] uppercase tracking-widest transition-all shadow-2xl hover:bg-purple-600 group active:scale-95 disabled:opacity-50"
                     >
                       {isSubmitting ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Send size={20} className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />}
