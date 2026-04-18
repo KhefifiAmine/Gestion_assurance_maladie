@@ -13,7 +13,9 @@ import {
     Hash,
     Users,
     CheckCircle2,
-    Lock
+    Lock,
+    Eye,
+    ExternalLink
 } from 'lucide-react';
 import { createBulletin, analyzeBulletinIA, uploadBulletinDocument } from '../services/bulletinService';
 import { getMyBeneficiaries } from '../services/beneficiaryService';
@@ -56,7 +58,8 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit }) => {
             adresse: '',
             telephone: ''
         },
-        beneficiaireId: null
+        beneficiaireId: null,
+        showPreview: false
     });
 
     const fetchBeneficiaries = async () => {
@@ -107,7 +110,8 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit }) => {
             setFormData(prev => ({
                 ...prev,
                 fichierUrl: r.fichierUrl || prev.fichierUrl,
-                documentHash: r.hash_fichier || prev.documentHash
+                documentHash: r.hash_fichier || prev.documentHash,
+                showPreview: true
             }));
 
             showToast("Document importé avec succès !", "success");
@@ -150,10 +154,11 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit }) => {
                 confiance_score: aiData.confiance_score,
                 documentHash: aiData.hash_fichier || '',
                 documentType: aiData.type_document || '',
-                fichierUrl: aiData.fichierUrl || '', // Récupérer le nom du fichier généré par le backend
+                fichierUrl: aiData.fichierUrl || '',
                 medecin: aiData.medecin ? { ...prev.medecin, ...aiData.medecin } : prev.medecin,
                 pharmacie: aiData.pharmacie ? { ...prev.pharmacie, ...aiData.pharmacie } : prev.pharmacie,
-                beneficiaireId: null // Reset beneficiaireId initially
+                beneficiaireId: null,
+                showPreview: true
             }));
 
             // Tentative de matching automatique du bénéficiaire par rapport au nom trouvé par l'IA
@@ -226,6 +231,41 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit }) => {
     };
 
     if (!isOpen) return null;
+
+    const DocumentPreview = ({ url }) => {
+        if (!url) return null;
+        const fileUrl = `http://localhost:5000/uploads/${url}`;
+        const isPdf = url.toLowerCase().endsWith('.pdf');
+
+        return (
+            <div className="mt-4 rounded-3xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-950 min-h-[300px] flex items-center justify-center relative group">
+                {isPdf ? (
+                    <iframe
+                        src={`${fileUrl}#toolbar=0`}
+                        className="w-full h-[400px]"
+                        title="Aperçu du document"
+                    />
+                ) : (
+                    <img
+                        src={fileUrl}
+                        alt="Aperçu"
+                        className="max-w-full max-h-[400px] object-contain"
+                    />
+                )}
+                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
+                    <a 
+                        href={fileUrl} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="p-4 bg-white rounded-full text-purple-600 hover:scale-110 transition-transform shadow-xl"
+                        title="Ouvrir dans un nouvel onglet"
+                    >
+                        <ExternalLink size={24} />
+                    </a>
+                </div>
+            </div>
+        );
+    };
 
     return (
         <AnimatePresence>
@@ -485,23 +525,45 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit }) => {
                                         <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Document Justificatif</label>
                                         <div className="relative">
                                             {formData.fichierUrl ? (
-                                                <div className="flex items-center justify-between p-3 bg-purple-50 dark:bg-purple-900/10 border border-purple-200 dark:border-purple-800 rounded-xl">
-                                                    <div className="flex items-center gap-3">
-                                                        <div className="p-2 bg-purple-100 dark:bg-purple-800 rounded-lg text-purple-600 dark:text-purple-300">
-                                                            <FileText size={18} />
+                                                <div className="space-y-4">
+                                                    <div className="flex items-center justify-between p-3 bg-purple-50 dark:bg-purple-900/10 border border-purple-200 dark:border-purple-800 rounded-xl">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="p-2 bg-purple-100 dark:bg-purple-800 rounded-lg text-purple-600 dark:text-purple-300">
+                                                                <FileText size={18} />
+                                                            </div>
+                                                            <div>
+                                                                <p className="text-sm font-bold text-slate-700 dark:text-slate-200 truncate max-w-[200px] sm:max-w-[300px]">{formData.fichierUrl}</p>
+                                                                <p className="text-[10px] font-medium text-purple-500 uppercase tracking-tight">Document attaché avec succès</p>
+                                                            </div>
                                                         </div>
-                                                        <div>
-                                                            <p className="text-sm font-bold text-slate-700 dark:text-slate-200 truncate max-w-[300px]">{formData.fichierUrl}</p>
-                                                            <p className="text-[10px] font-medium text-purple-500 uppercase">Document attaché</p>
+                                                        <div className="flex items-center gap-2">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setFormData(prev => ({ ...prev, showPreview: !prev.showPreview }))}
+                                                                className={`p-2 rounded-lg transition-colors ${formData.showPreview ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-purple-600 hover:bg-purple-50'}`}
+                                                                title="Afficher/Masquer l'aperçu"
+                                                            >
+                                                                <Eye size={16} />
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setFormData({ ...formData, fichierUrl: '', documentHash: '', showPreview: false })}
+                                                                className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                                            >
+                                                                <X size={16} />
+                                                            </button>
                                                         </div>
                                                     </div>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => setFormData({ ...formData, fichierUrl: '', documentHash: '' })}
-                                                        className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                                                    >
-                                                        <X size={16} />
-                                                    </button>
+                                                    
+                                                    {formData.showPreview && (
+                                                        <motion.div
+                                                            initial={{ opacity: 0, height: 0 }}
+                                                            animate={{ opacity: 1, height: 'auto' }}
+                                                            exit={{ opacity: 0, height: 0 }}
+                                                        >
+                                                            <DocumentPreview url={formData.fichierUrl} />
+                                                        </motion.div>
+                                                    )}
                                                 </div>
                                             ) : (
                                                 <div className="relative">

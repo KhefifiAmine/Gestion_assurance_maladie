@@ -59,13 +59,14 @@ const analyzeBulletin = async (req, res) => {
       });
     }
 
-    const apiKey = process.env.GEMINI_API_KEY;
+    const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
     if (!apiKey) {
+      console.error("Erreur: GEMINI_API_KEY non trouvée dans .env");
       return res.status(500).json({ message: "Clé API Gemini non configurée" });
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
     const prompt = `
       Tu agis en tant qu'expert en analyse de documents médicaux (Tunisie). 
