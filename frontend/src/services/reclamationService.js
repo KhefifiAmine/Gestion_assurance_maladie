@@ -1,3 +1,5 @@
+import { handleResponse } from './api';
+
 const API_BASE = 'http://localhost:5000/api';
 
 const getToken = () => localStorage.getItem('token');
@@ -12,8 +14,7 @@ export const getReclamations = async () => {
         method: 'GET',
         headers: authHeaders()
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || 'Erreur lors de la récupération des réclamations.');
+    const data = await handleResponse(res);
     return data.data; // data from response payload
 };
 
@@ -22,8 +23,7 @@ export const getReclamationById = async (id) => {
         method: 'GET',
         headers: authHeaders()
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || 'Erreur lors de la récupération de la réclamation.');
+    const data = await handleResponse(res);
     return data.data;
 };
 
@@ -33,8 +33,7 @@ export const createReclamation = async (payload) => {
         headers: authHeaders(),
         body: JSON.stringify(payload)
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || 'Erreur lors de la création.');
+    const data = await handleResponse(res);
     return data.data;
 };
 
@@ -44,8 +43,7 @@ export const updateReclamation = async (id, payload) => {
         headers: authHeaders(),
         body: JSON.stringify(payload)
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || 'Erreur lors de la mise à jour.');
+    const data = await handleResponse(res);
     return data.data;
 };
 
@@ -54,9 +52,7 @@ export const markReclamationAsRead = async (id) => {
         method: 'PUT',
         headers: authHeaders()
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || 'Erreur lors de la mise à jour (lecture).');
-    return data;
+    return handleResponse(res);
 };
 
 export const deleteReclamation = async (id) => {
@@ -64,9 +60,7 @@ export const deleteReclamation = async (id) => {
         method: 'DELETE',
         headers: authHeaders()
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || 'Erreur lors de la suppression.');
-    return data;
+    return handleResponse(res);
 };
 
 export const addReclamationMessage = async (id, message) => {
@@ -75,7 +69,6 @@ export const addReclamationMessage = async (id, message) => {
         headers: authHeaders(),
         body: JSON.stringify({ message })
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || 'Erreur lors de l\'ajout du message.');
+    const data = await handleResponse(res);
     return data.data;
 };

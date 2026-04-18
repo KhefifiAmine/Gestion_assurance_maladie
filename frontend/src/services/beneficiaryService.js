@@ -1,3 +1,5 @@
+import { handleResponse } from './api';
+
 const API_URL = 'http://localhost:5000/api/beneficiaries';
 
 const getAuthHeaders = () => {
@@ -14,10 +16,7 @@ export const getMyBeneficiaries = async () => {
         headers: getAuthHeaders(),
     });
 
-    if (!response.ok) {
-        throw new Error('Erreur lors de la récupération des bénéficiaires');
-    }
-    return response.json();
+    return handleResponse(response);
 };
 
 export const addBeneficiary = async (formData) => {
@@ -31,11 +30,7 @@ export const addBeneficiary = async (formData) => {
         body: formData,
     });
 
-    if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || 'Erreur lors de l\'ajout du bénéficiaire');
-    }
-    return response.json();
+    return handleResponse(response);
 };
 
 export const updateBeneficiary = async (id, formData) => {
@@ -47,11 +42,7 @@ export const updateBeneficiary = async (id, formData) => {
         body: formData,
     });
 
-    if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || 'Erreur lors de la mise à jour du bénéficiaire');
-    }
-    return response.json();
+    return handleResponse(response);
 };
 
 export const deleteBeneficiary = async (id) => {
@@ -60,10 +51,7 @@ export const deleteBeneficiary = async (id) => {
         headers: getAuthHeaders(),
     });
 
-    if (!response.ok) {
-        throw new Error('Erreur lors de la suppression');
-    }
-    return response.json();
+    return handleResponse(response);
 };
 
 export const getAllBeneficiaries = async () => {
@@ -72,10 +60,7 @@ export const getAllBeneficiaries = async () => {
         headers: getAuthHeaders(),
     });
 
-    if (!response.ok) {
-        throw new Error('Erreur lors de la récupération des bénéficiaires');
-    }
-    return response.json();
+    return handleResponse(response);
 };
 
 export const updateStatus = async (id, statut, motifRefus = null) => {
@@ -85,8 +70,5 @@ export const updateStatus = async (id, statut, motifRefus = null) => {
         body: JSON.stringify({ statut, motifRefus })
     });
 
-    if (!response.ok) {
-        throw new Error('Erreur lors de la mise à jour du statut');
-    }
-    return response.json();
+    return handleResponse(response);
 };
