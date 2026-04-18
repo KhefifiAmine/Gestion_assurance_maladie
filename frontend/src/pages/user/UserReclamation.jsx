@@ -132,7 +132,7 @@ const ReclamationForm = ({ onBack, initialData = null, bulletins = [], addToast,
                       <div className="fixed inset-0 z-[1001]" onClick={() => setIsReasonDropdownOpen(false)} />
                       <motion.div initial={{ opacity: 0, y: 10, scale: 0.95 }} animate={{ opacity: 1, y: 5, scale: 1 }} exit={{ opacity: 0, y: 10, scale: 0.95 }} className="absolute top-full left-0 right-0 z-[1002] bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[1.5rem] shadow-2xl p-2 max-h-60 overflow-y-auto mt-2">
                         {reasons.map((r) => (
-                          <button key={r} type="button" className={`w-full text-left p-4 rounded-xl text-xs font-black uppercase tracking-tight transition-all ${formData.objet === r ? 'bg-purple-600 text-white' : 'hover:bg-slate-50 dark:hover:bg-slate-800 dark:text-white'}`} onClick={() => { setFormData({ ...formData, objet: r, objet: r }); setIsReasonDropdownOpen(false); }}>
+                          <button key={r} type="button" className={`w-full text-left p-4 rounded-xl text-xs font-black uppercase tracking-tight transition-all ${formData.objet === r ? 'bg-purple-600 text-white' : 'hover:bg-slate-50 dark:hover:bg-slate-800 dark:text-white'}`} onClick={() => { setFormData({ ...formData, objet: r }); setIsReasonDropdownOpen(false); }}>
                             {r}
                           </button>
                         ))}
