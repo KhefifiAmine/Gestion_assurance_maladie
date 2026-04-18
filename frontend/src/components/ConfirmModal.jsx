@@ -127,6 +127,22 @@ const ConfirmModal = ({
                                         </div>
                                     </div>
                                 )}
+
+                                {requireReason && (
+                                    <div className="mt-6 w-full text-left animate-in fade-in slide-in-from-top-2 duration-300">
+                                        <label className="block text-[10px] font-black text-slate-400 dark:text-slate-500 mb-2 uppercase tracking-widest ml-1">
+                                            {reasonLabel} <span className="text-red-500">*</span>
+                                        </label>
+                                        <textarea
+                                            className="w-full text-sm font-bold p-4 border border-slate-200 dark:border-slate-800 rounded-2xl bg-slate-50 dark:bg-slate-900/50 text-slate-900 dark:text-white outline-none focus:ring-4 focus:ring-purple-500/10 focus:border-purple-500 transition-all resize-none min-h-[100px]"
+                                            placeholder="Tapez ici la raison..."
+                                            value={reason}
+                                            onChange={(e) => setReason(e.target.value)}
+                                            required
+                                            autoFocus
+                                        />
+                                    </div>
+                                )}
                             </div>
 
                             {/* Boutons d'action */}
