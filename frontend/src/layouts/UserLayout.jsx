@@ -61,7 +61,7 @@ const UserLayout = () => {
     { name: 'Mes Bulletins', path: '/bulletins', icon: FileText },
     { name: 'Réclamations', path: '/reclamations', icon: Bell },
     { name: 'Mon profil', path: '/profile', icon: User },
-    { name: 'Vitrine GAT', path: '/a-propos-nous', icon: Zap },
+    { name: 'À propos GAT Assurance', path: '/a-propos-nous', icon: Zap },
   ];
 
   return (
