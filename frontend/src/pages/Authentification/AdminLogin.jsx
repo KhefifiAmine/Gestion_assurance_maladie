@@ -4,7 +4,9 @@ import { motion } from 'framer-motion';
 import { loginUser } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
-import { Mail, Lock, Eye, EyeOff, ArrowRight, ShieldAlert, Loader2, Key, Star } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, ArrowRight, ShieldAlert, Loader2, Key, Star, Smartphone } from 'lucide-react';
+
+import logoGat from '../../assets/logo_gat.png';
 import ttLogo from '../../assets/Tunisie_Telecom.jpg';
 import adminBg from '../../assets/admin_login.png';
 
@@ -57,13 +59,25 @@ const AdminLogin = () => {
             <div className="absolute -top-24 -right-24 w-48 h-48 bg-purple-600/10 rounded-full blur-[80px]" />
             <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-indigo-600/10 rounded-full blur-[80px]" />
 
-            {/* Logo Section */}
-            <div className="flex justify-center mb-8 relative z-10">
+            {/* Branding Section */}
+            <div className="flex items-center justify-center gap-10 mb-10 relative z-10">
+                {/* Logo 1: GAT Assurances */}
                 <motion.div 
-                    whileHover={{ scale: 1.05, rotate: 2 }}
-                    className="bg-white p-3 rounded-2xl shadow-xl border border-slate-100"
+                    whileHover={{ scale: 1.05 }}
+                    className="bg-white p-3 rounded-2xl shadow-xl border border-slate-50"
                 >
-                    <img src={ttLogo} alt="Tunisie Telecom" className="h-10 w-auto object-contain" />
+                    <img src={logoGat} alt="GAT" className="h-14 lg:h-16 w-auto object-contain" />
+                </motion.div>
+
+                {/* Separator */}
+                <div className="w-px h-10 bg-slate-200 dark:bg-slate-700"></div>
+
+                {/* Logo 2: Tunisie Telecom */}
+                <motion.div 
+                    whileHover={{ scale: 1.05 }}
+                    className="bg-white p-3 rounded-2xl shadow-xl border border-slate-50"
+                >
+                    <img src={ttLogo} alt="Tunisie Telecom" className="h-14 lg:h-16 w-auto object-contain" />
                 </motion.div>
             </div>
 

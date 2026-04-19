@@ -45,7 +45,7 @@ export default function AuthLayout() {
                 {isAdmin ? 'System Core' : 'Digital Health Experience'}
             </div>
             <h2 className="text-white text-4xl lg:text-7xl font-black mb-6 italic tracking-tighter drop-shadow-2xl">
-              {isAdmin ? 'Admin Portal' : 'TT Assurance'}
+              {isAdmin ? 'Admin Portal' : 'CareCover'}
             </h2>
             <p className="text-white/90 text-base lg:text-lg font-medium max-w-[550px] leading-relaxed drop-shadow-lg text-left">
               {isAdmin

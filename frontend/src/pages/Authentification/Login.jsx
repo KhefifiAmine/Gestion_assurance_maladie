@@ -3,7 +3,9 @@ import { useNavigate, Link } from 'react-router-dom';
 import { loginUser } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
-import { Mail, Lock, Eye, EyeOff, ArrowRight, ShieldCheck, Loader2 } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, ArrowRight, ShieldCheck, Loader2, Smartphone } from 'lucide-react';
+import logoApp1 from '../../assets/logo_app_1.png';
+import logoGat from '../../assets/logo_gat.png';
 import ttLogo from '../../assets/Tunisie_Telecom.jpg';
 
 const Login = () => {
@@ -53,9 +55,24 @@ const Login = () => {
 
     return (
         <div className={`bg-white dark:bg-slate-800 ${isAdmin ? 'p-3 md:p-5 max-w-[340px]' : 'p-4 md:p-8 max-w-[400px]'} mx-auto rounded-[1.2rem] shadow-2xl border border-slate-50 dark:border-slate-700 transition-all`}>
-            {/* Logo */}
-            <div className={`flex justify-center ${isAdmin ? 'mb-3' : 'mb-4'}`}>
-                <img src={ttLogo} alt="Tunisie Telecom" className={`${isAdmin ? 'h-8' : 'h-10'} w-auto object-contain`} />
+            {/* Top Branding Section */}
+            <div className="flex items-center justify-center gap-8 mb-10 mt-4">
+                {/* Logo 1: GAT Assurances */}
+                <div className="flex flex-col items-center group transition-all duration-300">
+                    <div className="flex items-center gap-2 px-4 py-2 bg-white rounded-2xl group-hover:scale-105 transition-transform shadow-sm border border-slate-50">
+                        <img src={logoGat} alt="GAT" className="h-14 lg:h-20 w-auto object-contain" />
+                    </div>
+                </div>
+
+                {/* Separator */}
+                <div className="w-px h-12 bg-slate-200 dark:bg-slate-700"></div>
+
+                {/* Logo 2: Tunisie Telecom */}
+                <div className="flex flex-col items-center group transition-all duration-300">
+                    <div className="flex items-center gap-2 px-4 py-2 bg-white rounded-2xl group-hover:scale-105 transition-transform shadow-sm border border-slate-50">
+                        <img src={ttLogo} alt="Tunisie Telecom" className="h-14 lg:h-20 w-auto object-contain" />
+                    </div>
+                </div>
             </div>
 
             {/* Badge Sécurisé (Style BTK) - Plus compact pour admin */}

@@ -20,9 +20,11 @@ import {
   Users,
   ChevronLeft,
   ChevronsLeft,
-  ChevronsRight
+  ChevronsRight,
+  Info,
+  Zap
 } from 'lucide-react';
-import ttLogo from '../assets/Tunisie_Telecom.jpg';
+import logoApp1 from '../assets/logo_app_1.png';
 import AddBulletinModal from '../components/AddBulletinModal';
 import ConfirmModal from '../components/ConfirmModal';
 
@@ -59,6 +61,7 @@ const UserLayout = () => {
     { name: 'Mes Bulletins', path: '/bulletins', icon: FileText },
     { name: 'Réclamations', path: '/reclamations', icon: Bell },
     { name: 'Mon profil', path: '/profile', icon: User },
+    { name: 'Vitrine GAT', path: '/a-propos-nous', icon: Zap },
   ];
 
   return (
@@ -95,8 +98,8 @@ const UserLayout = () => {
 
         <div className={`p-6 flex items-center ${isCollapsed ? 'justify-center' : 'justify-start gap-3'} border-b border-white/10 mb-4`}>
           <div className="flex items-center gap-3 overflow-hidden">
-            <div className="min-w-[40px] w-10 h-10 rounded-xl bg-white flex items-center justify-center p-1.5 shadow-lg group hover:rotate-12 transition-transform cursor-pointer">
-              <Activity style={{ color: '#4B0082' }} size={24} />
+            <div className="min-w-[80px] w-20 h-20 rounded-[2rem] overflow-hidden flex items-center justify-center bg-white shadow-2xl group hover:scale-105 transition-transform cursor-pointer p-2 border-4 border-white/30">
+              <img src={logoApp1} alt="CareCover" className="w-full h-full object-contain" />
             </div>
             {!isCollapsed && (
               <motion.span 
@@ -104,7 +107,7 @@ const UserLayout = () => {
                 animate={{ opacity: 1, x: 0 }}
                 className="text-white font-black text-xl tracking-tighter whitespace-nowrap"
               >
-                TT ASSURANCE
+                CareCover
               </motion.span>
             )}
           </div>
@@ -269,7 +272,7 @@ const UserLayout = () => {
         onClose={() => setShowLogoutConfirm(false)}
         onConfirm={confirmLogout}
         title="Confirmer la déconnexion"
-        message="Voulez-vous vraiment vous déconnecter de votre espace TT Assurance ?"
+        message="Voulez-vous vraiment vous déconnecter de votre espace CareCover ?"
         confirmText="Se déconnecter"
         cancelText="Rester"
         type="warning"

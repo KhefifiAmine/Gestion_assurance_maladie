@@ -303,7 +303,7 @@ const UserProfile = () => {
                                 <div className="flex flex-col md:flex-row items-center justify-center md:justify-start gap-3">
                                     <div className="flex items-center gap-2">
                                         <span className="h-px w-4 bg-slate-200 dark:bg-slate-700"></span>
-                                        <p className="text-[10px] font-black opacity-40 uppercase tracking-[0.2em] text-slate-900 dark:text-white">Membre {user.role === 'ADMIN' ? 'Administration' : user.role === 'RESPONSABLE_RH' ? 'Direction RH' : 'Adhérent'} TT Assurance</p>
+                                        <p className="text-[10px] font-black opacity-40 uppercase tracking-[0.2em] text-slate-900 dark:text-white">Membre {user.role === 'ADMIN' ? 'Administration' : user.role === 'RESPONSABLE_RH' ? 'Direction RH' : 'Adhérent'} CareCover</p>
                                         <span className="h-px w-4 bg-slate-200 dark:bg-slate-700"></span>
                                     </div>
 

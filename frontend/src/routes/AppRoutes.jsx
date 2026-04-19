@@ -21,12 +21,19 @@ import AdminBeneficiarie from '../pages/admin/AdminBeneficiarie';
 import UserBeneficiarie from '../pages/user/UserBeneficiarie';
 import UserReclamation from '../pages/user/UserReclamation';
 import AdminReclamation from '../pages/admin/AdminReclamation';
+import GATAboutServices from '../pages/GATAboutServices';
+import GATAboutUs from '../pages/GATAboutUs';
+import GATVitrine from '../pages/GATVitrine';
 
 const AppRoutes = () => {
     return (
         <Routes>
             {/* Redirection intelligente à la racine */}
             <Route path="/" element={<HomeRedirect />} />
+
+            {/* Public Pages */}
+            <Route path="/vitrine" element={<GATVitrine />} />
+            <Route path="/a-propos" element={<GATAboutServices />} />
 
             {/* Authentification */}
             <Route element={<AuthLayout />}>
@@ -50,6 +57,7 @@ const AppRoutes = () => {
                 {/* On peut aussi ajouter /bulletins si le user veut un lien direct */}
                 <Route path="/bulletins" element={<BulletinsPage />} />
                 <Route path="/beneficiaires" element={<UserBeneficiarie />} />
+                <Route path="/a-propos-nous" element={<GATVitrine />} />
             </Route>
 
             {/* Espace Administration (Admin) */}
