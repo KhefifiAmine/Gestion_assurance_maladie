@@ -53,7 +53,7 @@ const BulletinSoin = sequelize.define('BulletinSoin', {
     },
     statut: {
         type: DataTypes.INTEGER,
-        defaultValue: 0 // 0: En attente, 1: En cours de traitement, 2: Accepté, 3: Refusé
+        defaultValue: 0 // 0: En attente, 1: En cours de traitement, 2: Accepté, 3: Rejeté
     },
     motif_refus: {
         type: DataTypes.TEXT,

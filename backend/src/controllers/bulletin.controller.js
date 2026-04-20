@@ -240,7 +240,7 @@ const updateBulletinStatus = async (req, res) => {
             notificationDesc = `Votre bulletin #${bulletin.numero_bulletin} a été accepté. Montant remboursé: ${bulletin.montant_remboursement || 0} TND.`;
         } else if (statut === 3) {
             notificationTitle = "Bulletin Rejeté";
-            notificationDesc = `Votre bulletin #${bulletin.numero_bulletin} a été refusé. Motif : ${motif_rejet || 'Non spécifié'}.`;
+            notificationDesc = `Votre bulletin #${bulletin.numero_bulletin} a été rejeté. Motif : ${motif_rejet || 'Non spécifié'}.`;
         }
 
         if (notificationTitle) {
