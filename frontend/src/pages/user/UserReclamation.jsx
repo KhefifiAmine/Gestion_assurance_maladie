@@ -1,17 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  CheckCircle, AlertTriangle, XCircle, Info, X, FileText, Send, Plus, 
+import {
+  CheckCircle, AlertTriangle, XCircle, Info, X, FileText, Send, Plus,
   ArrowLeft, Clock, ShieldAlert, ChevronRight, ChevronDown, Bell, RefreshCw, Trash2
 } from 'lucide-react';
 
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
-import { 
-  getReclamations, 
-  createReclamation, 
-  updateReclamation, 
-  deleteReclamation 
+import {
+  getReclamations,
+  createReclamation,
+  updateReclamation,
+  deleteReclamation
 } from '../../services/reclamationService';
 import { getMyBulletins } from '../../services/bulletinService';
 
@@ -37,12 +37,29 @@ const StatusBadge = ({ statut }) => {
   );
 };
 
+const PriorityBadge = ({ priorite }) => {
+  const styles = {
+    1: 'bg-black-50 text-black-500 border-black-100 dark:bg-black-800/40 dark:text-black-400 dark:border-black-700/30',
+    2: 'bg-blue-50 text-blue-600 border-blue-100 dark:bg-blue-900/10 dark:text-blue-400 dark:border-blue-800/30',
+    3: 'bg-orange-50 text-orange-600 border-orange-100 dark:bg-orange-900/10 dark:text-orange-400 dark:border-orange-800/30',
+    4: 'bg-red-50 text-red-600 border-red-100 dark:bg-red-900/10 dark:text-red-400 dark:border-red-800/30'
+  };
+
+  const labels = { 1: 'Basse', 2: 'Moyenne', 3: 'Haute', 4: 'Urgente' };
+
+  return (
+    <span className={`px-3 py-1 text-[10px] font-black uppercase tracking-widest rounded-lg border ${styles[priorite] || styles[1]}`}>
+      {labels[priorite] || 'Basse'}
+    </span>
+  );
+};
+
 const ReclamationForm = ({ onBack, initialData = null, bulletins = [], addToast, onActionSuccess }) => {
   const isEdit = !!initialData;
-  const [formData, setFormData] = useState({ 
-    bulletinId: initialData?.bulletinId || '', 
-    prestataire: initialData?.prestataire || 'GAT', 
-    objet: initialData?.objet || '', 
+  const [formData, setFormData] = useState({
+    bulletinId: initialData?.bulletinId || '',
+    prestataire: initialData?.prestataire || 'GAT',
+    objet: initialData?.objet || '',
     description: initialData?.description || '',
     commentaireModif: initialData?.commentaireModif || ''
   });
@@ -145,26 +162,26 @@ const ReclamationForm = ({ onBack, initialData = null, bulletins = [], addToast,
           </div>
 
           <div>
-             <label className="block text-[10px] font-black uppercase text-slate-400 mb-2 px-1">Description</label>
-             <textarea name="description" value={formData.description} onChange={handleChange} rows={4} className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 rounded-[1.5rem] p-6 outline-none focus:ring-4 focus:ring-purple-500/10 font-bold dark:text-white transition shadow-inner resize-none" placeholder="Ajoutez des détails si nécessaire..." />
+            <label className="block text-[10px] font-black uppercase text-slate-400 mb-2 px-1">Description</label>
+            <textarea name="description" value={formData.description} onChange={handleChange} rows={4} className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 rounded-[1.5rem] p-6 outline-none focus:ring-4 focus:ring-purple-500/10 font-bold dark:text-white transition shadow-inner resize-none" placeholder="Ajoutez des détails si nécessaire..." />
           </div>
 
           {isEdit && (
             <div className="animate-slide-up">
-               <label className="block text-[10px] font-black uppercase text-purple-600 mb-2 px-1">Commentaire de modification <span className="text-red-500">*</span></label>
-               <textarea name="commentaireModif" value={formData.commentaireModif} onChange={handleChange} rows={3} className={`w-full bg-purple-50/30 dark:bg-purple-900/10 border ${errors.commentaireModif ? 'border-red-500' : 'border-purple-100 dark:border-purple-800/30'} rounded-[1.5rem] p-6 outline-none focus:ring-4 focus:ring-purple-500/10 font-bold dark:text-white transition shadow-inner resize-none`} placeholder="Justifiez votre modification..." />
-               {errors.commentaireModif && <p className="text-red-500 text-[10px] font-black mt-2 px-1 uppercase">{errors.commentaireModif}</p>}
+              <label className="block text-[10px] font-black uppercase text-purple-600 mb-2 px-1">Commentaire de modification <span className="text-red-500">*</span></label>
+              <textarea name="commentaireModif" value={formData.commentaireModif} onChange={handleChange} rows={3} className={`w-full bg-purple-50/30 dark:bg-purple-900/10 border ${errors.commentaireModif ? 'border-red-500' : 'border-purple-100 dark:border-purple-800/30'} rounded-[1.5rem] p-6 outline-none focus:ring-4 focus:ring-purple-500/10 font-bold dark:text-white transition shadow-inner resize-none`} placeholder="Justifiez votre modification..." />
+              {errors.commentaireModif && <p className="text-red-500 text-[10px] font-black mt-2 px-1 uppercase">{errors.commentaireModif}</p>}
             </div>
           )}
 
           <div className="pt-4">
-             <label className="block text-[10px] font-black uppercase text-slate-400 mb-3 px-1">Lien avec un bulletin (Optionnel)</label>
-             <select name="bulletinId" value={formData.bulletinId} onChange={handleChange} className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 rounded-xl p-4 outline-none focus:ring-4 focus:ring-purple-500/10 font-bold dark:text-white transition shadow-inner">
-                <option value="">Sélectionner un bulletin...</option>
-                {bulletins.map(b => (
-                  <option key={b.id} value={b.id}>#{b.numero_bulletin} - {b.type_dossier}</option>
-                ))}
-             </select>
+            <label className="block text-[10px] font-black uppercase text-slate-400 mb-3 px-1">Lien avec un bulletin (Optionnel)</label>
+            <select name="bulletinId" value={formData.bulletinId} onChange={handleChange} className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 rounded-xl p-4 outline-none focus:ring-4 focus:ring-purple-500/10 font-bold dark:text-white transition shadow-inner">
+              <option value="">Sélectionner un bulletin...</option>
+              {bulletins.map(b => (
+                <option key={b.id} value={b.id}>#{b.numero_bulletin} - {b.type_dossier}</option>
+              ))}
+            </select>
           </div>
 
           <div className="pt-6 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-3">
@@ -186,12 +203,12 @@ const ReclamationForm = ({ onBack, initialData = null, bulletins = [], addToast,
 
 const AdherentList = ({ reclamations, isLoading, onNew, onView, onDelete }) => {
   if (isLoading) {
-      return (
-        <div className="flex flex-col items-center justify-center p-20 text-purple-600">
-           <RefreshCw className="w-10 h-10 animate-spin mb-4" />
-           <p className="font-bold uppercase tracking-tighter">Chargement...</p>
-        </div>
-      );
+    return (
+      <div className="flex flex-col items-center justify-center p-20 text-purple-600">
+        <RefreshCw className="w-10 h-10 animate-spin mb-4" />
+        <p className="font-bold uppercase tracking-tighter">Chargement...</p>
+      </div>
+    );
   }
 
   return (
@@ -223,6 +240,7 @@ const AdherentList = ({ reclamations, isLoading, onNew, onView, onDelete }) => {
                   <th className="p-6 text-[10px] font-black uppercase tracking-widest text-slate-400">Référence</th>
                   <th className="p-6 text-[10px] font-black uppercase tracking-widest text-slate-400">Date de dépôt</th>
                   <th className="p-6 text-[10px] font-black uppercase tracking-widest text-slate-400">Raison / Objet</th>
+                  <th className="p-6 text-[10px] font-black uppercase tracking-widest text-slate-400">Priorité</th>
                   <th className="p-6 text-[10px] font-black uppercase tracking-widest text-slate-400">Statut</th>
                   <th className="p-6 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">Action</th>
                 </tr>
@@ -238,12 +256,13 @@ const AdherentList = ({ reclamations, isLoading, onNew, onView, onDelete }) => {
                         {r.unread && <span className="text-[9px] font-black text-blue-600 uppercase flex items-center gap-1 mt-1 animate-pulse"><Bell className="w-3 h-3" /> Nouveau message</span>}
                       </div>
                     </td>
+                    <td className="p-6"><PriorityBadge priorite={r.priorite} /></td>
                     <td className="p-6"><StatusBadge statut={r.statut} /></td>
                     <td className="p-6 text-right">
                       <div className="flex items-center justify-end gap-3 px-1">
                         {r.statut === 'Ouverte' && (
-                          <button 
-                            onClick={(e) => { e.stopPropagation(); onDelete(r.id); }} 
+                          <button
+                            onClick={(e) => { e.stopPropagation(); onDelete(r.id); }}
                             className="p-3 rounded-xl bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 opacity-0 group-hover:opacity-100 transition-all hover:bg-red-600 hover:text-white shadow-sm"
                           >
                             <Trash2 size={16} />
@@ -278,7 +297,7 @@ const UserReclamation = () => {
   const [reclamations, setReclamations] = useState([]);
   const [bulletins, setBulletins] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: '', message: '', type: 'warning', onConfirm: () => {} });
+  const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: '', message: '', type: 'warning', onConfirm: () => { } });
 
   const triggerConfirm = (title, message, onConfirm, type = 'warning') => {
     setConfirmModal({ isOpen: true, title, message, onConfirm, type });
@@ -331,44 +350,44 @@ const UserReclamation = () => {
 
   return (
     <div className="w-full h-full relative font-sans animate-scale-in">
-       <div className="p-2 sm:p-6 pb-24 w-full">
-          {activeView === 'list' && (
-            <AdherentList 
-              reclamations={reclamations} isLoading={isLoading}
-              onNew={() => { setEditData(null); setActiveView('form'); }} 
-              onView={(id) => { setSelectedId(id); setActiveView('detail'); }}
-              onDelete={handleDelete}
-            />
-          )}
+      <div className="p-2 sm:p-6 pb-24 w-full">
+        {activeView === 'list' && (
+          <AdherentList
+            reclamations={reclamations} isLoading={isLoading}
+            onNew={() => { setEditData(null); setActiveView('form'); }}
+            onView={(id) => { setSelectedId(id); setActiveView('detail'); }}
+            onDelete={handleDelete}
+          />
+        )}
 
-          {activeView === 'form' && (
-            <ReclamationForm 
-              initialData={editData} bulletins={bulletins} addToast={showToast}
-              onBack={() => setActiveView('list')} 
-              onActionSuccess={handleActionSuccess}
-            />
-          )}
+        {activeView === 'form' && (
+          <ReclamationForm
+            initialData={editData} bulletins={bulletins} addToast={showToast}
+            onBack={() => setActiveView('list')}
+            onActionSuccess={handleActionSuccess}
+          />
+        )}
 
-          {activeView === 'detail' && (
-            <ReclamationDetail 
-              id={selectedId} userRole={user?.role} allBulletins={bulletins}
-              onBack={() => setActiveView('list')} 
-              onEdit={(data) => { setEditData(data); setActiveView('form'); }}
-              onReclamationUpdate={handleReclamationUpdate}
-              onReclamationDelete={(id) => handleActionSuccess(id, 'delete')}
-            />
-          )}
-       </div>
+        {activeView === 'detail' && (
+          <ReclamationDetail
+            id={selectedId} userRole={user?.role} allBulletins={bulletins}
+            onBack={() => setActiveView('list')}
+            onEdit={(data) => { setEditData(data); setActiveView('form'); }}
+            onReclamationUpdate={handleReclamationUpdate}
+            onReclamationDelete={(id) => handleActionSuccess(id, 'delete')}
+          />
+        )}
+      </div>
 
-      <ConfirmModal 
-        isOpen={confirmModal.isOpen} 
-        onClose={closeConfirm} 
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        onClose={closeConfirm}
         onConfirm={confirmModal.onConfirm}
         title={confirmModal.title}
         message={confirmModal.message}
         type={confirmModal.type}
       />
-      
+
       <style>{`
         .custom-scrollbar::-webkit-scrollbar { height: 4px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }

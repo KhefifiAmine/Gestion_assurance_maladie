@@ -20,6 +20,25 @@ export const createBulletin = async (bulletinData) => {
     return handleResponse(response);
 };
 
+export const updateBulletin = async (id, bulletinData) => {
+    const response = await fetch(`${API_URL}/${id}`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(bulletinData),
+    });
+
+    return handleResponse(response);
+};
+
+export const deleteBulletin = async (id) => {
+    const response = await fetch(`${API_URL}/${id}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders(),
+    });
+
+    return handleResponse(response);
+};
+
 export const getMyBulletins = async () => {
     const response = await fetch(`${API_URL}/my`, {
         method: 'GET',

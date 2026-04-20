@@ -7,12 +7,16 @@ const {
     getAllBulletins,
     updateBulletinStatus,
     addBulletinComment,
-    getBulletinComments
+    getBulletinComments,
+    updateBulletin,
+    deleteBulletin
 } = require('../controllers/bulletin.controller');
 
 // Toutes les routes nécessitent une authentification
 router.post('/', verifyToken, createBulletin);
 router.get('/my', verifyToken, getMyBulletins);
+router.put('/:id', verifyToken, updateBulletin);
+router.delete('/:id', verifyToken, deleteBulletin);
 
 // Routes réservées aux administrateurs
 router.get('/all', verifyToken, isAdmin, getAllBulletins);

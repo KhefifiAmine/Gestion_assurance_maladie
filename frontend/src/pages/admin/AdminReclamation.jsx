@@ -36,6 +36,23 @@ const StatusBadge = ({ statut }) => {
     );
 };
 
+const PriorityBadge = ({ priorite }) => {
+    const styles = {
+        1: 'bg-black-50 text-black-500 border-black-100 dark:bg-black-800/40 dark:text-black-400 dark:border-black-700/30',
+        2: 'bg-blue-50 text-blue-600 border-blue-100 dark:bg-blue-900/10 dark:text-blue-400 dark:border-blue-800/30',
+        3: 'bg-orange-50 text-orange-600 border-orange-100 dark:bg-orange-900/10 dark:text-orange-400 dark:border-orange-800/30',
+        4: 'bg-red-50 text-red-600 border-red-100 dark:bg-red-900/10 dark:text-red-400 dark:border-red-800/30'
+    };
+
+    const labels = { 1: 'Basse', 2: 'Moyenne', 3: 'Haute', 4: 'Urgente' };
+
+    return (
+        <span className={`px-3 py-1 text-[10px] font-black uppercase tracking-widest rounded-lg border ${styles[priorite] || styles[1]}`}>
+            {labels[priorite] || 'Basse'}
+        </span>
+    );
+};
+
 const KPI = ({ title, value, icon, onClick, type = 'purple' }) => {
     const colors = {
         purple: 'text-purple-600 bg-purple-50 dark:bg-purple-900/20 border-purple-100 shadow-purple-500/5',
@@ -168,6 +185,7 @@ const AdminTable = ({ reclamations, onView, showConfirm, showToast, onActionSucc
                                 <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Adhérent</th>
                                 <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Administrateur</th>
                                 <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Objet</th>
+                                <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Priorité</th>
                                 <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Statut</th>
                                 <th className="px-10 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Action</th>
                             </tr>
@@ -193,6 +211,7 @@ const AdminTable = ({ reclamations, onView, showConfirm, showToast, onActionSucc
                                             </div>
                                         </td>
                                         <td className="px-8 py-7 dark:text-slate-300">{r.objet}</td>
+                                        <td className="px-8 py-7"><PriorityBadge priorite={r.priorite} /></td>
                                         <td className="px-8 py-7"><StatusBadge statut={r.statut} /></td>
                                         <td className="px-10 py-7">
                                             <div className="flex justify-center gap-3">

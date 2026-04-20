@@ -59,7 +59,7 @@ const BulletinDetailsModal = ({ isOpen, onClose, bulletin }) => {
     const isAdmin = currentUser?.role === 'ADMIN';
     const [comments, setComments] = React.useState([]);
     const [expandedAiDocs, setExpandedAiDocs] = React.useState({});
-    const toggleAiDoc = (idx) => setExpandedAiDocs(prev => ({...prev, [idx]: !prev[idx]}));
+    const toggleAiDoc = (idx) => setExpandedAiDocs(prev => ({ ...prev, [idx]: !prev[idx] }));
     const [isRestricted, setIsRestricted] = React.useState(false);
     const [newComment, setNewComment] = React.useState('');
     const [loadingComments, setLoadingComments] = React.useState(false);
@@ -167,7 +167,7 @@ const BulletinDetailsModal = ({ isOpen, onClose, bulletin }) => {
                         animate={{ x: 0 }}
                         exit={{ x: '100%' }}
                         transition={{ type: 'spring', damping: 30, stiffness: 260 }}
-                        className="relative w-full sm:w-[95vw] lg:max-w-5xl h-full flex flex-col bg-slate-50 dark:bg-slate-950 sm:rounded-l-3xl shadow-[-30px_0_80px_-20px_rgba(0,0,0,0.35)] border-l border-slate-100 dark:border-white/5 overflow-hidden"
+                        className={`relative w-full sm:w-[95vw] h-full flex flex-col bg-slate-50 dark:bg-slate-950 sm:rounded-l-3xl shadow-[-30px_0_80px_-20px_rgba(0,0,0,0.35)] border-l border-slate-100 dark:border-white/5 overflow-hidden ${previewDoc ? 'lg:max-w-7xl' : 'lg:max-w-5xl'}`}
                     >
                         {/* ── HEADER ── */}
                         <div className="flex-shrink-0 px-6 py-5 md:px-8 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-white/5 flex items-center justify-between">
@@ -359,7 +359,7 @@ const BulletinDetailsModal = ({ isOpen, onClose, bulletin }) => {
                                                                         <ShieldCheck size={9} />
                                                                         Analyse IA
                                                                     </p>
-                                                                    <button 
+                                                                    <button
                                                                         onClick={() => toggleAiDoc(idx)}
                                                                         className="flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-black-400 hover:text-purple-600 transition-colors active:scale-95 px-2 py-1 rounded-md hover:bg-slate-50 dark:hover:bg-slate-800"
                                                                     >
@@ -438,27 +438,7 @@ const BulletinDetailsModal = ({ isOpen, onClose, bulletin }) => {
                                                                 </AnimatePresence>
                                                             </div>
                                                         )}
-                                                        <AnimatePresence>
-                                                            {isActive && (
-                                                                <motion.div
-                                                                    initial={{ height: 0, opacity: 0 }}
-                                                                    animate={{ height: 'auto', opacity: 1 }}
-                                                                    exit={{ height: 0, opacity: 0 }}
-                                                                    transition={{ duration: 0.3, ease: 'easeInOut' }}
-                                                                    className="overflow-hidden"
-                                                                >
-                                                                    <div className="p-2 bg-slate-100 dark:bg-slate-900/60" style={{ height: '400px' }}>
-                                                                        {isPdf ? (
-                                                                            <iframe src={fileUrl} className="w-full h-full rounded-lg border-0" title={doc.type_document} />
-                                                                        ) : (
-                                                                            <div className="w-full h-full flex items-center justify-center">
-                                                                                <img src={fileUrl} alt={doc.type_document} className="max-w-full max-h-full object-contain rounded-lg shadow-md" />
-                                                                            </div>
-                                                                        )}
-                                                                    </div>
-                                                                </motion.div>
-                                                            )}
-                                                        </AnimatePresence>
+                                                        {/* Preview will be shown in the right column */}
                                                     </div>
                                                 );
                                             })}
@@ -468,111 +448,165 @@ const BulletinDetailsModal = ({ isOpen, onClose, bulletin }) => {
 
                             </div>
 
-                            {/* ══ RIGHT COLUMN : Discussion ══ */}
-                            <div className="hidden lg:flex lg:flex-[2] flex-col border-l border-slate-100 dark:border-white/5 bg-white dark:bg-slate-900">
-                                {/* Chat Header */}
-                                <div className="flex-shrink-0 px-5 py-4 border-b border-slate-100 dark:border-white/5 flex items-center justify-between">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-8 h-8 rounded-xl bg-purple-100 dark:bg-purple-900/30 text-purple-600 flex items-center justify-center">
-                                            <MessageCircle size={15} />
+                            {/* ══ RIGHT COLUMN : Discussion OR Preview ══ */}
+                            <div className="hidden lg:flex lg:flex-[2] flex-col border-l border-slate-100 dark:border-white/5 bg-white dark:bg-slate-900 overflow-hidden">
+                                {previewDoc ? (
+                                    /* ── Preview View ── */
+                                    <div className="flex flex-col h-full overflow-hidden">
+                                        <div className="flex-shrink-0 px-5 py-4 border-b border-slate-100 dark:border-white/5 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/30">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 rounded-xl bg-purple-100 dark:bg-purple-900/30 text-purple-600 flex items-center justify-center font-bold">
+                                                    <Eye size={15} />
+                                                </div>
+                                                <div>
+                                                    <h3 className="text-xs font-black uppercase tracking-[0.15em] text-slate-700 dark:text-white">Aperçu du Document</h3>
+                                                    <p className="text-[9px] text-slate-400 font-bold uppercase">{previewDoc.type_document}</p>
+                                                </div>
+                                            </div>
+                                            <button
+                                                onClick={() => setPreviewDoc(null)}
+                                                className="p-1.5 rounded-lg hover:bg-red-50 hover:text-red-500 text-slate-400 transition-colors"
+                                                title="Fermer l'aperçu"
+                                            >
+                                                <X size={16} />
+                                            </button>
                                         </div>
-                                        <div>
-                                            <h3 className="text-xs font-black uppercase tracking-[0.15em] text-slate-700 dark:text-white">Discussion</h3>
-                                            <p className="text-[9px] text-slate-400 font-bold">{comments.length} message{comments.length > 1 ? 's' : ''}</p>
+                                        <div className="flex-1 bg-slate-100 dark:bg-slate-950 p-2 overflow-hidden">
+                                            {previewDoc.fichier?.toLowerCase().endsWith('.pdf') ? (
+                                                <iframe
+                                                    src={`http://localhost:5000/uploads/${previewDoc.fichier}#toolbar=0`}
+                                                    className="w-full h-full border-0 rounded-lg"
+                                                    title="Aperçu PDF"
+                                                />
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center overflow-auto p-4">
+                                                    <img
+                                                        src={`http://localhost:5000/uploads/${previewDoc.fichier}`}
+                                                        alt="Aperçu"
+                                                        className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
+                                                    />
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="p-4 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-white/5 flex justify-center">
+                                            <a
+                                                href={`http://localhost:5000/uploads/${previewDoc.fichier}`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="flex items-center gap-2 px-4 py-2 bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-purple-600 hover:text-white transition-all shadow-sm"
+                                            >
+                                                <ExternalLink size={14} />
+                                                Ouvrir en plein écran
+                                            </a>
                                         </div>
                                     </div>
-                                    <span className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider ${comments.length > 0 ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400' : 'bg-slate-100 dark:bg-slate-800 text-slate-400'}`}>
-                                        {comments.length > 0 ? `${comments.length} ACTIF${comments.length > 1 ? 'S' : ''}` : 'VIDE'}
-                                    </span>
-                                </div>
-
-                                {/* Messages */}
-                                <div ref={scrollRef} className="flex-1 overflow-y-auto p-5 space-y-4 custom-scrollbar">
-                                    {loadingComments && comments.length === 0 ? (
-                                        <div className="h-full flex flex-col items-center justify-center gap-3 text-slate-400">
-                                            <div className="w-6 h-6 border-2 border-purple-200 border-t-purple-600 rounded-full animate-spin" />
-                                            <p className="text-[10px] font-black uppercase tracking-widest">Chargement...</p>
-                                        </div>
-                                    ) : isRestricted ? (
-                                        <div className="h-full flex flex-col items-center justify-center gap-4 text-center px-6">
-                                            <div className="w-16 h-16 rounded-2xl bg-red-50 dark:bg-red-900/10 flex items-center justify-center text-red-500">
-                                                <ShieldAlert size={28} strokeWidth={1.5} />
-                                            </div>
-                                            <div>
-                                                <p className="text-xs font-black uppercase tracking-widest text-red-600 mb-1">Accès restreint</p>
-                                                <p className="text-[10px] text-slate-500 font-bold leading-relaxed px-4">
-                                                    Cette discussion est associée à un autre administrateur. 
-                                                    Vous ne pouvez ni lire ni participer à cet échange.
-                                                </p>
-                                            </div>
-                                        </div>
-                                    ) : comments.length === 0 ? (
-                                        <div className="h-full flex flex-col items-center justify-center gap-4 text-center px-6">
-                                            <div className="w-16 h-16 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-300 dark:text-slate-600">
-                                                <MessageCircle size={28} strokeWidth={1.5} />
-                                            </div>
-                                            <div>
-                                                <p className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-1">Aucun message</p>
-                                                <p className="text-[10px] text-slate-400 font-medium leading-relaxed">Posez vos questions ou apportez des précisions sur ce bulletin.</p>
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        comments.map((comment, idx) => {
-                                            const isMe = comment.senderId === currentUser?.id;
-                                            const isAdminMsg = comment.sender?.role !== 'ADHERENT';
-                                            return (
-                                                <div key={idx} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
-                                                    {!isMe && (
-                                                        <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1.5 px-1">
-                                                            {comment.sender?.prenom} {comment.sender?.nom}
-                                                            {isAdminMsg && <span className="ml-1.5 text-purple-500 dark:text-purple-400">(Admin)</span>}
-                                                        </p>
-                                                    )}
-                                                    <div className={`max-w-[88%] px-4 py-3 rounded-2xl text-sm ${isMe ? 'bg-gradient-to-br from-purple-600 to-indigo-700 text-white rounded-tr-sm shadow-md shadow-purple-500/20' : 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-100 rounded-tl-sm'}`}>
-                                                        <p className="font-semibold leading-relaxed">{comment.message}</p>
-                                                    </div>
-                                                    <p className="text-[8px] text-slate-400 font-bold mt-1.5 px-1">
-                                                        {isMe ? 'Vous · ' : ''}{new Date(comment.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
-                                                    </p>
+                                ) : (
+                                    /* ── Discussion View ── */
+                                    <div className="flex flex-col h-full overflow-hidden">
+                                        <div className="flex-shrink-0 px-5 py-4 border-b border-slate-100 dark:border-white/5 flex items-center justify-between">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 rounded-xl bg-purple-100 dark:bg-purple-900/30 text-purple-600 flex items-center justify-center">
+                                                    <MessageCircle size={15} />
                                                 </div>
-                                            );
-                                        })
-                                    )}
-                                </div>
-
-                                {/* Input */}
-                                <div className="flex-shrink-0 p-4 border-t border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-slate-950">
-                                    {isRestricted ? (
-                                        <div className="flex items-center gap-3 p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-2xl text-center shadow-inner">
-                                            <ShieldAlert size={16} className="text-red-500 flex-shrink-0" />
-                                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Discussion verrouillée</p>
+                                                <div>
+                                                    <h3 className="text-xs font-black uppercase tracking-[0.15em] text-slate-700 dark:text-white">Discussion</h3>
+                                                    <p className="text-[9px] text-slate-400 font-bold">{comments.length} message{comments.length > 1 ? 's' : ''}</p>
+                                                </div>
+                                            </div>
+                                            <span className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider ${comments.length > 0 ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400' : 'bg-slate-100 dark:bg-slate-800 text-slate-400'}`}>
+                                                {comments.length > 0 ? `${comments.length} ACTIF${comments.length > 1 ? 'S' : ''}` : 'VIDE'}
+                                            </span>
                                         </div>
-                                    ) : (
-                                        <form onSubmit={handleSendComment} className="relative">
-                                            <textarea
-                                                rows={2}
-                                                value={newComment}
-                                                onChange={e => setNewComment(e.target.value)}
-                                                placeholder="Écrire un message..."
-                                                className="w-full pl-4 pr-14 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-2xl focus:outline-none focus:ring-4 focus:ring-purple-500/10 focus:border-purple-500/50 transition-all text-sm font-semibold dark:text-white resize-none"
-                                                onKeyDown={e => {
-                                                    if (e.key === 'Enter' && !e.shiftKey) {
-                                                        e.preventDefault();
-                                                        handleSendComment(e);
-                                                    }
-                                                }}
-                                            />
-                                            <button
-                                                type="submit"
-                                                disabled={!newComment.trim()}
-                                                className="absolute right-2.5 bottom-2.5 p-2.5 bg-purple-600 text-white rounded-xl shadow-md shadow-purple-500/30 hover:bg-purple-700 active:scale-95 transition-all disabled:opacity-40 disabled:hover:bg-purple-600 disabled:active:scale-100"
-                                            >
-                                                <Send size={15} />
-                                            </button>
-                                        </form>
-                                    )}
-                                    {!isRestricted && <p className="text-[8px] text-center text-slate-400 font-bold uppercase tracking-widest mt-2">Entrée pour envoyer · Maj+Entrée pour sauter une ligne</p>}
-                                </div>
+
+                                        {/* Messages */}
+                                        <div ref={scrollRef} className="flex-1 overflow-y-auto p-5 space-y-4 custom-scrollbar">
+                                            {loadingComments && comments.length === 0 ? (
+                                                <div className="h-full flex flex-col items-center justify-center gap-3 text-slate-400">
+                                                    <div className="w-6 h-6 border-2 border-purple-200 border-t-purple-600 rounded-full animate-spin" />
+                                                    <p className="text-[10px] font-black uppercase tracking-widest">Chargement...</p>
+                                                </div>
+                                            ) : isRestricted ? (
+                                                <div className="h-full flex flex-col items-center justify-center gap-4 text-center px-6">
+                                                    <div className="w-16 h-16 rounded-2xl bg-red-50 dark:bg-red-900/10 flex items-center justify-center text-red-500">
+                                                        <ShieldAlert size={28} strokeWidth={1.5} />
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-xs font-black uppercase tracking-widest text-red-600 mb-1">Accès restreint</p>
+                                                        <p className="text-[10px] text-slate-500 font-bold leading-relaxed px-4">
+                                                            Cette discussion est associée à un autre administrateur.
+                                                            Vous ne pouvez ni lire ni participer à cet échange.
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            ) : comments.length === 0 ? (
+                                                <div className="h-full flex flex-col items-center justify-center gap-4 text-center px-6">
+                                                    <div className="w-16 h-16 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-300 dark:text-slate-600">
+                                                        <MessageCircle size={28} strokeWidth={1.5} />
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-1">Aucun message</p>
+                                                        <p className="text-[10px] text-slate-400 font-medium leading-relaxed">Posez vos questions ou apportez des précisions sur ce bulletin.</p>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                comments.map((comment, idx) => {
+                                                    const isMe = comment.senderId === currentUser?.id;
+                                                    const isAdminMsg = comment.sender?.role !== 'ADHERENT';
+                                                    return (
+                                                        <div key={idx} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
+                                                            {!isMe && (
+                                                                <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1.5 px-1">
+                                                                    {comment.sender?.prenom} {comment.sender?.nom}
+                                                                    {isAdminMsg && <span className="ml-1.5 text-purple-500 dark:text-purple-400">(Admin)</span>}
+                                                                </p>
+                                                            )}
+                                                            <div className={`max-w-[88%] px-4 py-3 rounded-2xl text-sm ${isMe ? 'bg-gradient-to-br from-purple-600 to-indigo-700 text-white rounded-tr-sm shadow-md shadow-purple-500/20' : 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-100 rounded-tl-sm'}`}>
+                                                                <p className="font-semibold leading-relaxed">{comment.message}</p>
+                                                            </div>
+                                                            <p className="text-[8px] text-slate-400 font-bold mt-1.5 px-1">
+                                                                {isMe ? 'Vous · ' : ''}{new Date(comment.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                                                            </p>
+                                                        </div>
+                                                    );
+                                                })
+                                            )}
+                                        </div>
+
+                                        {/* Input */}
+                                        <div className="flex-shrink-0 p-4 border-t border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-slate-950">
+                                            {isRestricted ? (
+                                                <div className="flex items-center gap-3 p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-2xl text-center shadow-inner">
+                                                    <ShieldAlert size={16} className="text-red-500 flex-shrink-0" />
+                                                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Discussion verrouillée</p>
+                                                </div>
+                                            ) : (
+                                                <form onSubmit={handleSendComment} className="relative">
+                                                    <textarea
+                                                        rows={2}
+                                                        value={newComment}
+                                                        onChange={e => setNewComment(e.target.value)}
+                                                        placeholder="Écrire un message..."
+                                                        className="w-full pl-4 pr-14 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-2xl focus:outline-none focus:ring-4 focus:ring-purple-500/10 focus:border-purple-500/50 transition-all text-sm font-semibold dark:text-white resize-none"
+                                                        onKeyDown={e => {
+                                                            if (e.key === 'Enter' && !e.shiftKey) {
+                                                                e.preventDefault();
+                                                                handleSendComment(e);
+                                                            }
+                                                        }}
+                                                    />
+                                                    <button
+                                                        type="submit"
+                                                        disabled={!newComment.trim()}
+                                                        className="absolute right-2.5 bottom-2.5 p-2.5 bg-purple-600 text-white rounded-xl shadow-md shadow-purple-500/30 hover:bg-purple-700 active:scale-95 transition-all disabled:opacity-40 disabled:hover:bg-purple-600 disabled:active:scale-100"
+                                                    >
+                                                        <Send size={15} />
+                                                    </button>
+                                                </form>
+                                            )}
+                                            {!isRestricted && <p className="text-[8px] text-center text-slate-400 font-bold uppercase tracking-widest mt-2">Entrée pour envoyer · Maj+Entrée pour sauter une ligne</p>}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </div>
 

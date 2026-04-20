@@ -17,12 +17,12 @@ import {
     Eye,
     ExternalLink
 } from 'lucide-react';
-import { createBulletin, analyzeBulletinIA, uploadBulletinDocument } from '../services/bulletinService';
+import { createBulletin, updateBulletin, analyzeBulletinIA, uploadBulletinDocument } from '../services/bulletinService';
 import { getMyBeneficiaries } from '../services/beneficiaryService';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 
-const AddBulletinModal = ({ isOpen, onClose, onSubmit }) => {
+const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => {
     const { user } = useAuth();
     const { showToast } = useToast();
     const [step, setStep] = useState(1);
@@ -62,6 +62,8 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit }) => {
         showPreview: false
     });
 
+    const isEdit = !!initialData;
+
     const fetchBeneficiaries = async () => {
         try {
             setLoadingBeneficiaries(true);
@@ -79,14 +81,48 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit }) => {
     React.useEffect(() => {
         if (isOpen) {
             fetchBeneficiaries();
-            setFormData(prev => ({
-                ...prev,
-                matricule_adherent: user?.matricule || '',
-                code_cnam: user?.code_cnam || '',
-                nom_prenom_malade: `${user?.prenom || ''} ${user?.nom || ''}`.trim(),
-            }));
+            if (isEdit) {
+                setFormData({
+                    code_cnam: initialData.code_cnam || '',
+                    nom_prenom_malade: initialData.nom_prenom_malade || '',
+                    qualite_malade: initialData.qualite_malade || 'Lui-même',
+                    type_dossier: initialData.type_dossier || 'Consultation',
+                    date_soin: initialData.date_soin || new Date().toISOString().split('T')[0],
+                    montant_total: initialData.montant_total || '',
+                    matricule_adherent: initialData.matricule_adherent || user?.matricule || '',
+                    notes: initialData.notes || '',
+                    actes: initialData.actes || [],
+                    est_suspect: initialData.documents?.[0]?.est_suspect || false,
+                    zones_modifiees: initialData.documents?.[0]?.zones_modifiees || '',
+                    confiance_score: initialData.documents?.[0]?.score || null,
+                    documentHash: initialData.documents?.[0]?.hash_fichier || '',
+                    documentType: initialData.documents?.[0]?.type_document || '',
+                    fichierUrl: initialData.documents?.[0]?.fichier || '',
+                    medecin: {
+                        nom_prenom: '',
+                        specialite: '',
+                        telephone: ''
+                    },
+                    pharmacie: {
+                        nom: '',
+                        adresse: '',
+                        telephone: ''
+                    },
+                    beneficiaireId: initialData.beneficiaireId || null,
+                    showPreview: !!initialData.documents?.[0]?.fichier
+                });
+                setStep(2); // Directement à la vérification
+            } else {
+                setFormData(prev => ({
+                    ...prev,
+                    matricule_adherent: user?.matricule || '',
+                    code_cnam: user?.code_cnam || '',
+                    nom_prenom_malade: `${user?.prenom || ''} ${user?.nom || ''}`.trim(),
+                }));
+                setStep(1);
+            }
         }
-    }, [isOpen, user]);
+    }, [isOpen, user, initialData, isEdit]);
 
     const careTypes = [
         { id: 'Consultation', label: 'Consultation Médicale', icon: <User size={18} /> },
@@ -209,14 +245,19 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit }) => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            await createBulletin(formData);
-            onSubmit(formData);
+            if (isEdit) {
+                const updated = await updateBulletin(initialData.id, formData);
+                onSubmit(updated.bulletin);
+            } else {
+                await createBulletin(formData);
+                onSubmit(formData);
+            }
             setStep(1);
-            showToast("Bulletin enregistré avec succès !", "success");
+            showToast(isEdit ? "Bulletin mis à jour avec succès !" : "Bulletin enregistré avec succès !", "success");
             onClose();
         } catch (error) {
             console.error(error);
-            showToast(error.response?.data?.message || "Erreur lors de l'enregistrement", "error");
+            showToast(error.response?.data?.message || "Erreur lors de l'opération", "error");
         }
     };
 
@@ -238,18 +279,18 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit }) => {
         const isPdf = url.toLowerCase().endsWith('.pdf');
 
         return (
-            <div className="mt-4 rounded-3xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-950 min-h-[300px] flex items-center justify-center relative group">
+            <div className="h-full rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-950 flex items-center justify-center relative group min-h-[400px] lg:min-h-0">
                 {isPdf ? (
                     <iframe
                         src={`${fileUrl}#toolbar=0`}
-                        className="w-full h-[400px]"
+                        className="w-full h-full min-h-[500px]"
                         title="Aperçu du document"
                     />
                 ) : (
                     <img
                         src={fileUrl}
                         alt="Aperçu"
-                        className="max-w-full max-h-[400px] object-contain"
+                        className="max-w-full h-full object-contain"
                     />
                 )}
                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
@@ -266,6 +307,8 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit }) => {
             </div>
         );
     };
+
+    const showSidePreview = step === 2 && formData.fichierUrl;
 
     return (
         <AnimatePresence>
@@ -284,7 +327,7 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit }) => {
                     animate="visible"
                     exit="hidden"
                     variants={modalVariants}
-                    className="relative bg-white dark:bg-slate-900 w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden border border-slate-200 dark:border-slate-800 max-h-[90vh] overflow-y-auto"
+                    className={`relative bg-white dark:bg-slate-900 w-full rounded-3xl shadow-2xl overflow-hidden border border-slate-200 dark:border-slate-800 max-h-[95vh] flex flex-col transition-all duration-500 ${showSidePreview ? 'max-w-7xl' : 'max-w-2xl'}`}
                 >
                     {/* Header */}
                     <div className="bg-gradient-to-r from-purple-700 to-indigo-800 p-8 text-white relative sticky top-0 z-10">
@@ -299,15 +342,35 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit }) => {
                                 <FileText size={32} />
                             </div>
                             <div>
-                                <h2 className="text-2xl font-black tracking-tight">Nouveau Bulletin de Soin</h2>
+                                <h2 className="text-2xl font-black tracking-tight">{isEdit ? 'Modifier le Bulletin' : 'Nouveau Bulletin de Soin'}</h2>
                                 <p className="text-purple-100 text-sm font-medium">
-                                    {isAnalyzing ? "Analyse IA en cours..." : `Étape ${step} sur 2 : ${step === 1 ? 'Scan IA du document' : 'Vérification et confirmation'}`}
+                                    {isAnalyzing ? "Analyse IA en cours..." : isEdit ? 'Vérification et modification' : `Étape ${step} sur 2 : ${step === 1 ? 'Scan IA du document' : 'Vérification et confirmation'}`}
                                 </p>
                             </div>
                         </div>
                     </div>
 
-                    <form onSubmit={handleSubmit} className="p-8">
+                    <div className={`flex flex-col lg:flex-row overflow-hidden h-full ${showSidePreview ? 'lg:divide-x lg:divide-x-reverse divide-slate-100 dark:divide-slate-800' : ''}`}>
+                        {/* Preview Column */}
+                        {showSidePreview && (
+                            <div className="flex-1 bg-slate-50 dark:bg-slate-950 p-6 overflow-hidden flex flex-col min-h-[400px] lg:min-h-0 border-b lg:border-b-0 border-slate-100 dark:border-slate-800">
+                                <div className="flex items-center justify-between mb-4 shrink-0">
+                                    <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
+                                        <Eye size={14} className="text-purple-500" /> APERÇU DU JUSTIFICATIF
+                                    </h3>
+                                    <span className="px-3 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-full text-[9px] font-black uppercase">
+                                        {formData.fichierUrl.split('.').pop().toUpperCase()}
+                                    </span>
+                                </div>
+                                <div className="flex-1 overflow-hidden">
+                                    <DocumentPreview url={formData.fichierUrl} />
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Form Column */}
+                        <div className={`flex-1 overflow-y-auto ${showSidePreview ? 'lg:max-w-2xl' : ''}`}>
+                            <form onSubmit={handleSubmit} className="p-8">
                         {step === 1 ? (
                             <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
                                 <div className="text-center mb-8 mt-4">
@@ -539,14 +602,6 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit }) => {
                                                         <div className="flex items-center gap-2">
                                                             <button
                                                                 type="button"
-                                                                onClick={() => setFormData(prev => ({ ...prev, showPreview: !prev.showPreview }))}
-                                                                className={`p-2 rounded-lg transition-colors ${formData.showPreview ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-purple-600 hover:bg-purple-50'}`}
-                                                                title="Afficher/Masquer l'aperçu"
-                                                            >
-                                                                <Eye size={16} />
-                                                            </button>
-                                                            <button
-                                                                type="button"
                                                                 onClick={() => setFormData({ ...formData, fichierUrl: '', documentHash: '', showPreview: false })}
                                                                 className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                                                             >
@@ -555,15 +610,7 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit }) => {
                                                         </div>
                                                     </div>
                                                     
-                                                    {formData.showPreview && (
-                                                        <motion.div
-                                                            initial={{ opacity: 0, height: 0 }}
-                                                            animate={{ opacity: 1, height: 'auto' }}
-                                                            exit={{ opacity: 0, height: 0 }}
-                                                        >
-                                                            <DocumentPreview url={formData.fichierUrl} />
-                                                        </motion.div>
-                                                    )}
+                                                    {/* Preview removed from here and moved to side column */}
                                                 </div>
                                             ) : (
                                                 <div className="relative">
@@ -626,7 +673,9 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit }) => {
                                 </div>
                             </div>
                         )}
-                    </form>
+                            </form>
+                        </div>
+                    </div>
                 </motion.div>
             </div>
         </AnimatePresence>

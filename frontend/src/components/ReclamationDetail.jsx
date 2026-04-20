@@ -31,6 +31,23 @@ const StatusBadge = ({ statut }) => {
   );
 };
 
+const PriorityBadge = ({ priorite }) => {
+  const styles = {
+      1: 'bg-black-50 text-black-500 border-black-100 dark:bg-black-800/40 dark:text-black-400 dark:border-black-700/30',
+      2: 'bg-blue-50 text-blue-600 border-blue-100 dark:bg-blue-900/10 dark:text-blue-400 dark:border-blue-800/30',
+      3: 'bg-orange-50 text-orange-600 border-orange-100 dark:bg-orange-900/10 dark:text-orange-400 dark:border-orange-800/30',
+      4: 'bg-red-50 text-red-600 border-red-100 dark:bg-red-900/10 dark:text-red-400 dark:border-red-800/30'
+  };
+
+  const labels = { 1: 'Basse', 2: 'Moyenne', 3: 'Haute', 4: 'Urgente' };
+
+  return (
+      <span className={`px-4 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-full border shadow-inner ${styles[priorite] || styles[1]}`}>
+          Priorité: {labels[priorite] || 'Basse'}
+      </span>
+  );
+};
+
 const formatDate = (dateStr) => {
   if (!dateStr) return '-';
   const opts = { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' };
@@ -57,6 +74,8 @@ const ReclamationDetail = ({
   const [isLoading, setIsLoading] = useState(true);
   const [isBulletinModalOpen, setIsBulletinModalOpen] = useState(false);
   const [isStatusOpen, setIsStatusOpen] = useState(false);
+  const [isPriorityOpen, setIsPriorityOpen] = useState(false);
+  const [priority, setPriority] = useState(2);
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: '', message: '', type: 'danger', onConfirm: () => { } });
 
   const isAdherent = userRole === 'ADHERENT';
@@ -69,6 +88,7 @@ const ReclamationDetail = ({
         setReclamation(fullData);
         setMessages(fullData.messages || []);
         setStatus(fullData.statut);
+        setPriority(fullData.priorite || 2);
 
         if (isAdherent && fullData.unread) {
           await markReclamationAsRead(id);
@@ -120,7 +140,10 @@ const ReclamationDetail = ({
   const commitUpdate = async () => {
     setIsSubmitting(true);
     try {
-      const payload = { statut: status };
+      const payload = { 
+        statut: status,
+        priorite: priority
+      };
       if (replyText.trim()) payload.reponseAdmin = replyText.trim();
 
       const updated = await updateReclamation(id, payload);
@@ -154,6 +177,7 @@ const ReclamationDetail = ({
             <div className="flex items-center gap-3 mb-1">
               <h2 className="text-2xl font-extrabold text-gray-800 dark:text-white">Réclamation {reclamation.reference || reclamation.id}</h2>
               <StatusBadge statut={reclamation.statut} />
+              <PriorityBadge priorite={reclamation.priorite} />
             </div>
             <p className="text-gray-500 font-medium flex items-center gap-2"><Clock className="w-4 h-4" /> Soumise le {formatDate(reclamation.createdAt)}</p>
           </div>
@@ -204,6 +228,16 @@ const ReclamationDetail = ({
               <h4 className="text-2xl font-black text-purple-600 dark:text-purple-400 tracking-tight mb-6 flex items-center gap-3"><MessageSquare className="w-6 h-6" /> {reclamation.objet}</h4>
               <div className="bg-slate-50 dark:bg-slate-800 p-8 rounded-[1.5rem] text-slate-700 dark:text-slate-200 whitespace-pre-wrap border border-slate-100 leading-relaxed font-bold tracking-tight shadow-inner">{reclamation.description || "Aucun détail complémentaire fourni."}</div>
             </div>
+      
+            <div className="absolute top-0 left-0 w-1.5 h-full bg-purple-600" />
+            <h3 className="text-[12px] font-black uppercase tracking-[0.2em] text-black-400 mb-8 flex items-center gap-3 mt-8"><FileText size={18} /> Bulletin Associé</h3>
+            {bulletin ? (
+              <div className="space-y-6">
+                <div className="flex justify-between items-center bg-slate-50 p-4 rounded-xl border border-black-100"><span className="text-[10px] font-black tracking-widest text-black-400">Réf. Dossier</span><span className="font-black text-slate-900 dark:text-white">#{bulletin.numero_bulletin || 'N/A'}</span></div>
+                <button onClick={() => setIsBulletinModalOpen(true)} className="w-full py-4 bg-purple-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg"><Eye size={16} /> Consulter</button>
+              </div>
+            ) : <p className="font-bold text-slate-400 text-center">Aucun bulletin lié.</p>}
+
           </motion.div>
 
           {reclamation.reponseAdmin && !reclamation.isRestricted && (
@@ -212,21 +246,103 @@ const ReclamationDetail = ({
             </motion.div>
           )}
 
+        </div>
+
+        <div className="space-y-8">
           {!isAdherent && reclamation.statut !== 'Clôturée' && !reclamation.isRestricted && (
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-white dark:bg-slate-900 p-8 sm:p-10 rounded-[2.5rem] shadow-2xl border border-slate-100 relative overflow-hidden">
-              <h3 className="text-xl font-black text-slate-900 dark:text-white mb-8 flex items-center gap-3">Traiter la demande</h3>
-              <div className="space-y-8">
-                <textarea value={replyText} onChange={e => setReplyText(e.target.value)} rows={5} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 rounded-[1.5rem] p-6 outline-none focus:ring-4 focus:ring-purple-500/10 transition-all font-bold text-slate-700 dark:text-slate-200 resize-none" placeholder="Réponse..." />
-                <div className="flex flex-col lg:flex-row gap-6 items-end justify-between bg-slate-50 dark:bg-slate-800/50 p-6 rounded-[1.5rem] border border-slate-100 dark:border-slate-700">
-                  <div className="flex-1 w-full space-y-2">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1 flex items-center gap-2">
-                       <RefreshCw size={12} className="text-purple-500" /> Statut de la résolution
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] shadow-2xl border border-slate-100 dark:border-white/5 relative overflow-hidden">
+              <h3 className="text-lg font-black text-slate-900 dark:text-white mb-6 flex items-center gap-3">Traiter la demande</h3>
+              <div className="space-y-6">
+                <textarea 
+                  value={replyText} 
+                  onChange={e => setReplyText(e.target.value)} 
+                  rows={4} 
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-white/5 rounded-2xl p-4 outline-none focus:ring-4 focus:ring-purple-500/10 transition-all font-bold text-slate-700 dark:text-slate-200 resize-none text-sm" 
+                  placeholder="Réponse..." 
+                />
+                
+                <div className="space-y-4">
+                  {/* Priorité */}
+                  <div className="space-y-2">
+                    <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1 flex items-center gap-2">
+                       Priorité de traitement
                     </label>
                     <div className="relative">
                       <button
                         type="button"
-                        onClick={() => setIsStatusOpen(!isStatusOpen)}
-                        className="w-full flex items-center justify-between px-6 py-4 bg-white dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-2xl outline-none font-black text-[11px] uppercase tracking-widest cursor-pointer transition-all hover:border-purple-300 dark:hover:border-purple-900"
+                        onClick={() => {
+                          setIsPriorityOpen(!isPriorityOpen);
+                          setIsStatusOpen(false);
+                        }}
+                        className="w-full flex items-center justify-between px-5 py-3.5 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-xl outline-none font-black text-[10px] uppercase tracking-widest cursor-pointer transition-all hover:border-purple-300"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={`w-2 h-2 rounded-full ${
+                            priority === 1 ? 'bg-slate-400' :
+                            priority === 2 ? 'bg-blue-500' :
+                            priority === 3 ? 'bg-orange-500' :
+                            'bg-red-500'
+                          }`} />
+                          <span className="text-slate-700 dark:text-slate-200">
+                            {priority === 1 ? 'Basse' : priority === 2 ? 'Moyenne' : priority === 3 ? 'Haute' : 'Urgente'}
+                          </span>
+                        </div>
+                        <ChevronDown className={`text-slate-400 transition-transform duration-300 ${isPriorityOpen ? 'rotate-180' : ''}`} size={14} />
+                      </button>
+
+                      <AnimatePresence>
+                        {isPriorityOpen && (
+                          <>
+                            <div className="fixed inset-0 z-[1001]" onClick={() => setIsPriorityOpen(false)} />
+                            <motion.div
+                              initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                              animate={{ opacity: 1, y: 5, scale: 1 }}
+                              exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                              className="absolute top-full left-0 right-0 z-[1002] mt-2 p-2 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl shadow-2xl"
+                            >
+                              {[
+                                { val: 1, label: 'Basse', color: 'bg-slate-400' },
+                                { val: 2, label: 'Moyenne', color: 'bg-blue-500' },
+                                { val: 3, label: 'Haute', color: 'bg-orange-500' },
+                                { val: 4, label: 'Urgente', color: 'bg-red-500' }
+                              ].map((opt) => (
+                                <button
+                                  key={opt.val}
+                                  type="button"
+                                  onClick={() => {
+                                    setPriority(opt.val);
+                                    setIsPriorityOpen(false);
+                                  }}
+                                  className={`w-full text-left px-4 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-3 ${
+                                    priority === opt.val 
+                                    ? 'bg-purple-600 text-white shadow-lg' 
+                                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+                                  }`}
+                                >
+                                  <div className={`w-1.5 h-1.5 rounded-full ${priority === opt.val ? 'bg-white' : opt.color}`} />
+                                  {opt.label}
+                                </button>
+                              ))}
+                            </motion.div>
+                          </>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  </div>
+
+                  {/* Statut */}
+                  <div className="space-y-2">
+                    <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1 flex items-center gap-2">
+                       Statut de la résolution
+                    </label>
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsStatusOpen(!isStatusOpen);
+                          setIsPriorityOpen(false);
+                        }}
+                        className="w-full flex items-center justify-between px-5 py-3.5 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-xl outline-none font-black text-[10px] uppercase tracking-widest cursor-pointer transition-all hover:border-purple-300"
                       >
                         <div className="flex items-center gap-3">
                           <div className={`w-2 h-2 rounded-full ${
@@ -237,7 +353,7 @@ const ReclamationDetail = ({
                           }`} />
                           <span className="text-slate-700 dark:text-slate-200">{status}</span>
                         </div>
-                        <ChevronDown className={`text-slate-400 transition-transform duration-300 ${isStatusOpen ? 'rotate-180' : ''}`} size={16} />
+                        <ChevronDown className={`text-slate-400 transition-transform duration-300 ${isStatusOpen ? 'rotate-180' : ''}`} size={14} />
                       </button>
 
                       <AnimatePresence>
@@ -248,7 +364,7 @@ const ReclamationDetail = ({
                               initial={{ opacity: 0, y: 10, scale: 0.95 }}
                               animate={{ opacity: 1, y: 5, scale: 1 }}
                               exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                              className="absolute bottom-full left-0 right-0 z-[1002] mb-2 p-2 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl shadow-2xl backdrop-blur-xl"
+                              className="absolute top-full left-0 right-0 z-[1002] mt-2 p-2 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl shadow-2xl"
                             >
                               {['Ouverte', 'En cours', 'Traitée', 'Clôturée'].map((opt) => (
                                 <button
@@ -258,9 +374,9 @@ const ReclamationDetail = ({
                                     setStatus(opt);
                                     setIsStatusOpen(false);
                                   }}
-                                  className={`w-full text-left px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-3 ${
+                                  className={`w-full text-left px-4 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-3 ${
                                     status === opt 
-                                    ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/20' 
+                                    ? 'bg-purple-600 text-white shadow-lg' 
                                     : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
                                   }`}
                                 >
@@ -279,37 +395,22 @@ const ReclamationDetail = ({
                       </AnimatePresence>
                     </div>
                   </div>
-
-                  <div className="w-full sm:w-auto pt-6 lg:pt-0">
-                    <button 
-                      onClick={handleUpdate} 
-                      disabled={isSubmitting} 
-                      className="w-full sm:w-auto flex items-center justify-center gap-3 bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-10 py-5 rounded-2xl font-black text-[11px] uppercase tracking-widest transition-all shadow-2xl hover:bg-purple-600 group active:scale-95 disabled:opacity-50"
-                    >
-                      {isSubmitting ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Send size={20} className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />}
-                      {isSubmitting ? 'Maj...' : 'Enregistrer la réponse'}
-                    </button>
-                  </div>
                 </div>
+
+                <button 
+                  onClick={handleUpdate} 
+                  disabled={isSubmitting} 
+                  className="w-full flex items-center justify-center gap-3 bg-slate-900 dark:bg-white text-white dark:text-slate-900 py-4 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-xl hover:bg-purple-600 group active:scale-95 disabled:opacity-50"
+                >
+                  {isSubmitting ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Send size={18} />}
+                  {isSubmitting ? 'Maj...' : 'Enregistrer'}
+                </button>
               </div>
             </motion.div>
           )}
-        </div>
-
-        <div className="space-y-6">
-          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] shadow-xl border border-slate-100 overflow-hidden">
-            <div className="absolute top-0 left-0 w-1.5 h-full bg-purple-600" />
-            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-8 flex items-center gap-3"><FileText size={16} /> Bulletin Associé</h3>
-            {bulletin ? (
-              <div className="space-y-6">
-                <div className="flex justify-between items-center bg-slate-50 p-4 rounded-xl border border-slate-100"><span className="text-[10px] font-black tracking-widest text-slate-400">Réf. Dossier</span><span className="font-black text-slate-900 dark:text-white">#{bulletin.numero_bulletin || 'N/A'}</span></div>
-                <button onClick={() => setIsBulletinModalOpen(true)} className="w-full py-4 bg-purple-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg"><Eye size={16} /> Consulter</button>
-              </div>
-            ) : <p className="font-bold text-slate-400 text-center">Aucun bulletin lié.</p>}
-          </motion.div>
 
           <div className="space-y-6">
-            <h3 className="text-xl font-black text-slate-800 dark:text-white flex items-center gap-2"><MessageSquare className="w-5 h-5 text-purple-600" /> Echanges</h3>            
+            <h3 className="text-lg font-black text-slate-800 dark:text-white flex items-center gap-2"><MessageSquare className="w-5 h-5 text-purple-600" /> Echanges</h3>            
             {reclamation.isRestricted ? (
               <motion.div 
                 initial={{ opacity: 0, y: 10 }}

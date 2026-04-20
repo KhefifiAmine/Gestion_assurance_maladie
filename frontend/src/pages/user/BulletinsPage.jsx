@@ -1,22 +1,25 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
-import { 
-    FileText, 
-    Plus, 
-    Search, 
-    Eye, 
-    Clock, 
+import {
+    FileText,
+    Plus,
+    Search,
+    Eye,
+    Clock,
     Calendar,
     ChevronDown,
     Filter,
     CheckCircle2,
     X,
-    AlertTriangle
+    AlertTriangle,
+    Edit2,
+    Trash2
 } from 'lucide-react';
-import { getMyBulletins } from '../../services/bulletinService';
+import { getMyBulletins, deleteBulletin } from '../../services/bulletinService';
 import { useToast } from '../../context/ToastContext';
 import AddBulletinModal from '../../components/AddBulletinModal';
 import BulletinDetailsModal from '../../components/BulletinDetailsModal';
+import ConfirmModal from '../../components/ConfirmModal';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const BulletinsPage = () => {
@@ -31,6 +34,8 @@ const BulletinsPage = () => {
     const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
     const [selectedBulletin, setSelectedBulletin] = useState(null);
     const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+    const [bulletinToEdit, setBulletinToEdit] = useState(null);
+    const [confirmModal, setConfirmModal] = useState({ isOpen: false, id: null });
 
     const fetchBulletins = async () => {
         try {
@@ -59,7 +64,7 @@ const BulletinsPage = () => {
         return bulletins.filter(b => {
             const matchesSearch = (b.numero_bulletin || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                 (b.nom_prenom_malade || '').toLowerCase().includes(searchTerm.toLowerCase());
-            
+
             const mapStatus = (s) => {
                 const status = Number(s);
                 if (status === 0) return 'En attente';
@@ -76,24 +81,42 @@ const BulletinsPage = () => {
     }, [bulletins, searchTerm, statusFilter, dateFilter]);
 
     const handleAddBulletin = () => {
-        showToast("Bulletin ajouté avec succès", "success");
+        showToast(bulletinToEdit ? "Bulletin mis à jour avec succès" : "Bulletin ajouté avec succès", "success");
         fetchBulletins();
         setIsModalOpen(false);
+        setBulletinToEdit(null);
+    };
+
+    const handleEdit = (b) => {
+        setBulletinToEdit(b);
+        setIsModalOpen(true);
+    };
+
+    const handleDelete = async (id) => {
+        try {
+            await deleteBulletin(id);
+            showToast("Bulletin supprimé avec succès", "success");
+            fetchBulletins();
+        } catch (error) {
+            showToast(error.message || "Erreur lors de la suppression", "error");
+        } finally {
+            setConfirmModal({ isOpen: false, id: null });
+        }
     };
 
     const getStatusConfig = (statut) => {
         const s = Number(statut);
-        if (s === 2) return { label: 'Approuvée', icon: <CheckCircle2 size={12}/>, classes: 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 border-emerald-100 dark:border-emerald-800/30' };
-        if (s === 3) return { label: 'Refusée', icon: <X size={12}/>, classes: 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border-red-100 dark:border-red-800/30' };
-        if (s === 1) return { label: 'En cours', icon: <Clock size={12}/>, classes: 'bg-amber-50 dark:bg-amber-900/10 text-amber-600 dark:text-amber-400 border-amber-100 dark:border-amber-800/30' };
-        return { label: 'En attente', icon: <Clock size={12}/>, classes: 'bg-slate-50 dark:bg-slate-800/50 text-slate-600 dark:text-slate-400 border-slate-100 dark:border-slate-700/30' };
+        if (s === 2) return { label: 'Approuvée', icon: <CheckCircle2 size={12} />, classes: 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 border-emerald-100 dark:border-emerald-800/30' };
+        if (s === 3) return { label: 'Refusée', icon: <X size={12} />, classes: 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border-red-100 dark:border-red-800/30' };
+        if (s === 1) return { label: 'En cours', icon: <Clock size={12} />, classes: 'bg-amber-50 dark:bg-amber-900/10 text-amber-600 dark:text-amber-400 border-amber-100 dark:border-amber-800/30' };
+        return { label: 'En attente', icon: <Clock size={12} />, classes: 'bg-slate-50 dark:bg-slate-800/50 text-slate-600 dark:text-slate-400 border-slate-100 dark:border-slate-700/30' };
     };
 
     return (
         <div className="p-6 lg:p-10 space-y-8 min-h-full bg-slate-50 dark:bg-slate-950 transition-colors duration-300">
-            
+
             {/* Header */}
-            <motion.div 
+            <motion.div
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
                 className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6"
@@ -106,7 +129,7 @@ const BulletinsPage = () => {
                     </div>
                 </div>
 
-                <motion.button 
+                <motion.button
                     whileHover={{ y: -2 }}
                     whileTap={{ scale: 0.97 }}
                     onClick={() => setIsModalOpen(true)}
@@ -118,7 +141,7 @@ const BulletinsPage = () => {
             </motion.div>
 
             {/* Filter Bar */}
-            <motion.div 
+            <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
@@ -126,9 +149,9 @@ const BulletinsPage = () => {
             >
                 <div className="relative flex-1 group">
                     <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 dark:text-slate-600 group-focus-within:text-purple-600 dark:group-focus-within:text-purple-400 transition-colors" size={20} />
-                    <input 
-                        type="text" 
-                        placeholder="Rechercher par numéro de BS, patient..." 
+                    <input
+                        type="text"
+                        placeholder="Rechercher par numéro de BS, patient..."
                         className="w-full pl-14 pr-6 py-4 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-inner focus:outline-none focus:ring-4 focus:ring-purple-500/10 focus:border-purple-500 transition-all text-sm font-bold bg-slate-50 dark:bg-slate-800/50 text-slate-800 dark:text-slate-100 placeholder:text-slate-300 dark:placeholder:text-slate-600"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
@@ -137,8 +160,8 @@ const BulletinsPage = () => {
                 <div className="flex flex-wrap gap-4">
                     <div className="relative">
                         <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 dark:text-slate-600 pointer-events-none" size={18} />
-                        <input 
-                            type="date" 
+                        <input
+                            type="date"
                             className="pl-12 pr-4 py-4 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-inner focus:outline-none focus:ring-4 focus:ring-purple-500/10 focus:border-purple-500 transition-all font-bold text-xs bg-slate-50 dark:bg-slate-800/50 text-slate-700 dark:text-slate-200"
                             value={dateFilter}
                             onChange={(e) => setDateFilter(e.target.value)}
@@ -153,7 +176,7 @@ const BulletinsPage = () => {
                             <span>{statusFilter}</span>
                             <ChevronDown className={`text-slate-400 dark:text-slate-500 transition-transform duration-300 ${isStatusDropdownOpen ? 'rotate-180' : ''}`} size={16} />
                         </motion.button>
-                        
+
                         <AnimatePresence>
                             {isStatusDropdownOpen && (
                                 <>
@@ -167,11 +190,10 @@ const BulletinsPage = () => {
                                         {['Tous les statuts', 'En attente', 'En cours', 'Approuvée', 'Refusée'].map((option) => (
                                             <button
                                                 key={option}
-                                                className={`w-full text-left px-5 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all ${
-                                                    statusFilter === option 
-                                                    ? 'bg-purple-600 text-white' 
-                                                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
-                                                }`}
+                                                className={`w-full text-left px-5 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all ${statusFilter === option
+                                                        ? 'bg-purple-600 text-white'
+                                                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+                                                    }`}
                                                 onClick={() => {
                                                     setStatusFilter(option);
                                                     setIsStatusDropdownOpen(false);
@@ -185,7 +207,7 @@ const BulletinsPage = () => {
                             )}
                         </AnimatePresence>
                     </div>
-                    <button 
+                    <button
                         className="flex items-center gap-2 px-6 py-4 rounded-2xl font-black text-[10px] tracking-widest transition-all hover:bg-slate-50 dark:hover:bg-slate-800/50 border border-slate-100 dark:border-slate-800 uppercase text-slate-600 dark:text-slate-300"
                         onClick={() => { setSearchTerm(''); setDateFilter(''); setStatusFilter('Tous les statuts'); }}
                     >
@@ -196,7 +218,7 @@ const BulletinsPage = () => {
             </motion.div>
 
             {/* Data Table */}
-            <motion.div 
+            <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
@@ -210,9 +232,9 @@ const BulletinsPage = () => {
                                 <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest">Patient</th>
                                 <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest">Date Maladie</th>
                                 <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-center">Date Dépôt</th>
-                                <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest">Statut</th>
                                 <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-right">Dépensé</th>
                                 <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-right">Remboursé</th>
+                                <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-center">Statut</th>
                                 <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-center">Actions</th>
                             </tr>
                         </thead>
@@ -240,17 +262,16 @@ const BulletinsPage = () => {
                             ) : filteredBulletins.map((b, idx) => {
                                 const statusConfig = getStatusConfig(b.statut);
                                 return (
-                                    <motion.tr 
+                                    <motion.tr
                                         key={b.id}
                                         initial={{ opacity: 0, y: 8 }}
                                         animate={{ opacity: 1, y: 0 }}
                                         transition={{ delay: idx * 0.04 }}
-                                        className={`transition-all duration-300 group border-l-[6px] ${
-                                          b.statut === 2 ? 'bg-emerald-50/50 dark:bg-emerald-900/5 border-emerald-500 hover:bg-emerald-100/50 dark:hover:bg-emerald-900/10' :
-                                          b.statut === 3 ? 'bg-red-50/50 dark:bg-red-900/5 border-red-500 hover:bg-red-100/50 dark:hover:bg-red-900/10' : 
-                                          b.statut === 1 ? 'bg-amber-50/50 dark:bg-amber-900/5 border-amber-500 hover:bg-amber-100/50 dark:hover:bg-amber-900/10' : 
-                                          'bg-slate-50/50 dark:bg-slate-800/20 border-slate-400 hover:bg-slate-100/50 dark:hover:bg-slate-800/30'
-                                        }`}
+                                        className={`transition-all duration-300 group border-l-[6px] ${b.statut === 2 ? 'bg-emerald-50/50 dark:bg-emerald-900/5 border-emerald-500 hover:bg-emerald-100/50 dark:hover:bg-emerald-900/10' :
+                                                b.statut === 3 ? 'bg-red-50/50 dark:bg-red-900/5 border-red-500 hover:bg-red-100/50 dark:hover:bg-red-900/10' :
+                                                    b.statut === 1 ? 'bg-amber-50/50 dark:bg-amber-900/5 border-amber-500 hover:bg-amber-100/50 dark:hover:bg-amber-900/10' :
+                                                        'bg-slate-50/50 dark:bg-slate-800/20 border-slate-400 hover:bg-slate-100/50 dark:hover:bg-slate-800/30'
+                                            }`}
                                     >
                                         <td className="px-8 py-6 whitespace-nowrap">
                                             <span className="font-black text-sm text-purple-600 dark:text-purple-400 hover:underline cursor-pointer">
@@ -263,43 +284,58 @@ const BulletinsPage = () => {
                                                 <span className="text-[10px] font-black uppercase tracking-wide text-slate-400 dark:text-slate-500">{b.qualite_malade}</span>
                                             </div>
                                         </td>
-                                        <td className="px-8 py-6 whitespace-nowrap font-bold text-xs text-slate-500 dark:text-slate-400">
+                                        <td className="text-[14px] px-8 py-6 whitespace-nowrap font-black text-xs text-slate-900 dark:text-white text-center">
                                             {/* Date Maladie (on mettra une date par défaut ou un champ s'il existe) */}
                                             {b.date_soin ? new Date(b.date_soin).toLocaleDateString('fr-FR') : '-'}
                                         </td>
-                                        <td className="px-8 py-6 whitespace-nowrap font-black text-xs text-slate-900 dark:text-white text-center">
+                                        <td className="text-[14px] px-8 py-6 whitespace-nowrap font-black text-xs text-slate-900 dark:text-white text-center">
                                             {b.date_depot ? new Date(b.date_depot).toLocaleDateString('fr-FR') : '-'}
+                                        </td>
+                                        <td className="px-8 py-6 whitespace-nowrap text-right font-black text-sm text-slate-800 dark:text-slate-100">
+                                            {b.montant_total?.toFixed(3)} <span className="text-[10px] text-black-400 dark:text-black-500">TND</span>
+                                        </td>
+                                        <td className="px-8 py-6 whitespace-nowrap text-right font-black text-sm">
+                                            <span className="text-black-500 dark:text-black-400">
+                                                {b.montant_remboursement?.toFixed(3)}
+                                            </span>
+                                            <span className="text-[10px] text-black-400 dark:text-black-500"> TND</span>
                                         </td>
                                         <td className="px-8 py-6 whitespace-nowrap">
                                             <div className="flex flex-col gap-1">
-                                                <span className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border ${statusConfig.classes}`}>
+                                                <span className={`inline-flex justify-center items-center gap-2 px-1 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border ${statusConfig.classes}`}>
                                                     {statusConfig.icon}
                                                     {statusConfig.label}
                                                 </span>
-                                                {b.statut === 3 && b.motif_rejet && (
-                                                    <span className="text-[9px] text-red-500 font-bold truncate max-w-[150px]" title={b.motif_rejet}>
-                                                        Motif: {b.motif_rejet}
-                                                    </span>
-                                                )}
                                             </div>
                                         </td>
-                                        <td className="px-8 py-6 whitespace-nowrap text-right font-black text-sm text-slate-800 dark:text-slate-100">
-                                            {b.montant_total?.toFixed(3)} <span className="text-[10px] text-slate-400 dark:text-slate-500">TND</span>
-                                        </td>
-                                        <td className="px-8 py-6 whitespace-nowrap text-right font-black text-sm">
-                                            <span className="text-slate-500 dark:text-slate-400">
-                                                {b.montant_remboursement?.toFixed(3)}
-                                            </span>
-                                            <span className="text-[10px] text-slate-400 dark:text-slate-500"> TND</span>
-                                        </td>
                                         <td className="px-8 py-6 whitespace-nowrap text-center">
-                                            <button 
-                                                onClick={() => { setSelectedBulletin(b); setIsDetailsModalOpen(true); }}
-                                                className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl border border-purple-500/30 font-black text-[10px] tracking-widest transition-all duration-200 hover:bg-purple-600 hover:text-white hover:border-purple-600 hover:shadow-lg hover:shadow-purple-500/20 active:scale-95 group text-purple-600 dark:text-purple-400 bg-white dark:bg-slate-900"
-                                            >
-                                                <Eye size={16} className="transition-transform group-hover:scale-110" />
-                                                DÉTAILS
-                                            </button>
+                                            <div className="flex items-center justify-center gap-2">
+                                                <button
+                                                    onClick={() => { setSelectedBulletin(b); setIsDetailsModalOpen(true); }}
+                                                    className="p-1 rounded-xl text-purple-600 hover:bg-purple-50 transition-colors"
+                                                    title="Détails"
+                                                >
+                                                    <Eye size={18} />
+                                                </button>
+                                                {!b.adminId && (
+                                                    <>
+                                                        <button
+                                                            onClick={() => handleEdit(b)}
+                                                            className="p-1 rounded-xl text-blue-600 hover:bg-blue-50 transition-colors"
+                                                            title="Modifier"
+                                                        >
+                                                            <Edit2 size={18} />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => setConfirmModal({ isOpen: true, id: b.id })}
+                                                            className="p-1 rounded-xl text-red-600 hover:bg-red-50 transition-colors"
+                                                            title="Supprimer"
+                                                        >
+                                                            <Trash2 size={18} />
+                                                        </button>
+                                                    </>
+                                                )}
+                                            </div>
                                         </td>
                                     </motion.tr>
                                 );
@@ -309,13 +345,23 @@ const BulletinsPage = () => {
                 </div>
             </motion.div>
 
-            <AddBulletinModal 
-                isOpen={isModalOpen} 
-                onClose={() => setIsModalOpen(false)} 
-                onSubmit={handleAddBulletin} 
+            <AddBulletinModal
+                isOpen={isModalOpen}
+                initialData={bulletinToEdit}
+                onClose={() => { setIsModalOpen(false); setBulletinToEdit(null); }}
+                onSubmit={handleAddBulletin}
             />
 
-            <BulletinDetailsModal 
+            <ConfirmModal
+                isOpen={confirmModal.isOpen}
+                onClose={() => setConfirmModal({ isOpen: false, id: null })}
+                onConfirm={() => handleDelete(confirmModal.id)}
+                title="Supprimer le bulletin"
+                message="Êtes-vous sûr de vouloir supprimer ce bulletin ? Cette action est irréversible."
+                type="danger"
+            />
+
+            <BulletinDetailsModal
                 isOpen={isDetailsModalOpen}
                 onClose={() => setIsDetailsModalOpen(false)}
                 bulletin={selectedBulletin}

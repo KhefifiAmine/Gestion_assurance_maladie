@@ -122,7 +122,7 @@ const reclamationController = {
   update: async (req, res) => {
     try {
       const { id } = req.params;
-      const { statut, reponseAdmin, objet, description, commentaireModif } = req.body;
+      const { statut, reponseAdmin, objet, description, commentaireModif, priorite } = req.body;
       const { userId, userRole } = req;
 
       const reclamation = await Reclamation.findByPk(id);
@@ -131,17 +131,14 @@ const reclamationController = {
         return res.status(404).json({ success: false, message: 'Réclamation non trouvée.' });
       }
 
-      // Restriction: On ne peut pas modifier si des messages existent
-      const messagesCount = await ReclamationMessage.count({ where: { reclamationId: id } });
-      if (messagesCount > 0) {
-        return res.status(403).json({ success: false, message: 'Impossible de modifier une réclamation contenant des commentaires.' });
-      }
-
       // Si c'est l'admin, il peut tout modifier (statut, réponse)
       if (userRole === 'ADMIN') {
         if (statut) {
           reclamation.statut = statut;
           reclamation.adminId = userId; // Assign admin when updating status
+        }
+        if (priorite !== undefined) {
+          reclamation.priorite = priorite;
         }
         if (reponseAdmin) {
           reclamation.reponseAdmin = reponseAdmin;

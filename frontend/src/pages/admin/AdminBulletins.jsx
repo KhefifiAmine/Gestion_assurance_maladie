@@ -365,11 +365,6 @@ const AdminBulletins = () => {
                                                     {status.icon}
                                                     {status.label}
                                                 </div>
-                                                {b.statut === 3 && b.motif_rejet && (
-                                                    <span className="text-[9px] text-red-500 font-bold truncate max-w-[150px]" title={b.motif_rejet}>
-                                                        Motif: {b.motif_rejet}
-                                                    </span>
-                                                )}
                                             </div>
                                         </td>
                                         <td className="px-10 py-7">

@@ -210,7 +210,7 @@ const getAllBulletins = async (req, res) => {
 const updateBulletinStatus = async (req, res) => {
     try {
         const { id } = req.params;
-        const { statut, motif_rejet } = req.body;
+        const { statut, motif_refus } = req.body;
         const adminId = req.userId;
 
         const bulletin = await BulletinSoin.findByPk(id, {
@@ -225,8 +225,8 @@ const updateBulletinStatus = async (req, res) => {
         bulletin.adminId = adminId;
         bulletin.date_traitement = new Date();
 
-        if (motif_rejet !== undefined) {
-            bulletin.motif_refus = motif_rejet;
+        if (motif_refus !== undefined) {
+            bulletin.motif_refus = motif_refus;
         }
 
         await bulletin.save();
@@ -240,7 +240,7 @@ const updateBulletinStatus = async (req, res) => {
             notificationDesc = `Votre bulletin #${bulletin.numero_bulletin} a été accepté. Montant remboursé: ${bulletin.montant_remboursement || 0} TND.`;
         } else if (statut === 3) {
             notificationTitle = "Bulletin Rejeté";
-            notificationDesc = `Votre bulletin #${bulletin.numero_bulletin} a été rejeté. Motif : ${motif_rejet || 'Non spécifié'}.`;
+            notificationDesc = `Votre bulletin #${bulletin.numero_bulletin} a été rejeté. Motif : ${motif_refus || 'Non spécifié'}.`;
         }
 
         if (notificationTitle) {
@@ -335,11 +335,114 @@ const getBulletinComments = async (req, res) => {
     }
 };
 
+const updateBulletin = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const userId = req.userId;
+        const updateData = req.body;
+
+        const bulletin = await BulletinSoin.findByPk(id);
+
+        if (!bulletin) {
+            return res.status(404).json({ message: 'Bulletin non trouvé' });
+        }
+
+        // Vérifier le propriétaire
+        if (bulletin.userId !== userId) {
+            return res.status(403).json({ message: 'Accès non autorisé à ce bulletin' });
+        }
+
+        // Vérifier s'il est déjà assigné
+        if (bulletin.adminId) {
+            return res.status(400).json({ message: 'Impossible de modifier un bulletin déjà pris en charge par un administrateur' });
+        }
+
+        // Empêcher la modification de champs sensibles via cette route si nécessaire
+        // Pour l'instant on autorise tout ce qui vient du frontend (IA ou manuel)
+        
+        await bulletin.update(updateData);
+
+        // Mettre à jour les Actes Médicaux si fournis
+        if (updateData.actes) {
+            await ActeMedical.destroy({ where: { bulletinId: id } });
+            await Promise.all(updateData.actes.map(acte => ActeMedical.create({
+                ...acte,
+                bulletinId: id
+            })));
+        }
+
+        // Mettre à jour la Pharmacie si fournie
+        if (updateData.pharmacie) {
+            await Pharmacie.destroy({ where: { bulletinId: id } });
+            await Pharmacie.create({
+                ...updateData.pharmacie,
+                bulletinId: id
+            });
+        }
+
+        // Mettre à jour le Soin Dentaire si fourni
+        if (updateData.soinDentaire) {
+            await SoinDentaire.destroy({ where: { bulletinId: id } });
+            await SoinDentaire.create({
+                ...updateData.soinDentaire,
+                bulletinId: id
+            });
+        }
+
+        // Re-fetch avec les relations
+        const fullBulletin = await BulletinSoin.findByPk(id, {
+            include: [
+                { model: ActeMedical, as: 'actes' },
+                { model: Pharmacie, as: 'pharmacie' },
+                { model: SoinDentaire, as: 'soinDentaire' },
+                { model: DocumentJustificatif, as: 'documents' }
+            ]
+        });
+
+        res.status(200).json({ message: 'Bulletin mis à jour avec succès', bulletin: fullBulletin });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Erreur lors de la mise à jour du bulletin', error: error.message });
+    }
+};
+
+const deleteBulletin = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const userId = req.userId;
+
+        const bulletin = await BulletinSoin.findByPk(id);
+
+        if (!bulletin) {
+            return res.status(404).json({ message: 'Bulletin non trouvé' });
+        }
+
+        // Vérifier le propriétaire
+        if (bulletin.userId !== userId) {
+            return res.status(403).json({ message: 'Accès non autorisé' });
+        }
+
+        // Vérifier s'il est déjà assigné
+        if (bulletin.adminId) {
+            return res.status(400).json({ message: 'Impossible de supprimer un bulletin déjà pris en charge par un administrateur' });
+        }
+
+        await bulletin.destroy();
+
+        res.status(200).json({ message: 'Bulletin supprimé avec succès' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Erreur lors de la suppression du bulletin', error: error.message });
+    }
+};
+
 module.exports = {
     createBulletin,
     getMyBulletins,
     getAllBulletins,
     updateBulletinStatus,
     addBulletinComment,
-    getBulletinComments
+    getBulletinComments,
+    updateBulletin,
+    deleteBulletin
 };
