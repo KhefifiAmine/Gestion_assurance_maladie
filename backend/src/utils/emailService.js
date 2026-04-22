@@ -33,9 +33,10 @@ const sendResetEmail = async (email, code) => {
   try {
     await transporter.sendMail(mailOptions);
     console.log(`Email de réinitialisation envoyé à: ${email}`);
+    return true;
   } catch (error) {
     console.error('Erreur envoi email:', error);
-    throw new Error('Erreur lors de l\'envoi de l\'email');
+    return false;
   }
 };
 
@@ -65,9 +66,10 @@ const sendApprovalEmail = async (email, password) => {
   try {
     await transporter.sendMail(mailOptions);
     console.log(`Email d'approbation envoye a: ${email}`);
+    return true;
   } catch (error) {
     console.error('Erreur envoi email d\'approbation:', error);
-    throw new Error('Erreur lors de l\'envoi de l\'email d\'approbation');
+    return false;
   }
 };
 
@@ -93,9 +95,10 @@ const sendRejectionEmail = async (email, raison = "") => {
   try {
     await transporter.sendMail(mailOptions);
     console.log(`Email de refus envoye a: ${email}`);
+    return true;
   } catch (error) {
     console.error('Erreur envoi email de refus:', error);
-    throw new Error('Erreur lors de l\'envoi de l\'email de refus');
+    return false;
   }
 };
 
@@ -121,9 +124,10 @@ const sendBlockEmail = async (email, raison = "") => {
   try {
     await transporter.sendMail(mailOptions);
     console.log(`Email de blocage envoye a: ${email}`);
+    return true;
   } catch (error) {
     console.error('Erreur envoi email de blocage:', error);
-    throw new Error('Erreur lors de l\'envoi de l\'email de blocage');
+    return false;
   }
 };
 

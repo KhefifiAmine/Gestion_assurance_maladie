@@ -1,6 +1,6 @@
 const { User } = require('../../models');
 const { hashPassword } = require('../utils/bcrypt');
-const { sendApprovalEmail, sendRejectionEmail } = require('../utils/emailService');
+const { sendApprovalEmail, sendRejectionEmail, sendBlockEmail } = require('../utils/emailService');
 
 const generateRandomPassword = () => {
     const chars = 'abcdefghijklmnopqrstuvwxyz';
@@ -53,7 +53,7 @@ const updateUserStatus = async (req, res) => {
         }
 
         const previousStatus = user.statut;
-        
+
 
         // Handle raison
         if (statut === 2 || statut === 3) {
@@ -66,28 +66,34 @@ const updateUserStatus = async (req, res) => {
 
         // If transitioning from Pending (0) to Accepted (1)
         if (previousStatus === 0 && statut === 1) {
-            const plainPassword = generateRandomPassword(); 
+            const plainPassword = generateRandomPassword();
             const hashedPassword = await hashPassword(plainPassword);
-            sendApprovalEmail(user.email, plainPassword).catch(err => console.error("Could not send approval email: ", err));
+            const result = await sendApprovalEmail(user.email, plainPassword);
+            if (!result) {
+                return res.status(500).json({ message: 'Erreur lors de l\'envoi de l\'email d\'approbation' });
+            }
             user.statut = statut;
             user.mot_de_passe = hashedPassword;
-
             // Background email sending
-            
         }
 
         // If transitioning from Pending (0) to Rejected (2)
         if (previousStatus === 0 && statut === 2) {
             // Background email sending
-            sendRejectionEmail(user.email, raison).catch(err => console.error("Could not send rejection email: ", err));
+            const result = await sendRejectionEmail(user.email, raison);
+            if (!result) {
+                return res.status(500).json({ message: 'Erreur lors de l\'envoi de l\'email de refus' });
+            }
             user.statut = statut;
         }
 
         // If transitioning from Active (1) to Blocked (3)
         if (previousStatus === 1 && statut === 3) {
             // Background email sending
-            const { sendBlockEmail } = require('../utils/emailService');
-            sendBlockEmail(user.email, raison).catch(err => console.error("Could not send block email: ", err));
+            const result = await sendBlockEmail(user.email, raison);
+            if (!result) {
+                return res.status(500).json({ message: 'Erreur lors de l\'envoi de l\'email de blocage' });
+            }
             user.statut = statut;
         }
 
@@ -143,7 +149,7 @@ const createUser = async (req, res) => {
             return res.status(400).json({ message: 'Un utilisateur avec cet email existe déjà.' });
         }
 
-        const plainPassword = '123456'; 
+        const plainPassword = '123456';
         const hashedPassword = await hashPassword(plainPassword);
 
         const newUser = await User.create({

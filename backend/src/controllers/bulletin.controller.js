@@ -1,8 +1,12 @@
-
-const { BulletinSoin, ActeMedical, Pharmacie, SoinDentaire, User, Medecin, DocumentJustificatif, Beneficiary, BulletinComment, Notification } = require('../../models');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+const { Op } = require('sequelize');
+const { BulletinSoin, ActeMedical, Pharmacie, SoinDentaire, User, Medecin, DocumentJustificatif, Beneficiary, BulletinComment, Notification, sequelize } = require('../../models');
 
 const createBulletin = async (req, res) => {
     try {
+        const rawData = req.body.data ? JSON.parse(req.body.data) : req.body;
         const {
             code_cnam,
             nom_prenom_malade,
@@ -14,160 +18,281 @@ const createBulletin = async (req, res) => {
             actes,
             pharmacie,
             soinDentaire,
-            medecin, // Informations du médecin extraites/modifiées
+            medecin,
             est_suspect,
             zones_modifiees,
             confiance_score,
-            documentHash, // Hash du document envoyé par le frontend
-            documentType, // Type de document (Ordonnance, Facture, etc.)
-            fichierUrl,    // Nom du fichier si déjà uploadé
-            beneficiaireId // Ajouté pour la gestion du patient
-        } = req.body;
+            documentType,
+            beneficiaireId
+        } = rawData;
 
-        const userId = req.userId; // From verifyToken middleware
+        // Des valeurs arrivent depuis middelwares
+        const documentHash = req.fileHash;
+        const userId = req.userId;
+        const currentFichierUrl = req.file.filename;
 
-        // 1. Gérer le Médecin (Auto-enregistrement si n'existe pas)
-        let medecinId = null;
-        if (medecin && medecin.nom_prenom) {
-            const [medecinRecord] = await Medecin.findOrCreate({
-                where: { nom_prenom: medecin.nom_prenom },
-                defaults: {
-                    specialite: medecin.specialite,
-                    telephone: medecin.telephone
-                }
-            });
-            medecinId = medecinRecord.id_medecin;
-        }
 
-        // --- GESTION DE FRAUDE (NOUVEAU) ---
-        let isFraudulent = est_suspect || false;
-        let fraudReason = zones_modifiees || "";
-
-        // 1. Vérification de la cohérence du nom du patient
-        const currentUser = await User.findByPk(userId);
-        let expectedPatientName = "";
-
-        if (beneficiaireId) {
-            const beneficiary = await Beneficiary.findByPk(beneficiaireId);
-            if (beneficiary) {
-                expectedPatientName = `${beneficiary.prenom} ${beneficiary.nom}`.toLowerCase().trim();
+        const result = await sequelize.transaction(async (t) => {
+            // 1. Gérer le Médecin
+            let medecinId = null;
+            if (medecin && medecin.nom_prenom) {
+                const [medecinRecord] = await Medecin.findOrCreate({
+                    where: { nom_prenom: medecin.nom_prenom },
+                    defaults: {
+                        specialite: medecin.specialite,
+                        telephone: medecin.telephone
+                    },
+                    transaction: t
+                });
+                medecinId = medecinRecord.id_medecin;
             }
-        } else {
-            expectedPatientName = `${currentUser.prenom} ${currentUser.nom}`.toLowerCase().trim();
-        }
 
-        const providedName = nom_prenom_malade ? nom_prenom_malade.toLowerCase().trim() : "";
+            // --- GESTION DE FRAUDE ---
+            let fraudReason = zones_modifiees || "";
+            const currentUser = await User.findByPk(userId, { transaction: t });
+            let expectedPatientName = "";
 
-        // Approche souple : vérifier si les parties du nom se retrouvent
-        if (providedName && expectedPatientName) {
-            const providedParts = providedName.split(' ');
-            const matchCount = providedParts.filter(part => part.length > 2 && expectedPatientName.includes(part)).length;
+            if (beneficiaireId) {
+                const beneficiary = await Beneficiary.findByPk(beneficiaireId, { transaction: t });
+                if (beneficiary) expectedPatientName = `${beneficiary.prenom} ${beneficiary.nom}`.toLowerCase().trim();
+            } else {
+                expectedPatientName = `${currentUser.prenom} ${currentUser.nom}`.toLowerCase().trim();
+            }
 
-            if (matchCount === 0) {
-                isFraudulent = true;
+            const providedName = nom_prenom_malade ? nom_prenom_malade.toLowerCase().trim() : "";
+            if (providedName && expectedPatientName && !expectedPatientName.includes(providedName) && !providedName.includes(expectedPatientName)) {
                 fraudReason = fraudReason ? `${fraudReason} | Nom incohérent` : "Nom du patient incohérent";
             }
-        }
 
-        // 2. Vérification de la fréquence du médecin
-        if (medecinId) {
-            const medicalActsCount = await ActeMedical.count({ where: { medecinId } });
-            if (medicalActsCount >= 3) {
-                isFraudulent = true;
-                fraudReason = fraudReason ? `${fraudReason} | Médecin suspect` : "Fréquence élevée pour ce médecin";
+            // 2. Créer le Bulletin
+            const bulletin = await BulletinSoin.create({
+                code_cnam,
+                nom_prenom_malade,
+                montant_total,
+                type_dossier,
+                matricule_adherent,
+                date_soin,
+                qualite_malade,
+                userId,
+                beneficiaireId,
+            }, { transaction: t });
+
+            let niveauRisque = "aucun";
+            if (est_suspect) {
+                if (confiance_score > 75) niveauRisque = "faible";
+                else if (confiance_score > 50) niveauRisque = "moyen";
+                else niveauRisque = "eleve";
             }
-        }
-
-        // 3. Vérification de la fréquence de la pharmacie
-        if (pharmacie && pharmacie.nom) {
-            const pharmacyCount = await Pharmacie.count({ where: { nom: pharmacie.nom } });
-            if (pharmacyCount >= 3) {
-                isFraudulent = true;
-                fraudReason = fraudReason ? `${fraudReason} | Pharmacie suspecte` : "Fréquence élevée pour cette pharmacie";
+            if (documentHash) {
+                const existingDoc = await DocumentJustificatif.findOne({ where: { hash_fichier: documentHash } });
+                if (existingDoc) {
+                    return res.status(400).json({ message: 'Ce document a déjà été soumis (doublon détecté).' });
+                }
             }
-        }
-        // ------------------------------------
+            // 3. Créer le Document Justificatif
+            if (documentHash || req.file) {
+                await DocumentJustificatif.create({
+                    type_document: documentType || type_dossier || 'Document',
+                    fichier: currentFichierUrl,
+                    hash_fichier: documentHash,
+                    score: confiance_score || 0,
+                    niveauRisque: niveauRisque,
+                    zones_modifiees: zones_modifiees,
+                    est_suspect: est_suspect || false,
+                    resultat_analyse: fraudReason,
+                    bulletinId: bulletin.id
+                }, { transaction: t });
+            }
 
-        // 2. Créer le Bulletin
-        const bulletin = await BulletinSoin.create({
-            code_cnam,
-            nom_prenom_malade,
-            montant_total,
-            type_dossier,
-            matricule_adherent,
-            date_soin,
-            qualite_malade,
-            userId,
-            beneficiaireId, // Liaison avec le patient
-        });
-        var niveauRisque = ""
-        if (!est_suspect) {
-            niveauRisque = "aucun";
-        } else if (confiance_score > 75) {
-            niveauRisque = "faible";
-        } else if (confiance_score > 50) {
-            niveauRisque = "moyen";
-        } else {
-            niveauRisque = "eleve";
-        }
+            // 4. Créer les Actes Médicaux
+            if (actes && actes.length > 0) {
+                await Promise.all(actes.map(acte => ActeMedical.create({
+                    ...acte,
+                    bulletinId: bulletin.id,
+                    medecinId: medecinId
+                }, { transaction: t })));
+            }
 
-        // 3. Créer le Document Justificatif (avec hash pour doublons)
-        if (documentHash) {
-            await DocumentJustificatif.create({
-                type_document: documentType || type_dossier || 'Document',
-                fichier: fichierUrl || 'pending',
-                hash_fichier: documentHash,
-                score: confiance_score || 0,
-                niveauRisque: niveauRisque,
-                zones_modifiees: zones_modifiees,
-                est_suspect: est_suspect,
-                resultat_analyse: fraudReason,
-                bulletinId: bulletin.id
+            // 5. Créer les détails Pharmacie s'ils existent
+            if (pharmacie) {
+                await Pharmacie.create({
+                    ...pharmacie,
+                    bulletinId: bulletin.id
+                }, { transaction: t });
+            }
+
+            if (soinDentaire) {
+                await SoinDentaire.create({ ...soinDentaire, bulletinId: bulletin.id }, { transaction: t });
+            }
+
+            return await BulletinSoin.findByPk(bulletin.id, {
+                include: [
+                    { model: ActeMedical, as: 'actes' },
+                    { model: Pharmacie, as: 'pharmacie' },
+                    { model: SoinDentaire, as: 'soinDentaire' },
+                    { model: DocumentJustificatif, as: 'documents' }
+                ],
+                transaction: t
             });
-        }
-
-        // 4. Créer les Actes Médicaux (liés au médecin si détecté)
-        if (actes && actes.length > 0) {
-            await Promise.all(actes.map(acte => ActeMedical.create({
-                ...acte,
-                bulletinId: bulletin.id,
-                medecinId: medecinId // Liaison auto
-            })));
-        }
-
-        // 5. Créer les détails Pharmacie s'ils existent
-        if (pharmacie) {
-            // Note: Pharmacie peut aussi être enrichie avec nom/adresse/tel
-            await Pharmacie.create({
-                ...pharmacie,
-                bulletinId: bulletin.id
-            });
-        }
-
-        if (soinDentaire) {
-            await SoinDentaire.create({ ...soinDentaire, bulletinId: bulletin.id });
-        }
-
-        // Re-fetch to include all relations for the response
-        const fullBulletin = await BulletinSoin.findByPk(bulletin.id, {
-            include: [
-                { model: ActeMedical, as: 'actes' },
-                { model: Pharmacie, as: 'pharmacie' },
-                { model: SoinDentaire, as: 'soinDentaire' },
-                { model: DocumentJustificatif, as: 'documents' }
-            ]
         });
 
-        res.status(201).json({ message: 'Bulletin créé avec succès', bulletin: fullBulletin });
+        res.status(201).json({ message: 'Bulletin créé avec succès', bulletin: result });
     } catch (error) {
         console.error(error);
         if (error.name === 'SequelizeUniqueConstraintError') {
-            return res.status(400).json({ message: 'Ce document a déjà été soumis (doublon détecté).' });
+            return res.status(400).json({ message: 'Ce document a déjà été soumis.' });
         }
         res.status(500).json({ message: 'Erreur lors de la création du bulletin', error: error.message });
     }
 };
 
+const updateBulletin = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const userId = req.userId;
+        const rawData = req.body.data ? JSON.parse(req.body.data) : req.body;
+
+
+        // Vérification du hash si un nouveau document est fourni
+        if (req.fileHash) {
+            const existingDoc = await DocumentJustificatif.findOne({
+                where: {
+                    hash_fichier: req.fileHash,
+                    bulletinId: { [Op.ne]: id }
+                }
+            });
+            if (existingDoc) {
+                return res.status(400).json({ message: 'Ce document a déjà été soumis pour un autre bulletin.' });
+            }
+        }
+
+        const result = await sequelize.transaction(async (t) => {
+            const bulletin = await BulletinSoin.findByPk(id, { transaction: t });
+
+            if (!bulletin) {
+                throw new Error('Bulletin non trouvé');
+            }
+
+            if (bulletin.userId !== userId) {
+                throw new Error('Accès non autorisé à ce bulletin');
+            }
+
+            if (bulletin.adminId) {
+                throw new Error('Impossible de modifier un bulletin déjà pris en charge');
+            }
+
+            // Mise à jour des données de base
+            await bulletin.update(rawData, { transaction: t });
+
+            // Mise à jour des Actes Médicaux
+            if (rawData.actes) {
+                await ActeMedical.destroy({ where: { bulletinId: id }, transaction: t });
+                await Promise.all(rawData.actes.map(acte => ActeMedical.create({
+                    ...acte,
+                    bulletinId: id
+                }, { transaction: t })));
+            }
+
+            // Mise à jour de la Pharmacie
+            if (rawData.pharmacie) {
+                await Pharmacie.destroy({ where: { bulletinId: id }, transaction: t });
+                await Pharmacie.create({
+                    ...rawData.pharmacie,
+                    bulletinId: id
+                }, { transaction: t });
+            }
+
+            // Mise à jour du Soin Dentaire
+            if (rawData.soinDentaire) {
+                await SoinDentaire.destroy({ where: { bulletinId: id }, transaction: t });
+                await SoinDentaire.create({
+                    ...rawData.soinDentaire,
+                    bulletinId: id
+                }, { transaction: t });
+            }
+
+            // Gérer le nouveau fichier s'il y en a un
+            if (req.file) {
+                const [doc, created] = await DocumentJustificatif.findOrCreate({
+                    where: { bulletinId: id },
+                    defaults: {
+                        type_document: rawData.documentType || 'Document',
+                        fichier: req.file.filename,
+                        hash_fichier: req.fileHash,
+                        bulletinId: id
+                    },
+                    transaction: t
+                });
+
+                if (!created) {
+                    const oldFile = doc.fichier;
+
+                    // ✅ update DB d'abord
+                    await doc.update({
+                        fichier: req.file.filename,
+                        hash_fichier: req.fileHash
+                    }, { transaction: t });
+
+                    // ✅ suppression après (safe)
+                    if (oldFile) {
+                        const filePath = path.join(__dirname, '../../uploads', oldFile);
+
+                        if (fs.existsSync(filePath)) {
+                            fs.unlinkSync(filePath);
+                        }
+                    }
+                }
+            }
+
+            return await BulletinSoin.findByPk(id, {
+                include: [
+                    { model: ActeMedical, as: 'actes' },
+                    { model: Pharmacie, as: 'pharmacie' },
+                    { model: SoinDentaire, as: 'soinDentaire' },
+                    { model: DocumentJustificatif, as: 'documents' }
+                ],
+                transaction: t
+            });
+        });
+
+        res.status(200).json({ message: 'Bulletin mis à jour avec succès', bulletin: result });
+    } catch (error) {
+        console.error(error);
+        const status = error.message === 'Bulletin non trouvé' ? 404 :
+            error.message === 'Accès non autorisé à ce bulletin' ? 403 : 400;
+        res.status(status).json({ message: error.message });
+    }
+};
+
+const deleteBulletin = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const userId = req.userId;
+
+        const bulletin = await BulletinSoin.findByPk(id);
+
+        if (!bulletin) {
+            return res.status(404).json({ message: 'Bulletin non trouvé' });
+        }
+
+        // Vérifier le propriétaire
+        if (bulletin.userId !== userId) {
+            return res.status(403).json({ message: 'Accès non autorisé' });
+        }
+
+        // Vérifier s'il est déjà assigné
+        if (bulletin.adminId) {
+            return res.status(400).json({ message: 'Impossible de supprimer un bulletin déjà pris en charge par un administrateur' });
+        }
+
+        await bulletin.destroy();
+
+        res.status(200).json({ message: 'Bulletin supprimé avec succès' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Erreur lors de la suppression du bulletin', error: error.message });
+    }
+};
 
 const getMyBulletins = async (req, res) => {
     try {
@@ -232,7 +357,7 @@ const updateBulletinStatus = async (req, res) => {
         await bulletin.save();
 
         // Création d'une notification pour l'utilisateur
-        let notificationTitle = "";
+        /*let notificationTitle = "";
         let notificationDesc = "";
 
         if (statut === 2) {
@@ -251,7 +376,7 @@ const updateBulletinStatus = async (req, res) => {
                 type: statut === 2 ? 'success' : 'error',
                 priorite: 'haute'
             });
-        }
+        }*/
 
         res.status(200).json({ message: 'Statut du bulletin mis à jour', bulletin });
     } catch (error) {
@@ -335,106 +460,7 @@ const getBulletinComments = async (req, res) => {
     }
 };
 
-const updateBulletin = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const userId = req.userId;
-        const updateData = req.body;
 
-        const bulletin = await BulletinSoin.findByPk(id);
-
-        if (!bulletin) {
-            return res.status(404).json({ message: 'Bulletin non trouvé' });
-        }
-
-        // Vérifier le propriétaire
-        if (bulletin.userId !== userId) {
-            return res.status(403).json({ message: 'Accès non autorisé à ce bulletin' });
-        }
-
-        // Vérifier s'il est déjà assigné
-        if (bulletin.adminId) {
-            return res.status(400).json({ message: 'Impossible de modifier un bulletin déjà pris en charge par un administrateur' });
-        }
-
-        // Empêcher la modification de champs sensibles via cette route si nécessaire
-        // Pour l'instant on autorise tout ce qui vient du frontend (IA ou manuel)
-        
-        await bulletin.update(updateData);
-
-        // Mettre à jour les Actes Médicaux si fournis
-        if (updateData.actes) {
-            await ActeMedical.destroy({ where: { bulletinId: id } });
-            await Promise.all(updateData.actes.map(acte => ActeMedical.create({
-                ...acte,
-                bulletinId: id
-            })));
-        }
-
-        // Mettre à jour la Pharmacie si fournie
-        if (updateData.pharmacie) {
-            await Pharmacie.destroy({ where: { bulletinId: id } });
-            await Pharmacie.create({
-                ...updateData.pharmacie,
-                bulletinId: id
-            });
-        }
-
-        // Mettre à jour le Soin Dentaire si fourni
-        if (updateData.soinDentaire) {
-            await SoinDentaire.destroy({ where: { bulletinId: id } });
-            await SoinDentaire.create({
-                ...updateData.soinDentaire,
-                bulletinId: id
-            });
-        }
-
-        // Re-fetch avec les relations
-        const fullBulletin = await BulletinSoin.findByPk(id, {
-            include: [
-                { model: ActeMedical, as: 'actes' },
-                { model: Pharmacie, as: 'pharmacie' },
-                { model: SoinDentaire, as: 'soinDentaire' },
-                { model: DocumentJustificatif, as: 'documents' }
-            ]
-        });
-
-        res.status(200).json({ message: 'Bulletin mis à jour avec succès', bulletin: fullBulletin });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Erreur lors de la mise à jour du bulletin', error: error.message });
-    }
-};
-
-const deleteBulletin = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const userId = req.userId;
-
-        const bulletin = await BulletinSoin.findByPk(id);
-
-        if (!bulletin) {
-            return res.status(404).json({ message: 'Bulletin non trouvé' });
-        }
-
-        // Vérifier le propriétaire
-        if (bulletin.userId !== userId) {
-            return res.status(403).json({ message: 'Accès non autorisé' });
-        }
-
-        // Vérifier s'il est déjà assigné
-        if (bulletin.adminId) {
-            return res.status(400).json({ message: 'Impossible de supprimer un bulletin déjà pris en charge par un administrateur' });
-        }
-
-        await bulletin.destroy();
-
-        res.status(200).json({ message: 'Bulletin supprimé avec succès' });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Erreur lors de la suppression du bulletin', error: error.message });
-    }
-};
 
 module.exports = {
     createBulletin,

@@ -12,10 +12,12 @@ const {
     deleteBulletin
 } = require('../controllers/bulletin.controller');
 
+const uploadWithDuplicateCheck = require('../middleware/duplicate.middleware');
+
 // Toutes les routes nécessitent une authentification
-router.post('/', verifyToken, createBulletin);
+router.post('/', verifyToken, uploadWithDuplicateCheck, createBulletin);
 router.get('/my', verifyToken, getMyBulletins);
-router.put('/:id', verifyToken, updateBulletin);
+router.put('/:id', verifyToken, uploadWithDuplicateCheck, updateBulletin);
 router.delete('/:id', verifyToken, deleteBulletin);
 
 // Routes réservées aux administrateurs

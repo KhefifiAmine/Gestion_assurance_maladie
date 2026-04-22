@@ -14,13 +14,13 @@ const authHeaders = () => ({
 // Helper: gérer les erreurs de réponse globalement
 export const handleResponse = async (res) => {
     const data = await res.json();
-    
+
     if (res.status === 401) {
         // On déclenche un événement personnalisé pour que AuthContext puisse réagir
-        window.dispatchEvent(new CustomEvent('auth-error', { 
-            detail: { message: data.message, isBlocked: data.isBlocked } 
+        window.dispatchEvent(new CustomEvent('auth-error', {
+            detail: { message: data.message, isBlocked: data.isBlocked }
         }));
-        
+
 
     }
 

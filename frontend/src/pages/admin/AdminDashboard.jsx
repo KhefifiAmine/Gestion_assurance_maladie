@@ -439,9 +439,9 @@ const AdminDashboard = ({ mode = 'all' }) => {
                                                 </td>
                                                 <td className="px-6 py-6">
                                                     <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-[8px] font-black uppercase tracking-widest border ${user.statut === 1 ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 border-emerald-100 dark:border-emerald-800/30' :
-                                                            user.statut === 2 ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border-red-100 dark:border-red-800/30' :
-                                                                user.statut === 3 ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400 border-orange-100 dark:border-orange-800/30' :
-                                                                    'bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 border-amber-100 dark:border-amber-800/30'
+                                                        user.statut === 2 ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border-red-100 dark:border-red-800/30' :
+                                                            user.statut === 3 ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400 border-orange-100 dark:border-orange-800/30' :
+                                                                'bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 border-amber-100 dark:border-amber-800/30'
                                                         }`}>
                                                         <span className={`h-1 w-1 rounded-full ${user.statut === 1 ? 'bg-emerald-500 animate-pulse shadow-[0_0_8px_emerald]' : 'bg-current'}`} />
                                                         {user.statut === 1 ? 'Actif' : user.statut === 2 ? 'Refusé' : user.statut === 3 ? 'Bloqué' : 'En attente'}

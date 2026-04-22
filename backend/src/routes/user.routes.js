@@ -9,6 +9,6 @@ router.get('/', verifyToken, isAdminOrRH, userController.getAllUsers);
 // Routes de gestion des comptes (Réservées au RH)
 router.post('/', verifyToken, isRH, userController.createUser);
 router.put('/:id/status', verifyToken, isRH, userController.updateUserStatus);
-router.put('/:id/role', verifyToken, isRH, userController.updateUserRole); 
+router.put('/:id/role', verifyToken, isRH, userController.updateUserRole);
 
 module.exports = router;
