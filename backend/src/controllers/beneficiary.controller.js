@@ -24,7 +24,7 @@ const addBeneficiary = async (req, res) => {
         // Gérer le fichier document
         let documentPath = null;
         if (req.file) {
-            documentPath = req.file.path.replace(/\\/g, '/');
+            documentPath = req.file.filename;
         }
         
         const newBeneficiary = await Beneficiary.create({
@@ -117,7 +117,12 @@ const updateBeneficiary = async (req, res) => {
         beneficiary.motifRefus = null;
 
         if (req.file) {
-            beneficiary.document = req.file.path.replace(/\\/g, '/');
+            const doc = beneficiary.document;
+            beneficiary.document = req.file.filename;
+            const filePath = path.join(__dirname, '../../uploads', doc);
+            if (fs.existsSync(filePath)) {
+                await fs.promises.unlink(filePath);
+            }
         }
 
         await beneficiary.save();

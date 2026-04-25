@@ -85,7 +85,7 @@ const analyzeBulletin = async (req, res) => {
 
     // 3. Appel direct à l'API Gemini via Axios (Version v1beta pour support flash-lite)
     const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-lite-latest:generateContent?key=${apiKey}`;
-    
+
     const requestBody = {
       contents: [
         {
@@ -106,7 +106,7 @@ const analyzeBulletin = async (req, res) => {
     };
 
     const response = await axios.post(geminiUrl, requestBody);
-    
+
     if (!response.data || !response.data.candidates || response.data.candidates.length === 0) {
       throw new Error("L'API Gemini n'a pas renvoyé de réponse valide.");
     }
@@ -121,9 +121,9 @@ const analyzeBulletin = async (req, res) => {
       data = JSON.parse(jsonStr);
 
       const hasPatient = data.nom_prenom_malade && data.nom_prenom_malade.length > 2;
-      const hasAmount  = data.montant_total && Number(data.montant_total) > 0;
-      const hasDoctor  = data.medecin?.nom_prenom && data.medecin.nom_prenom.length > 2;
-      
+      const hasAmount = data.montant_total && Number(data.montant_total) > 0;
+      const hasDoctor = data.medecin?.nom_prenom && data.medecin.nom_prenom.length > 2;
+
       if (data.est_document_medical && !hasPatient && !hasAmount && !hasDoctor) {
         data.est_document_medical = false;
       }
@@ -136,7 +136,7 @@ const analyzeBulletin = async (req, res) => {
         try {
           const adherent = await User.findByPk(req.userId);
           const beneficiaries = await Beneficiary.findAll({ where: { userId: req.userId } });
-          
+
           const patientName = data.nom_prenom_malade.toLowerCase().trim();
           let isFamily = false;
           let matchedBeneficiaryId = null;
@@ -150,7 +150,7 @@ const analyzeBulletin = async (req, res) => {
             ];
             isFamily = adherentNames.some(name => name.length >= 3 && (patientName.includes(name) || name.includes(patientName)));
           }
-          
+
           // 5.2 Check si c'est un bénéficiaire
           if (!isFamily) {
             for (let b of beneficiaries) {

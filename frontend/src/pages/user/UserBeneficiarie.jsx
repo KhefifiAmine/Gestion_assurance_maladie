@@ -11,7 +11,6 @@ const UserBeneficiarie = () => {
     const { showToast } = useToast();
     const [listBeneficiaires, setListBeneficiaires] = useState([]);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-    const [isEditing, setIsEditing] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [deleteId, setDeleteId] = useState(null);
@@ -37,7 +36,7 @@ const UserBeneficiarie = () => {
         } else if (editingBeneficiaryId) {
             const b = listBeneficiaires.find(x => x.id === editingBeneficiaryId);
             if (b && b.document) {
-                setDocumentPreviewUrl(`http://localhost:5000/${b.document}`);
+                setDocumentPreviewUrl(`http://localhost:5000/uploads/${b.document}`);
             } else {
                 setDocumentPreviewUrl(null);
             }
@@ -192,11 +191,11 @@ const UserBeneficiarie = () => {
                                     </td>
                                     <td className="px-6 py-4">
                                         <div className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border inline-flex items-center gap-2 ${b.statut === 'Validé' ? 'text-emerald-500 bg-emerald-50 border-emerald-200' :
-                                                b.statut === 'Rejeté' ? 'text-red-500 bg-red-50 border-red-200' :
-                                                    'text-amber-500 bg-amber-50 border-amber-200'
+                                            b.statut === 'Rejeté' ? 'text-red-500 bg-red-50 border-red-200' :
+                                                'text-amber-500 bg-amber-50 border-amber-200'
                                             }`}>
                                             <div className={`w-1.5 h-1.5 rounded-full ${b.statut === 'Validé' ? 'bg-emerald-500' :
-                                                    b.statut === 'Rejeté' ? 'bg-red-500' : 'bg-amber-500'
+                                                b.statut === 'Rejeté' ? 'bg-red-500' : 'bg-amber-500'
                                                 }`} />
                                             {b.statut || 'En attente'}
                                         </div>
@@ -392,14 +391,62 @@ const UserBeneficiarie = () => {
                                                 </div>
                                             </div>
 
-                                            <div className="space-y-2 pt-4 border-t border-slate-100 dark:border-white/5">
-                                                <label className="text-[10px] font-black uppercase tracking-widest text-black-400">
-                                                    Document justificatif (Image, PDF) {editingBeneficiaryId ? '(Optionnel si déjà fourni)' : '(*)'}
+                                            <div className="space-y-3 pt-4 border-t border-slate-100 dark:border-white/5">
+                                                <label className="text-[10px] font-black uppercase tracking-widest text-black-400 ml-1">
+                                                    Document Justificatif {editingBeneficiaryId ? '(Optionnel si déjà fourni)' : '(*)'}
                                                 </label>
-                                                <div
-                                                    onClick={() => fileInputRef.current?.click()}
-                                                    className={`relative w-full p-6 rounded-[24px] border-2 border-dashed ${documentFile ? 'border-purple-400 bg-purple-50 dark:bg-purple-900/10' : 'border-slate-200 dark:border-slate-700 hover:border-purple-300 dark:hover:border-purple-600 bg-slate-50 dark:bg-slate-800/50'} transition-all flex flex-col items-center justify-center gap-2 cursor-pointer group`}
-                                                >
+                                                <div className="relative">
+                                                    {(documentFile || (editingBeneficiaryId && documentPreviewUrl)) ? (
+                                                        <div className="flex items-center justify-between p-4 bg-purple-50 dark:bg-purple-900/10 border border-purple-200 dark:border-purple-800 rounded-2xl animate-scale-in">
+                                                            <div className="flex items-center gap-3 overflow-hidden">
+                                                                <div className="p-2.5 bg-purple-100 dark:bg-purple-800 rounded-xl text-purple-600 dark:text-purple-300 shrink-0">
+                                                                    <FileText size={20} />
+                                                                </div>
+                                                                <div className="overflow-hidden cursor-pointer" onClick={() => fileInputRef.current?.click()}>
+                                                                    <p className="text-sm font-black text-slate-900 dark:text-white truncate">
+                                                                        {documentFile ? documentFile.name : (editingBeneficiaryId ? "Justificatif_Bénéficiaire" : "Document attaché")}
+                                                                    </p>
+                                                                    <p className="text-[10px] font-bold text-purple-500 uppercase tracking-widest">
+                                                                        {documentFile ? "Document prêt pour l'envoi" : "Document déjà enregistré"}
+                                                                    </p>
+                                                                </div>
+                                                            </div>
+                                                            <div className="flex items-center gap-1">
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => fileInputRef.current?.click()}
+                                                                    className="p-2 text-slate-400 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-xl transition-all"
+                                                                    title="Remplacer le document"
+                                                                >
+                                                                    <UploadCloud size={18} />
+                                                                </button>
+                                                                {documentFile && (
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={(e) => { e.stopPropagation(); setDocumentFile(null); }}
+                                                                        className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all"
+                                                                        title="Annuler le nouveau fichier"
+                                                                    >
+                                                                        <X size={18} />
+                                                                    </button>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    ) : (
+                                                        <div
+                                                            onClick={() => fileInputRef.current?.click()}
+                                                            className="group relative w-full p-8 rounded-[24px] border-2 border-dashed border-slate-200 dark:border-slate-700 hover:border-purple-400 dark:hover:border-purple-600 bg-slate-50 dark:bg-slate-800/50 transition-all cursor-pointer flex flex-col items-center gap-3 overflow-hidden"
+                                                        >
+                                                            <div className="absolute inset-0 bg-purple-600/0 group-hover:bg-purple-600/5 transition-colors" />
+                                                            <div className="w-12 h-12 rounded-full bg-white dark:bg-slate-800 flex items-center justify-center text-slate-400 group-hover:text-purple-600 group-hover:scale-110 transition-all shadow-sm relative z-10">
+                                                                <UploadCloud size={24} />
+                                                            </div>
+                                                            <div className="text-center relative z-10">
+                                                                <p className="text-sm font-black text-slate-600 dark:text-slate-300 group-hover:text-purple-600 transition-colors">Cliquez pour ajouter un fichier</p>
+                                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">JPG, PNG ou PDF (Max 5MB)</p>
+                                                            </div>
+                                                        </div>
+                                                    )}
                                                     <input
                                                         ref={fileInputRef}
                                                         type="file"
@@ -407,27 +454,6 @@ const UserBeneficiarie = () => {
                                                         onChange={e => setDocumentFile(e.target.files[0])}
                                                         className="hidden"
                                                     />
-                                                    {documentFile ? (
-                                                        <>
-                                                            <div className="w-12 h-12 rounded-full bg-purple-100 dark:bg-purple-900/40 flex items-center justify-center text-purple-600">
-                                                                <CheckCircle2 size={24} />
-                                                            </div>
-                                                            <div className="text-center">
-                                                                <p className="text-sm font-black text-slate-900 dark:text-white truncate max-w-[200px]">{documentFile.name}</p>
-                                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Cliquez pour modifier</p>
-                                                            </div>
-                                                        </>
-                                                    ) : (
-                                                        <>
-                                                            <div className="w-12 h-12 rounded-full bg-white dark:bg-slate-800 flex items-center justify-center text-slate-400 group-hover:text-purple-500 group-hover:bg-purple-50 dark:group-hover:bg-purple-900/20 transition-all shadow-sm">
-                                                                <UploadCloud size={24} />
-                                                            </div>
-                                                            <div className="text-center">
-                                                                <p className="text-sm font-black text-slate-600 dark:text-slate-300 transition-colors group-hover:text-purple-600 dark:group-hover:text-purple-400">Cliquez pour ajouter un fichier</p>
-                                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">JPG, PNG ou PDF (Max 5MB)</p>
-                                                            </div>
-                                                        </>
-                                                    )}
                                                 </div>
                                             </div>
                                         </div>
