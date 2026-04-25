@@ -58,7 +58,7 @@ const AdminLayout = () => {
     { name: 'Bénéficiaires', path: '/admin/beneficiaires', icon: Users, roles: ['RESPONSABLE_RH'] },
 
     // Admin Features
-    { name: 'Bulletins de Soin', path: '/admin/bulletins', icon: FileText, roles: ['ADMIN', 'RESPONSABLE_RH'] },
+    { name: 'Bulletins de Soin', path: '/admin/bulletins', icon: FileText, roles: ['ADMIN'] },
     { name: 'Réclamations', path: '/admin/reclamations', icon: AlertTriangle, roles: ['ADMIN'] },
     
     // Shared feature

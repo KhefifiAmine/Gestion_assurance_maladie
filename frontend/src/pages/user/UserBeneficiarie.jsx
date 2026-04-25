@@ -1,283 +1,466 @@
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '../../context/AuthContext';
+import React, { useState, useEffect, useRef } from 'react';
 import { useToast } from '../../context/ToastContext';
-import { getMyBeneficiaries, addBeneficiary, deleteBeneficiary } from '../../services/beneficiaryService';
+import { getMyBeneficiaries, addBeneficiary, deleteBeneficiary, updateBeneficiary } from '../../services/beneficiaryService';
 import ConfirmModal from '../../components/ConfirmModal';
 import {
-    Users, Plus, Trash2, CheckCircle, XCircle, Clock, FileText, Search, LayoutGrid, List, X, Download, Eye
+    FileText, X, Eye, PlusCircle, Edit2, ChevronDown, Check, UploadCloud, CheckCircle2, Loader2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const UserBeneficiarie = () => {
-    const { user } = useAuth();
     const { showToast } = useToast();
-    const [beneficiaries, setBeneficiaries] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [searchTerm, setSearchTerm] = useState('');
-    const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'table'
-
-    // Add form state
-    const [showAddModal, setShowAddModal] = useState(false);
-    const [formData, setFormData] = useState({ nom: '', prenom: '', relation: 'Conjoint', ddn: '', sexe: 'M' });
+    const [listBeneficiaires, setListBeneficiaires] = useState([]);
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [isEditing, setIsEditing] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
+    const [deleteId, setDeleteId] = useState(null);
+    const [editingBeneficiaryId, setEditingBeneficiaryId] = useState(null);
+    const [newBeneficiary, setNewBeneficiary] = useState({ nom: '', prenom: '', relation: 'Conjoint', ddn: '', sexe: 'M' });
+    const [isRelationDropdownOpen, setIsRelationDropdownOpen] = useState(false);
     const [documentFile, setDocumentFile] = useState(null);
-    const [submitting, setSubmitting] = useState(false);
-
-    // Delete confirm
-    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-    const [beneficiaryToDelete, setBeneficiaryToDelete] = useState(null);
-
     const [previewDocument, setPreviewDocument] = useState(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [documentPreviewUrl, setDocumentPreviewUrl] = useState(null);
 
-
-    const fetchBeneficiaries = async () => {
-        try {
-            setLoading(true);
-            const data = await getMyBeneficiaries();
-            setBeneficiaries(data);
-        } catch (error) {
-            showToast("Erreur lors de la récupération des bénéficiaires", "error");
-        } finally {
-            setLoading(false);
-        }
-    };
+    const fileInputRef = useRef(null);
 
     useEffect(() => {
         fetchBeneficiaries();
     }, []);
 
-    const handleAddSubmit = async (e) => {
-        e.preventDefault();
-        try {
-            setSubmitting(true);
-            const data = new FormData();
-            Object.keys(formData).forEach(key => data.append(key, formData[key]));
-            if (documentFile) {
-                data.append('document', documentFile);
+    useEffect(() => {
+        if (documentFile) {
+            const url = URL.createObjectURL(documentFile);
+            setDocumentPreviewUrl(url);
+            return () => URL.revokeObjectURL(url);
+        } else if (editingBeneficiaryId) {
+            const b = listBeneficiaires.find(x => x.id === editingBeneficiaryId);
+            if (b && b.document) {
+                setDocumentPreviewUrl(`http://localhost:5000/${b.document}`);
+            } else {
+                setDocumentPreviewUrl(null);
             }
-            await addBeneficiary(data);
-            showToast("Bénéficiaire ajouté avec succès. Il est en attente de validation.", "success");
-            setShowAddModal(false);
-            setFormData({ nom: '', prenom: '', relation: 'Conjoint', ddn: '', sexe: 'M' });
-            setDocumentFile(null);
-            fetchBeneficiaries();
-        } catch (error) {
-            showToast(error.message || "Erreur lors de l'ajout", "error");
-        } finally {
-            setSubmitting(false);
+        } else {
+            setDocumentPreviewUrl(null);
         }
-    };
+    }, [documentFile, editingBeneficiaryId, listBeneficiaires]);
 
-    const confirmDelete = async () => {
-        if (!beneficiaryToDelete) return;
+    const fetchBeneficiaries = async () => {
+        setIsLoading(true);
         try {
-            await deleteBeneficiary(beneficiaryToDelete.id);
-            showToast("Bénéficiaire supprimé", "success");
-            setShowDeleteConfirm(false);
-            setBeneficiaryToDelete(null);
-            fetchBeneficiaries();
+            const fetchedBeneficiaries = await getMyBeneficiaries();
+
+            const beneficiariesWithStyle = fetchedBeneficiaries.map(b => ({
+                ...b,
+                initials: (b.nom[0] + (b.prenom ? b.prenom[0] : '')).toUpperCase(),
+                bg: ['#EC4899', '#3B82F6', '#10B981', '#8B5CF6', '#F59E0B'][Math.floor(Math.random() * 5)]
+            }));
+
+            setListBeneficiaires(beneficiariesWithStyle);
         } catch (error) {
-            showToast("Erreur de suppression", "error");
+            console.error("Erreur stats:", error);
+        } finally {
+            setIsLoading(false);
         }
     };
 
-    const filteredBeneficiaries = beneficiaries.filter(b => {
-        const searchRegex = new RegExp(searchTerm, 'i');
-        const adherentName = b.user ? `${b.user.prenom} ${b.user.nom}` : '';
-        return searchRegex.test(b.nom) || searchRegex.test(b.prenom) || searchRegex.test(b.relation) || searchRegex.test(adherentName) || searchRegex.test(b.userId);
-    });
+    const handleAddBeneficiary = async () => {
+        if (!newBeneficiary.nom || !newBeneficiary.prenom || !newBeneficiary.ddn || (!documentFile && !editingBeneficiaryId)) {
+            showToast("Veuillez remplir tous les champs obligatoires et joindre un document", "error");
+            return;
+        }
+        setIsSaving(true);
+        try {
+            const formData = new FormData();
+            Object.keys(newBeneficiary).forEach(key => {
+                if (newBeneficiary[key] !== null && newBeneficiary[key] !== undefined) {
+                    formData.append(key, newBeneficiary[key])
+                }
+            });
 
-    const getStatusColor = (statut) => {
-        if (statut === 'Validé') return 'text-emerald-500 bg-emerald-50 border-emerald-200';
-        if (statut === 'Rejeté') return 'text-red-500 bg-red-50 border-red-200';
-        return 'text-amber-500 bg-amber-50 border-amber-200';
+            if (documentFile) {
+                formData.append('document', documentFile);
+            }
+
+            if (editingBeneficiaryId) {
+                await updateBeneficiary(editingBeneficiaryId, formData);
+                showToast("Bénéficiaire mis à jour avec succès", "success");
+            } else {
+                await addBeneficiary(formData);
+                showToast("Bénéficiaire ajouté avec succès (En attente de validation)", "success");
+            }
+
+            setNewBeneficiary({ nom: '', prenom: '', relation: 'Conjoint', ddn: '', sexe: 'M' });
+            setDocumentFile(null);
+            setEditingBeneficiaryId(null);
+            setIsAddModalOpen(false);
+        } catch (e) {
+            showToast(e.message || "Erreur lors de l'enregistrement", "error");
+        } finally {
+            setIsSaving(false);
+        }
     };
 
-    const getStatusIcon = (statut) => {
-        if (statut === 'Validé') return <CheckCircle size={16} />;
-        if (statut === 'Rejeté') return <XCircle size={16} />;
-        return <Clock size={16} />;
+    const handleDeleteBenef = async () => {
+        setIsDeleting(true);
+        try {
+            await deleteBeneficiary(deleteId);
+            setDeleteId(null);
+            showToast("Bénéficiaire supprimé avec succès", "success");
+        } catch (e) {
+            showToast(e.message || "Erreur lors de la suppression", "error");
+        } finally {
+            setIsDeleting(false);
+        }
     };
+
+
+    if (isLoading) {
+        return (
+            <div className="flex flex-col items-center justify-center p-20 text-purple-600 bg-white dark:bg-slate-900 rounded-[32px] border border-slate-100 dark:border-white/5 shadow-sm">
+                <Loader2 className="w-12 h-12 animate-spin mb-4" />
+                <p className="font-black uppercase tracking-widest text-xs">Chargement de vos bénéficiaires...</p>
+            </div>
+        );
+    }
 
     return (
-        <div className="p-6 lg:p-10 space-y-8 min-h-full bg-slate-50 dark:bg-slate-950">
-            {/* Header */}
-            <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
-                <div className="flex flex-col gap-1">
-                    <h1 className="text-3xl font-black tracking-tighter text-slate-900 dark:text-white">Gestion des Bénéficiaires</h1>
-                    <div className="flex items-center gap-2">
-                        <span className="w-8 h-1 rounded-full bg-purple-600"></span>
-                        <p className="text-[10px] font-black opacity-40 uppercase tracking-[0.2em]">Espace Adhérent</p>
-                    </div>
+        <div className="space-y-6">
+            {/* View Toggle and Controls */}
+            <div className="flex justify-between items-center">
+                <div className="space-y-1">
+                    <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">Mes Bénéficiaires</h3>
+                    <p className="text-[10px] font-black opacity-80 uppercase tracking-[0.2em]">Visualisez et gérez les membres de votre famille</p>
                 </div>
-
-                <div className="flex items-center gap-3">
-                    <div className="flex bg-white dark:bg-slate-900 p-1.5 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
-                        <button
-                            onClick={() => setViewMode('grid')}
-                            className={`p-2.5 rounded-xl transition-all ${viewMode === 'grid' ? 'bg-purple-600 text-white shadow-lg' : 'text-slate-400 hover:text-purple-600'}`}
-                            title="Vue Grille"
-                        >
-                            <LayoutGrid size={20} />
-                        </button>
-                        <button
-                            onClick={() => setViewMode('table')}
-                            className={`p-2.5 rounded-xl transition-all ${viewMode === 'table' ? 'bg-purple-600 text-white shadow-lg' : 'text-slate-400 hover:text-purple-600'}`}
-                            title="Vue Tableau"
-                        >
-                            <List size={20} />
-                        </button>
-                    </div>
-                    <button
-                        onClick={() => setShowAddModal(true)}
-                        className="flex items-center gap-2 px-6 py-3.5 bg-purple-600 hover:bg-purple-700 text-white rounded-2xl shadow-lg transition-all active:scale-95 group"
-                    >
-                        <Plus size={20} className="group-hover:rotate-90 transition-transform" />
-                        <span className="text-sm font-black uppercase tracking-widest">Nouveau</span>
-                    </button>
-                </div>
-            </motion.div>
-
-            {/* Search and Filters */}
-            <div className="p-4 rounded-[2rem] bg-white dark:bg-slate-900 shadow-sm border border-slate-100 flex items-center gap-4">
-                <Search size={20} className="text-slate-400 ml-4" />
-                <input
-                    type="text"
-                    placeholder="Recherche par nom, relation..."
-                    className="flex-1 bg-transparent py-4 font-bold text-sm outline-none placeholder:text-slate-300"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                />
             </div>
 
-            {/* Beneficiaries List */}
-            {loading ? (
-                <div className="py-20 flex flex-col items-center justify-center gap-4 opacity-30">
-                    <div className="w-12 h-12 border-4 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
-                    <p className="font-black text-2xl uppercase tracking-tighter text-slate-400 text-center">Chargement...</p>
-                </div>
-            ) : filteredBeneficiaries.length === 0 ? (
-                <div className="py-20 text-center space-y-4 opacity-30">
-                    <Users size={64} className="mx-auto text-slate-400" />
-                    <p className="font-black text-2xl uppercase tracking-tighter text-slate-400">Aucun bénéficiaire trouvé</p>
-                </div>
-            ) : viewMode === 'grid'(
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {filteredBeneficiaries.map((b, i) => (
-                        <motion.div
-                            key={b.id}
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{ delay: i * 0.05 }}
-                            className="p-6 rounded-[2rem] bg-white dark:bg-slate-900 shadow-sm border border-slate-100 flex flex-col gap-4 relative overflow-hidden group hover:shadow-xl transition-all"
-                        >
-                            <div className="absolute top-0 right-0 w-32 h-32 bg-purple-600/5 rounded-full blur-3xl -mr-16 -mt-16" />
 
-                            <div className="flex justify-between items-start">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-12 h-12 rounded-2xl bg-purple-50 dark:bg-purple-900/20 flex items-center justify-center">
-                                        <Users size={24} className="text-purple-600 dark:text-purple-400" />
-                                    </div>
-                                    <div>
-                                        <h3 className="font-black text-lg tracking-tight text-slate-900 dark:text-white">{b.prenom} {b.nom}</h3>
-                                        <p className="text-[10px] font-black tracking-widest uppercase opacity-50">{b.relation} • {b.sexe}</p>
-                                    </div>
-                                </div>
-                                <span className={`px-3 py-1 text-[10px] font-black uppercase tracking-widest rounded-full border flex items-center gap-1 ${getStatusColor(b.statut)}`}>
-                                    {getStatusIcon(b.statut)} {b.statut}
-                                </span>
-                            </div>
+            <div className="p-4 flex justify-start">
+                <button
+                    onClick={() => {
+                        setEditingBeneficiaryId(null);
+                        setNewBeneficiary({ nom: '', prenom: '', relation: 'Conjoint', ddn: '', sexe: 'M' });
+                        setDocumentFile(null);
+                        setIsAddModalOpen(true);
+                    }}
+                    className="px-6 py-3 rounded-2xl bg-purple-50 dark:bg-purple-900/20 text-purple-600 hover:bg-purple-600 hover:text-white font-black text-xs uppercase tracking-widest transition-all flex items-center gap-2"
+                >
+                    <PlusCircle size={16} /> NOUVEAU BÉNÉFICIAIRE
+                </button>
+            </div>
+            <div className="p-4 rounded-[32px] bg-white dark:bg-slate-900 border border-slate-100 dark:border-white/5 shadow-sm">
 
-                            <div className="space-y-1">
-                                <p className="text-xs font-bold text-slate-500">Né(e) le : {b.ddn ? new Date(b.ddn).toLocaleDateString() : 'N/A'}</p>
-                            </div>
-
-                            {b.document && (
-                                <button onClick={() => setPreviewDocument(b.document)} className="flex items-center gap-2 p-3 rounded-xl bg-slate-50 hover:bg-slate-100 text-sm font-bold text-slate-600 transition-colors w-max">
-                                    <Eye size={18} className="text-purple-600" />
-                                    Voir justificatif
-                                </button>
-                            )}
-
-                            <div className="flex gap-2 mt-auto pt-4 border-t border-slate-100">
-                                <button
-                                    onClick={() => { setBeneficiaryToDelete(b); setShowDeleteConfirm(true); }}
-                                    className="w-full py-3 bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 font-black text-xs uppercase tracking-widest rounded-xl transition-all flex items-center justify-center gap-2"
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left">
+                        <thead>
+                            <tr className="border-b border-slate-50 dark:border-slate-800">
+                                <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-black-400">Bénéficiaire</th>
+                                <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-black-400">Sexe</th>
+                                <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-black-400">Date de Naissance</th>
+                                <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-black-400">Relation</th>
+                                <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-black-400">Status</th>
+                                <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-black-400">Motif de Rejet</th>
+                                <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-black-400 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
+                            {listBeneficiaires.map((b, i) => (
+                                <motion.tr
+                                    key={b.id}
+                                    initial={{ opacity: 0, x: -10 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    transition={{ delay: i * 0.03 }}
+                                    className="group hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors"
                                 >
-                                    <Trash2 size={16} /> Supprimer
-                                </button>
-                            </div>
-                        </motion.div>
-                    ))}
+                                    <td className="px-6 py-4">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-black text-sm" style={{ backgroundColor: b.bg }}>
+                                                {b.initials}
+                                            </div>
+                                            <span className="font-extrabold text-slate-800 dark:text-slate-100 uppercase tracking-tight">{b.nom} {b.prenom}</span>
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4 px-6 text-xs font-black uppercase tracking-widest opacity-80 text-slate-900">
+                                        {b.sexe === 'M' ? 'HOMME' : 'FEMME'}
+                                    </td>
+                                    <td className="px-6 py-4 text-xm font-bold text-slate-900">
+                                        {(b.ddn && b.ddn !== '') ? new Date(b.ddn).toLocaleDateString() : 'N/A'}
+                                    </td>
+                                    <td className="px-6 py-4 px-6 text-xs font-black uppercase tracking-widest opacity-80 text-slate-900">
+                                        {b.relation}
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <div className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border inline-flex items-center gap-2 ${b.statut === 'Validé' ? 'text-emerald-500 bg-emerald-50 border-emerald-200' :
+                                                b.statut === 'Rejeté' ? 'text-red-500 bg-red-50 border-red-200' :
+                                                    'text-amber-500 bg-amber-50 border-amber-200'
+                                            }`}>
+                                            <div className={`w-1.5 h-1.5 rounded-full ${b.statut === 'Validé' ? 'bg-emerald-500' :
+                                                    b.statut === 'Rejeté' ? 'bg-red-500' : 'bg-amber-500'
+                                                }`} />
+                                            {b.statut || 'En attente'}
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4 px-6 text-xs font-bold uppercase tracking-widest text-red-500">
+                                        {b.motifRefus || 'N/A'}
+                                    </td>
+                                    <td className="px-6 py-4 text-right">
+                                        <div className="flex justify-end gap-2">
+                                            {b.document && (
+                                                <button
+                                                    onClick={() => setPreviewDocument(b.document)}
+                                                    className="p-2.5 rounded-xl bg-purple-50 dark:bg-purple-900/20 text-purple-600 hover:bg-purple-600 hover:text-white transition-all shadow-sm"
+                                                    title="Voir document"
+                                                >
+                                                    <Eye size={16} />
+                                                </button>
+                                            )}
+                                            {(b.statut === 'En attente' || b.statut === 'Rejeté') && (
+                                                <button
+                                                    onClick={() => {
+                                                        setEditingBeneficiaryId(b.id);
+                                                        setNewBeneficiary({
+                                                            nom: b.nom,
+                                                            prenom: b.prenom,
+                                                            relation: b.relation,
+                                                            ddn: b.ddn ? b.ddn.split('T')[0] : '',
+                                                            sexe: b.sexe
+                                                        });
+                                                        setDocumentFile(null);
+                                                        setIsAddModalOpen(true);
+                                                    }}
+                                                    className="p-2.5 rounded-xl bg-purple-50 dark:bg-purple-900/20 text-purple-600 hover:bg-purple-600 hover:text-white transition-all shadow-sm"
+                                                    title="Modifier"
+                                                >
+                                                    <Edit2 size={16} />
+                                                </button>
+                                            )}
+                                            {b.statut === 'En attente' && (<button
+                                                onClick={() => { setDeleteId(b.id); setIsDeleting(false); }}
+                                                className="p-2.5 rounded-xl bg-red-50 dark:bg-red-900/20 text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-sm"
+                                                title="Supprimer"
+                                            >
+                                                <X size={16} />
+                                            </button>)}
+                                        </div>
+                                    </td>
+                                </motion.tr>
+                            ))}
+                            {/* Add button inside table as a row or footer if empty */}
+                            {listBeneficiaires.length === 0 && (
+                                <tr>
+                                    <td colSpan={6} className="py-20 text-center">
+                                        <button
+                                            onClick={() => {
+                                                setEditingBeneficiaryId(null);
+                                                setNewBeneficiary({ nom: '', prenom: '', relation: 'Conjoint', ddn: '', sexe: 'M' });
+                                                setDocumentFile(null);
+                                                setIsAddModalOpen(true);
+                                            }}
+                                            className="px-8 py-4 rounded-3xl border-2 border-dashed border-slate-200 dark:border-slate-700 font-black text-slate-400 uppercase tracking-widest text-xs hover:border-purple-500 hover:text-purple-600 transition-all"
+                                        >
+                                            + Ajouter un bénéficiaire
+                                        </button>
+                                    </td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
                 </div>
-            )}
+            </div>
 
-            {/* Add Modal */}
+            {/* --- ADD BENEFICIARY MODAL --- */}
             <AnimatePresence>
-                {showAddModal && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
-                        <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="bg-white rounded-[2rem] p-8 max-w-lg w-full shadow-2xl">
-                            <h2 className="text-2xl font-black mb-6 text-slate-900">Ajouter un bénéficiaire</h2>
-                            <form onSubmit={handleAddSubmit} className="space-y-4">
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="text-[10px] font-black opacity-40 uppercase tracking-widest block mb-2">Prénom</label>
-                                        <input type="text" required value={formData.prenom} onChange={e => setFormData({ ...formData, prenom: e.target.value })} className="w-full bg-slate-50 p-4 rounded-xl font-bold outline-none" />
+                {isAddModalOpen && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setIsAddModalOpen(false)}
+                            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+                        />
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                            animate={{ scale: 1, opacity: 1, y: 0 }}
+                            exit={{ scale: 0.9, opacity: 0, y: 20 }}
+                            className={`relative w-full ${documentPreviewUrl ? 'max-w-5xl' : 'max-w-lg'} bg-white dark:bg-slate-900 rounded-[40px] shadow-2xl border border-slate-100 dark:border-white/5 overflow-hidden transition-all duration-500`}
+                        >
+                            <div className="p-8 space-y-8">
+                                <div className="flex justify-between items-start">
+                                    <div className="space-y-1">
+                                        <h3 className="text-2xl font-black text-slate-900 dark:text-white">
+                                            {editingBeneficiaryId ? "Modifier le Bénéficiaire" : "Nouveau Bénéficiaire"}
+                                        </h3>
+                                        <p className="text-xs font-bold uppercase tracking-widest">
+                                            {editingBeneficiaryId ? "Mettez à jour les informations du bénéficiaire" : "Enregistrez un membre de votre famille"}
+                                        </p>
                                     </div>
-                                    <div>
-                                        <label className="text-[10px] font-black opacity-40 uppercase tracking-widest block mb-2">Nom</label>
-                                        <input type="text" required value={formData.nom} onChange={e => setFormData({ ...formData, nom: e.target.value })} className="w-full bg-slate-50 p-4 rounded-xl font-bold outline-none" />
-                                    </div>
-                                </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="text-[10px] font-black opacity-40 uppercase tracking-widest block mb-2">Relation</label>
-                                        <select value={formData.relation} onChange={e => setFormData({ ...formData, relation: e.target.value })} className="w-full bg-slate-50 p-4 rounded-xl font-bold outline-none">
-                                            <option value="Conjoint">Conjoint</option>
-                                            <option value="Enfant">Enfant</option>
-                                            <option value="Autre">Autre</option>
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label className="text-[10px] font-black opacity-40 uppercase tracking-widest block mb-2">Date de naissance</label>
-                                        <input type="date" required value={formData.ddn} onChange={e => setFormData({ ...formData, ddn: e.target.value })} className="w-full bg-slate-50 p-4 rounded-xl font-bold outline-none" />
-                                    </div>
-                                </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="text-[10px] font-black opacity-40 uppercase tracking-widest block mb-2">Sexe</label>
-                                        <select value={formData.sexe} onChange={e => setFormData({ ...formData, sexe: e.target.value })} className="w-full bg-slate-50 p-4 rounded-xl font-bold outline-none">
-                                            <option value="M">Masculin</option>
-                                            <option value="F">Féminin</option>
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label className="text-[10px] font-black opacity-40 uppercase tracking-widest block mb-2">Document justificatif (*)</label>
-                                        <input type="file" required accept="image/*,.pdf" onChange={e => setDocumentFile(e.target.files[0])} className="w-full bg-slate-50 p-3 rounded-xl font-bold text-xs outline-none" />
-                                    </div>
-                                </div>
-                                <div className="flex justify-end gap-3 pt-4 mt-6 border-t border-slate-100">
-                                    <button type="button" onClick={() => setShowAddModal(false)} className="px-6 py-3 font-black text-xs uppercase tracking-widest bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors">Annuler</button>
-                                    <button type="submit" disabled={submitting} className="px-6 py-3 font-black text-xs uppercase tracking-widest bg-purple-600 hover:bg-purple-700 text-white flex items-center gap-2 rounded-xl transition-colors disabled:opacity-50">
-                                        {submitting ? 'Envoi...' : <><Plus size={16} /> Ajouter</>}
+                                    <button onClick={() => setIsAddModalOpen(false)} className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-all">
+                                        <X size={20} />
                                     </button>
                                 </div>
-                            </form>
+
+                                <div className="space-y-5">
+                                    <div className={`grid grid-cols-1 ${documentPreviewUrl ? 'lg:grid-cols-2' : ''} gap-8`}>
+                                        <div className="space-y-6">
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div className="space-y-2">
+                                                    <label className="text-[10px] font-black uppercase tracking-widest text-black-400">Nom</label>
+                                                    <input
+                                                        type="text"
+                                                        className="w-full px-6 py-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-gray-400 focus:border-purple-400 outline-none text-sm font-bold"
+                                                        value={newBeneficiary.nom}
+                                                        onChange={e => setNewBeneficiary({ ...newBeneficiary, nom: e.target.value })}
+                                                    />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <label className="text-[10px] font-black uppercase tracking-widest text-black-400">Prénom</label>
+                                                    <input
+                                                        type="text"
+                                                        className="w-full px-6 py-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-gray-400 focus:border-purple-400 outline-none text-sm font-bold"
+                                                        value={newBeneficiary.prenom}
+                                                        onChange={e => setNewBeneficiary({ ...newBeneficiary, prenom: e.target.value })}
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <div className="space-y-2 relative z-50">
+                                                <label className="text-[10px] font-black uppercase tracking-widest text-black-400">Relation</label>
+                                                <div
+                                                    className="w-full px-6 py-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-gray-400 focus-within:border-purple-400 outline-none text-sm font-bold flex justify-between items-center cursor-pointer select-none transition-all"
+                                                    onClick={() => setIsRelationDropdownOpen(!isRelationDropdownOpen)}
+                                                >
+                                                    <span className={newBeneficiary.relation ? "text-slate-900 dark:text-white" : "text-black-400"}>
+                                                        {newBeneficiary.relation === 'Conjoint' ? 'Conjoint(e)' : (newBeneficiary.relation || "Sélectionnez une relation")}
+                                                    </span>
+                                                    <ChevronDown size={18} className={`text-slate-400 transition-transform ${isRelationDropdownOpen ? 'rotate-180' : ''}`} />
+                                                </div>
+                                                <AnimatePresence>
+                                                    {isRelationDropdownOpen && (
+                                                        <motion.div
+                                                            initial={{ opacity: 0, y: -10 }}
+                                                            animate={{ opacity: 1, y: 0 }}
+                                                            exit={{ opacity: 0, y: -10 }}
+                                                            className="absolute top-[100%] left-0 w-full mt-2 py-2 bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-700 flex flex-col overflow-hidden"
+                                                        >
+                                                            {[
+                                                                { value: "Conjoint", label: "Conjoint(e)" },
+                                                                { value: "Enfant", label: "Enfant" },
+                                                            ].map((option) => (
+                                                                <button
+                                                                    key={option.value}
+                                                                    onClick={(e) => {
+                                                                        e.preventDefault();
+                                                                        setNewBeneficiary({ ...newBeneficiary, relation: option.value });
+                                                                        setIsRelationDropdownOpen(false);
+                                                                    }}
+                                                                    className={`px-6 py-4 text-left text-sm font-bold transition-all hover:bg-slate-50 dark:hover:bg-slate-700/50 flex items-center justify-between ${newBeneficiary.relation === option.value ? 'text-purple-600 bg-purple-50 dark:bg-purple-900/20' : 'text-slate-700 dark:text-slate-300'}`}
+                                                                >
+                                                                    {option.label}
+                                                                    {newBeneficiary.relation === option.value && <Check size={16} className="text-purple-600" />}
+                                                                </button>
+                                                            ))}
+                                                        </motion.div>
+                                                    )}
+                                                </AnimatePresence>
+                                            </div>
+
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div className="space-y-2">
+                                                    <label className="text-[10px] font-black uppercase tracking-widest text-black-400">Date de naissance</label>
+                                                    <input
+                                                        type="date"
+                                                        className="w-full px-6 py-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-gray-400 focus:border-purple-400 outline-none text-sm font-bold"
+                                                        value={newBeneficiary.ddn}
+                                                        onChange={e => setNewBeneficiary({ ...newBeneficiary, ddn: e.target.value })}
+                                                    />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <label className="text-[10px] font-black uppercase tracking-widest text-black-400">Sexe</label>
+                                                    <div className="flex gap-2">
+                                                        {['M', 'F'].map(s => (
+                                                            <button
+                                                                key={s}
+                                                                onClick={() => setNewBeneficiary({ ...newBeneficiary, sexe: s })}
+                                                                className={`flex-1 py-4 rounded-2xl border font-black transition-all ${newBeneficiary.sexe === s ? 'bg-purple-600 border-purple-600 text-white' : 'bg-slate-50 dark:bg-slate-800/50 border-gray-400 text-black-400'}`}
+                                                            >
+                                                                {s === 'M' ? 'Masculin' : 'Féminin'}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="space-y-2 pt-4 border-t border-slate-100 dark:border-white/5">
+                                                <label className="text-[10px] font-black uppercase tracking-widest text-black-400">
+                                                    Document justificatif (Image, PDF) {editingBeneficiaryId ? '(Optionnel si déjà fourni)' : '(*)'}
+                                                </label>
+                                                <div
+                                                    onClick={() => fileInputRef.current?.click()}
+                                                    className={`relative w-full p-6 rounded-[24px] border-2 border-dashed ${documentFile ? 'border-purple-400 bg-purple-50 dark:bg-purple-900/10' : 'border-slate-200 dark:border-slate-700 hover:border-purple-300 dark:hover:border-purple-600 bg-slate-50 dark:bg-slate-800/50'} transition-all flex flex-col items-center justify-center gap-2 cursor-pointer group`}
+                                                >
+                                                    <input
+                                                        ref={fileInputRef}
+                                                        type="file"
+                                                        accept="image/*,.pdf"
+                                                        onChange={e => setDocumentFile(e.target.files[0])}
+                                                        className="hidden"
+                                                    />
+                                                    {documentFile ? (
+                                                        <>
+                                                            <div className="w-12 h-12 rounded-full bg-purple-100 dark:bg-purple-900/40 flex items-center justify-center text-purple-600">
+                                                                <CheckCircle2 size={24} />
+                                                            </div>
+                                                            <div className="text-center">
+                                                                <p className="text-sm font-black text-slate-900 dark:text-white truncate max-w-[200px]">{documentFile.name}</p>
+                                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Cliquez pour modifier</p>
+                                                            </div>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <div className="w-12 h-12 rounded-full bg-white dark:bg-slate-800 flex items-center justify-center text-slate-400 group-hover:text-purple-500 group-hover:bg-purple-50 dark:group-hover:bg-purple-900/20 transition-all shadow-sm">
+                                                                <UploadCloud size={24} />
+                                                            </div>
+                                                            <div className="text-center">
+                                                                <p className="text-sm font-black text-slate-600 dark:text-slate-300 transition-colors group-hover:text-purple-600 dark:group-hover:text-purple-400">Cliquez pour ajouter un fichier</p>
+                                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">JPG, PNG ou PDF (Max 5MB)</p>
+                                                            </div>
+                                                        </>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {documentPreviewUrl && (
+                                            <div className="hidden lg:flex flex-col gap-4 bg-slate-50 dark:bg-slate-800/50 rounded-[32px] p-6 border border-slate-100 dark:border-white/5 h-full min-h-[400px]">
+                                                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Aperçu du justificatif</p>
+                                                <div className="flex-1 rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-inner relative group">
+                                                    {documentPreviewUrl.toLowerCase().includes('pdf') || (documentFile && documentFile.type === 'application/pdf') ? (
+                                                        <iframe src={documentPreviewUrl} className="w-full h-full border-none" title="Preview" />
+                                                    ) : (
+                                                        <img src={documentPreviewUrl} alt="Preview" className="w-full h-full object-contain" />
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <button
+                                    onClick={handleAddBeneficiary}
+                                    disabled={isSaving}
+                                    className="w-full py-5 rounded-[24px] bg-purple-600 hover:bg-purple-700 text-white font-black text-sm shadow-xl shadow-purple-500/20 active:scale-95 transition-all disabled:opacity-50"
+                                >
+                                    {isSaving ? "Enregistrement en cours..." : (editingBeneficiaryId ? "Mettre à jour" : "Confirmer l'ajout")}
+                                </button>
+                            </div>
                         </motion.div>
                     </div>
                 )}
             </AnimatePresence>
 
-            <ConfirmModal
-                isOpen={showDeleteConfirm}
-                onClose={() => setShowDeleteConfirm(false)}
-                onConfirm={confirmDelete}
-                title="Supprimer bénéficiaire"
-                message="Êtes-vous sûr de vouloir supprimer ce bénéficiaire ? Cette action est irréversible."
-                confirmText="Oui, supprimer"
-                type="danger"
-            />
-
-            {/* Document Viewer Slide-over */}
+            {/* --- DOCUMENT VIEWER SLIDE-OVER --- */}
             <AnimatePresence>
                 {previewDocument && (
                     <div className="fixed inset-0 z-[110] flex justify-end overflow-hidden">
@@ -286,35 +469,26 @@ const UserBeneficiarie = () => {
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
                             onClick={() => setPreviewDocument(null)}
-                            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm z-[100]"
+                            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm z-[110]"
                         />
                         <motion.div
                             initial={{ x: '100%' }}
                             animate={{ x: 0 }}
                             exit={{ x: '100%' }}
                             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                            className="relative w-full md:w-[600px] h-full bg-white dark:bg-slate-900 shadow-2xl z-[110] border-l border-slate-100 dark:border-white/5 flex flex-col"
+                            className="relative w-full md:w-[600px] h-full bg-white dark:bg-slate-900 shadow-2xl z-[120] border-l border-slate-100 dark:border-white/5 flex flex-col"
                         >
                             <div className="p-6 border-b border-slate-100 dark:border-white/5 flex justify-between items-center bg-slate-50 dark:bg-slate-950/50">
                                 <div className="flex items-center gap-4">
                                     <div className="p-3 rounded-2xl bg-purple-100 dark:bg-purple-900/20 text-purple-600">
                                         <FileText size={20} />
                                     </div>
-                                    <div>
+                                    <div className="space-y-1">
                                         <h3 className="font-black text-lg text-slate-900 dark:text-white leading-none">Justificatif</h3>
                                         <p className="text-[10px] font-bold opacity-40 uppercase tracking-widest text-slate-900 dark:text-white">Aperçu du document sécurisé</p>
                                     </div>
                                 </div>
                                 <div className="flex gap-2">
-                                    <a
-                                        href={`http://localhost:5000/${previewDocument}`}
-                                        download
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="px-4 py-2 rounded-2xl bg-purple-50 dark:bg-purple-900/20 text-purple-600 hover:bg-purple-600 hover:text-white transition-all font-black text-xs flex items-center gap-2"
-                                    >
-                                        <Download size={14} /> TÉLÉCHARGER
-                                    </a>
                                     <button onClick={() => setPreviewDocument(null)} className="p-3 rounded-2xl bg-slate-100 dark:bg-slate-800 hover:bg-red-50 text-slate-400 hover:text-red-500 transition-all">
                                         <X size={18} />
                                     </button>
@@ -339,6 +513,16 @@ const UserBeneficiarie = () => {
                     </div>
                 )}
             </AnimatePresence>
+
+            <ConfirmModal
+                isOpen={!!deleteId}
+                onClose={() => setDeleteId(null)}
+                onConfirm={handleDeleteBenef}
+                title="Supprimer le bénéficiaire"
+                message="Êtes-vous sûr de vouloir retirer ce membre de votre liste de bénéficiaires ?"
+                type="danger"
+                isLoading={isDeleting}
+            />
         </div>
     );
 };

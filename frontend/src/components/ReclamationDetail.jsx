@@ -9,9 +9,11 @@ import {
   getReclamationById,
   markReclamationAsRead,
   updateReclamation,
+  updateReclamationStatus,
   deleteReclamation
 } from '../services/reclamationService';
 import BulletinDetailsModal from './BulletinDetailsModal';
+import UserDetailsModal from './UserDetailsModal';
 import ConfirmModal from './ConfirmModal';
 import { useToast } from '../context/ToastContext';
 
@@ -69,12 +71,14 @@ const ReclamationDetail = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isBulletinModalOpen, setIsBulletinModalOpen] = useState(false);
+  const [isUserModalOpen, setIsUserModalOpen] = useState(false);
   const [isStatusOpen, setIsStatusOpen] = useState(false);
   const [isPriorityOpen, setIsPriorityOpen] = useState(false);
   const [priority, setPriority] = useState(2);
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: '', message: '', type: 'danger', onConfirm: () => { } });
 
   const isAdherent = userRole === 'ADHERENT';
+  const isAdmin = userRole === "ADMIN";
 
   useEffect(() => {
     const fetchDetails = async () => {
@@ -127,7 +131,13 @@ const ReclamationDetail = ({
       };
       if (replyText.trim()) payload.reponseAdmin = replyText.trim();
 
-      const updated = await updateReclamation(id, payload);
+      let updated;
+      if (userRole === 'ADMIN') {
+        updated = await updateReclamationStatus(id, payload);
+      } else {
+        updated = await updateReclamation(id, payload);
+      }
+      
       const updatedLocal = { ...reclamation, ...updated };
       setReclamation(updatedLocal);
       if (onReclamationUpdate) onReclamationUpdate(updatedLocal);
@@ -158,7 +168,7 @@ const ReclamationDetail = ({
             <div className="flex items-center gap-3 mb-1">
               <h2 className="text-2xl font-extrabold text-gray-800 dark:text-white">Réclamation {reclamation.reference || reclamation.id}</h2>
               <StatusBadge statut={reclamation.statut} />
-              {(userRole === 'ADMIN' || userRole === 'RESPONSABLE_RH') && <PriorityBadge priorite={reclamation.priorite} />}
+             <PriorityBadge priorite={reclamation.priorite} />
             </div>
             <p className="text-gray-500 font-medium flex items-center gap-2"><Clock className="w-4 h-4" /> Soumise le {formatDate(reclamation.createdAt)}</p>
           </div>
@@ -200,9 +210,41 @@ const ReclamationDetail = ({
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-white dark:bg-slate-900 p-8 sm:p-10 rounded-[2.5rem] shadow-xl border border-slate-100 relative overflow-hidden">
             <div className="absolute top-0 right-0 w-32 h-32 bg-purple-600/5 rounded-full blur-3xl" />
             <div className="flex items-center gap-4 mb-8 pb-6 border-b border-slate-100 relative z-10">
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-slate-100 to-slate-200 flex justify-center items-center text-xl font-black text-slate-600">{reclamation.adherentNom?.charAt(0) || 'U'}</div>
-              <div><h3 className="font-black text-xl text-slate-900 dark:text-white tracking-tight">{reclamation.adherentNom || 'Utilisateur'}</h3><p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-0.5">Adhérent Titulaire</p></div>
-              <div className="ml-auto bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl border border-slate-100"><p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Prestataire</p><p className="font-bold text-slate-900 dark:text-white">{reclamation.prestataire || 'GAT'}</p></div>
+              {/* Zone cliquable utilisateur */}
+              <div
+                onClick={() => setIsUserModalOpen(true)}
+                className="flex items-center gap-3 cursor-pointer group"
+              >
+                {/* Avatar */}
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-slate-100 to-slate-200 flex justify-center items-center text-xl font-black text-slate-600 group-hover:scale-110 transition-transform">
+                  {reclamation?.adherent?.nom?.charAt(0) || 'U'}
+                </div>
+
+                {/* Infos utilisateur */}
+                <div>
+                  <h3 className="font-black text-xl text-slate-900 dark:text-white tracking-tight group-hover:text-purple-600 transition-colors">
+                    {reclamation?.adherent
+                      ? `${reclamation.adherent.nom} ${reclamation.adherent.prenom}`
+                      : 'Utilisateur'}
+                  </h3>
+
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-0.5">
+                    Adhérent Titulaire
+                  </p>
+                </div>
+              </div>
+
+              {/* Prestataire */}
+              <div className="ml-auto bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl border border-slate-100">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
+                  Prestataire
+                </p>
+
+                <p className="font-bold text-slate-900 dark:text-white">
+                  {reclamation?.prestataire || 'GAT'}
+                </p>
+              </div>
+
             </div>
             <div className="relative z-10">
               <h4 className="text-2xl font-black text-purple-600 dark:text-purple-400 tracking-tight mb-6 flex items-center gap-3"><MessageSquare className="w-6 h-6" /> {reclamation.objet}</h4>
@@ -229,7 +271,7 @@ const ReclamationDetail = ({
         </div>
 
         <div className="space-y-8">
-          {!isAdherent && reclamation.statut !== 'Clôturée' && !reclamation.isRestricted && (
+          {isAdmin && reclamation.statut !== 'Clôturée' && !reclamation.isRestricted && (
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] shadow-2xl border border-slate-100 dark:border-white/5 relative">
               <h3 className="text-lg font-black text-slate-900 dark:text-white mb-6 flex items-center gap-3">Traiter la demande</h3>
               <div className="space-y-6">
@@ -394,6 +436,11 @@ const ReclamationDetail = ({
       </div>
 
       <BulletinDetailsModal isOpen={isBulletinModalOpen} onClose={() => setIsBulletinModalOpen(false)} bulletin={bulletin} />
+      <UserDetailsModal 
+        isOpen={isUserModalOpen} 
+        onClose={() => setIsUserModalOpen(false)} 
+        user={reclamation.adherent} 
+      />
       <ConfirmModal
         isOpen={confirmModal.isOpen}
         onClose={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}

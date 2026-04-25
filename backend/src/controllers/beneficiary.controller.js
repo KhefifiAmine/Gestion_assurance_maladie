@@ -1,4 +1,6 @@
 const { Beneficiary, User } = require('../../models');
+const path = require('path');
+const fs = require('fs');
 
 // Récupérer mes bénéficiaires
 const getMyBeneficiaries = async (req, res) => {
@@ -46,6 +48,7 @@ const addBeneficiary = async (req, res) => {
 const deleteBeneficiary = async (req, res) => {
     try {
         const { id } = req.params;
+
         const beneficiary = await Beneficiary.findOne({
             where: { id, userId: req.userId }
         });
@@ -54,8 +57,32 @@ const deleteBeneficiary = async (req, res) => {
             return res.status(404).json({ message: 'Bénéficiaire non trouvé.' });
         }
 
+        // ❌ Interdire suppression si validé
+        if (beneficiary.statut === 'Validé') {
+            return res.status(400).json({ 
+                message: 'Un bénéficiaire validé ne peut plus être supprimé.' 
+            });
+        }
+
+        // 🔥 Suppression du fichier si existant
+        if (beneficiary.document) {
+            const filePath = path.join(__dirname, '../../uploads', beneficiary.document);
+
+            try {
+                if (fs.existsSync(filePath)) {
+                    await fs.promises.unlink(filePath);
+                }
+            } catch (err) {
+                console.warn('Erreur suppression fichier:', err.message);
+                // 👉 On continue sans bloquer la suppression DB
+            }
+        }
+
+        // 🔥 Suppression DB
         await beneficiary.destroy();
+
         res.status(200).json({ message: 'Bénéficiaire supprimé avec succès.' });
+
     } catch (error) {
         console.error('Erreur deleteBeneficiary:', error);
         res.status(500).json({ message: 'Erreur lors de la suppression.' });

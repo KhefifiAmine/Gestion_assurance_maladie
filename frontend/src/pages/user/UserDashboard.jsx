@@ -7,7 +7,7 @@ import {
     AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
 import { getMyBulletins } from '../../services/bulletinService';
-import { getReclamations } from '../../services/reclamationService';
+import { getMyReclamations } from '../../services/reclamationService';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
@@ -24,7 +24,7 @@ const UserDashboard = () => {
             setLoading(true);
             const [bulletinData, reclamationData] = await Promise.all([
                 getMyBulletins(),
-                getReclamations()
+                getMyReclamations()
             ]);
             setBulletins(bulletinData);
             setReclamations(reclamationData);

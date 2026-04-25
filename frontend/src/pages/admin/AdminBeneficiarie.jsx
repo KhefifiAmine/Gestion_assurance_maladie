@@ -14,8 +14,6 @@ const AdminBeneficiarie = () => {
     const [beneficiaries, setBeneficiaries] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
-    const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'table'
-
 
     // Delete confirm
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -102,25 +100,6 @@ const AdminBeneficiarie = () => {
                         <p className="text-[10px] font-black opacity-40 uppercase tracking-[0.2em]">Vue Administrateur</p>
                     </div>
                 </div>
-
-                <div className="flex items-center gap-3">
-                    <div className="flex bg-white dark:bg-slate-900 p-1.5 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
-                        <button
-                            onClick={() => setViewMode('grid')}
-                            className={`p-2.5 rounded-xl transition-all ${viewMode === 'grid' ? 'bg-purple-600 text-white shadow-lg' : 'text-slate-400 hover:text-purple-600'}`}
-                            title="Vue Grille"
-                        >
-                            <LayoutGrid size={20} />
-                        </button>
-                        <button
-                            onClick={() => setViewMode('table')}
-                            className={`p-2.5 rounded-xl transition-all ${viewMode === 'table' ? 'bg-purple-600 text-white shadow-lg' : 'text-slate-400 hover:text-purple-600'}`}
-                            title="Vue Tableau"
-                        >
-                            <List size={20} />
-                        </button>
-                    </div>
-                </div>
             </motion.div>
 
             {/* Search and Filters */}
@@ -146,83 +125,20 @@ const AdminBeneficiarie = () => {
                     <Users size={64} className="mx-auto text-slate-400" />
                     <p className="font-black text-2xl uppercase tracking-tighter text-slate-400">Aucun bénéficiaire trouvé</p>
                 </div>
-            ) : viewMode === 'grid' ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {filteredBeneficiaries.map((b, i) => (
-                        <motion.div
-                            key={b.id}
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{ delay: i * 0.05 }}
-                            className="p-6 rounded-[2rem] bg-white dark:bg-slate-900 shadow-sm border border-slate-100 flex flex-col gap-4 relative overflow-hidden group hover:shadow-xl transition-all"
-                        >
-                            <div className="absolute top-0 right-0 w-32 h-32 bg-purple-600/5 rounded-full blur-3xl -mr-16 -mt-16" />
-
-                            <div className="flex justify-between items-start">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-12 h-12 rounded-2xl bg-purple-50 dark:bg-purple-900/20 flex items-center justify-center">
-                                        <Users size={24} className="text-purple-600 dark:text-purple-400" />
-                                    </div>
-                                    <div>
-                                        <h3 className="font-black text-lg tracking-tight text-slate-900 dark:text-white">{b.prenom} {b.nom}</h3>
-                                        <p className="text-[10px] font-black tracking-widest uppercase opacity-50">{b.relation} • {b.sexe}</p>
-                                    </div>
-                                </div>
-                                <span className={`px-3 py-1 text-[10px] font-black uppercase tracking-widest rounded-full border flex items-center gap-1 ${getStatusColor(b.statut)}`}>
-                                    {getStatusIcon(b.statut)} {b.statut}
-                                </span>
-                            </div>
-
-                            <div className="space-y-1">
-                                <p className="text-xs font-bold text-slate-500">Né(e) le : {b.ddn ? new Date(b.ddn).toLocaleDateString() : 'N/A'}</p>
-                                <div className="border-t border-slate-100 pt-2 mt-2">
-                                    <p className="text-[10px] font-black opacity-40 uppercase tracking-widest">Adhérent : {b.user ? `${b.user.prenom} ${b.user.nom}` : b.userId}</p>
-                                    <p className="text-[10px] font-bold opacity-30">{b.user?.email || ''}</p>
-                                </div>
-                                {b.statut === 'Rejeté' && b.motifRefus && (
-                                    <div className="p-3 mt-2 rounded-xl bg-red-50/50 border border-red-100">
-                                        <p className="text-[10px] font-black text-red-600 mb-1 uppercase tracking-widest">Motif du refus</p>
-                                        <p className="text-xs font-bold text-slate-700">{b.motifRefus}</p>
-                                    </div>
-                                )}
-                            </div>
-
-                            {b.document && (
-                                <button onClick={() => setPreviewDocument(b.document)} className="flex items-center gap-2 p-3 rounded-xl bg-slate-50 hover:bg-slate-100 text-sm font-bold text-slate-600 transition-colors w-max">
-                                    <Eye size={18} className="text-purple-600" />
-                                    Voir justificatif
-                                </button>
-                            )}
-
-                            <div className="flex gap-2 mt-auto pt-4 border-t border-slate-100">
-                                {b.statut === 'En attente' && (
-                                    <>
-                                        <button onClick={() => handleStatusUpdate(b.id, 'Validé')} className="flex-1 py-3 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 hover:text-emerald-700 font-black text-xs uppercase tracking-widest rounded-xl transition-all">Valider</button>
-                                        <button onClick={() => { setBeneficiaryToReject(b); setShowRejectModal(true); }} className="flex-1 py-3 bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 font-black text-xs uppercase tracking-widest rounded-xl transition-all">Rejeter</button>
-                                    </>
-                                )}
-                                <button
-                                    onClick={() => { setBeneficiaryToDelete(b); setShowDeleteConfirm(true); }}
-                                    className="w-full py-3 bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 font-black text-xs uppercase tracking-widest rounded-xl transition-all flex items-center justify-center gap-2"
-                                >
-                                    <Trash2 size={16} /> Supprimer
-                                </button>
-                            </div>
-                        </motion.div>
-                    ))}
-                </div>
             ) : (
                 <div className="overflow-hidden rounded-[2rem] bg-white dark:bg-slate-900 shadow-sm border border-slate-100">
                     <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse">
                             <thead>
                                 <tr className="bg-slate-50 border-b border-slate-100">
-                                    <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Bénéficiaire</th>
-                                    <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Relation</th>
-                                    <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Adhérent</th>
-                                    <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Naissance</th>
-                                    <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Statut</th>
-                                    <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">Actions</th>
+                                    <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-900">Bénéficiaire</th>
+                                    <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-900">Sexe</th>
+                                    <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-900">Naissance</th>
+                                    <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-900">Relation</th>
+                                    <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-900">Adhérent</th>
+                                    <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-900">Statut</th>
+                                    <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-900">Motif De Rejet</th>
+                                    <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-900 text-right">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
@@ -243,21 +159,28 @@ const AdminBeneficiarie = () => {
                                             </div>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <span className="text-xs font-black uppercase tracking-widest opacity-60 text-slate-600">{b.relation}</span>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <div className="flex flex-col">
-                                                <span className="text-sm font-bold text-slate-700">{b.user ? `${b.user.prenom} ${b.user.nom}` : b.userId}</span>
-                                                <span className="text-[10px] font-black opacity-30 uppercase">{b.user?.email || ''}</span>
-                                            </div>
+                                            <span className="text-sm font-bold text-slate-600">{b.sexe === 'M' ? "Homme" : "Femme"}</span>
                                         </td>
                                         <td className="px-6 py-4">
                                             <span className="text-sm font-bold text-slate-600">{b.ddn ? new Date(b.ddn).toLocaleDateString() : 'N/A'}</span>
                                         </td>
                                         <td className="px-6 py-4">
+                                            <span className="text-xs font-black uppercase tracking-widest opacity-80 text-slate-900">{b.relation}</span>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div className="flex flex-col">
+                                                <span className="text-sm font-bold text-slate-700">{b.user ? `${b.user.prenom} ${b.user.nom}` : b.userId}</span>
+                                                <span className="text-[10px] font-black opacity-70 uppercase">{b.user?.email || ''}</span>
+                                            </div>
+                                        </td>
+                                        
+                                        <td className="px-6 py-4">
                                             <span className={`px-3 py-1 text-[9px] font-black uppercase tracking-widest rounded-full border inline-flex items-center gap-1 ${getStatusColor(b.statut)}`}>
                                                 {getStatusIcon(b.statut)} {b.statut}
                                             </span>
+                                        </td>
+                                        <td className="px-6 py-4 px-6 text-xs font-bold uppercase tracking-widest text-red-500">
+                                            {b.motifRefus || 'N/A'}
                                         </td>
                                         <td className="px-6 py-4 text-right">
                                             <div className="flex justify-end gap-2">
@@ -266,10 +189,15 @@ const AdminBeneficiarie = () => {
                                                         <Eye size={18} />
                                                     </button>
                                                 )}
-                                                <button onClick={() => handleStatusUpdate(b.id, 'Validé')} title="Valider" className="p-2.5 rounded-xl bg-emerald-100 text-emerald-600 hover:bg-emerald-600 hover:text-white transition-all"><CheckCircle size={18} /></button>
-                                                <button onClick={() => { setBeneficiaryToReject(b); setShowRejectModal(true); }} title="Refuser" className="p-2.5 rounded-xl bg-red-100 text-red-600 hover:bg-red-600 hover:text-white transition-all"><XCircle size={18} /></button>
+                                                {b.statut === 'En attente' && (
+                                                    <>
+                                                        <button onClick={() => handleStatusUpdate(b.id, 'Validé')} title="Valider" className="p-2.5 rounded-xl bg-emerald-100 text-emerald-600 hover:bg-emerald-600 hover:text-white transition-all"><CheckCircle size={18} /></button>
+                                                        <button onClick={() => { setBeneficiaryToReject(b); setShowRejectModal(true); }} title="Refuser" className="p-2.5 rounded-xl bg-red-100 text-red-600 hover:bg-red-600 hover:text-white transition-all"><XCircle size={18} /></button>
+                                                    </>
+                                                )}
                                             </div>
                                         </td>
+                                        
                                     </motion.tr>
                                 ))}
                             </tbody>
@@ -351,15 +279,6 @@ const AdminBeneficiarie = () => {
                                     </div>
                                 </div>
                                 <div className="flex gap-2">
-                                    <a
-                                        href={`http://localhost:5000/${previewDocument}`}
-                                        download
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="px-4 py-2 rounded-2xl bg-purple-50 dark:bg-purple-900/20 text-purple-600 hover:bg-purple-600 hover:text-white transition-all font-black text-xs flex items-center gap-2"
-                                    >
-                                        <Download size={14} /> TÉLÉCHARGER
-                                    </a>
                                     <button onClick={() => setPreviewDocument(null)} className="p-3 rounded-2xl bg-slate-100 dark:bg-slate-800 hover:bg-red-50 text-slate-400 hover:text-red-500 transition-all">
                                         <X size={18} />
                                     </button>

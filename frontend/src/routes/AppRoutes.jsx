@@ -21,25 +21,14 @@ import AdminBeneficiarie from '../pages/admin/AdminBeneficiarie';
 import UserBeneficiarie from '../pages/user/UserBeneficiarie';
 import UserReclamation from '../pages/user/UserReclamation';
 import AdminReclamation from '../pages/admin/AdminReclamation';
-import GATAboutServices from '../pages/GATAboutServices';
-import GATAboutUs from '../pages/GATAboutUs';
 import GATVitrine from '../pages/GATVitrine';
-import HowItWorks from '../pages/HowItWorks';
-import PublicLayout from '../layouts/PublicLayout';
-import LandingPage from '../pages/LandingPage';
 
 const AppRoutes = () => {
     return (
         <Routes>
-            {/* Pages publiques — Header partagé via PublicLayout */}
-            <Route element={<PublicLayout />}>
-                <Route path="/" element={<HomeRedirect />} />
-                <Route path="/comment-ca-marche" element={<HowItWorks />} />
-            </Route>
+            {/* Redirection intelligente à la racine */}
+            <Route path="/" element={<HomeRedirect />} />
 
-            {/* Autres pages publiques sans PublicLayout */}
-            <Route path="/vitrine" element={<GATVitrine />} />
-            <Route path="/a-propos" element={<GATAboutServices />} />
 
             {/* Authentification */}
             <Route element={<AuthLayout />}>
@@ -75,7 +64,7 @@ const AppRoutes = () => {
                 <Route index element={<AdminHomeRedirect />} />
                 <Route path="dashboard" element={<AdminDashboard mode="all" />} />
                 <Route path="users" element={<ProtectedRoute allowedRoles={['RESPONSABLE_RH']}><AdminDashboard mode="all" /></ProtectedRoute>} />
-                <Route path="bulletins" element={<ProtectedRoute allowedRoles={['ADMIN', 'RESPONSABLE_RH']}><AdminBulletins /></ProtectedRoute>} />
+                <Route path="bulletins" element={<ProtectedRoute allowedRoles={['ADMIN']}><AdminBulletins /></ProtectedRoute>} />
                 <Route path="reclamations" element={<ProtectedRoute allowedRoles={['ADMIN']}><AdminReclamation /></ProtectedRoute>} />
                 <Route path="statistiques" element={<ProtectedRoute allowedRoles={['ADMIN', 'RESPONSABLE_RH']}><AdminStats /></ProtectedRoute>} />
                 <Route path="beneficiaires" element={<ProtectedRoute allowedRoles={['RESPONSABLE_RH']}><AdminBeneficiarie /></ProtectedRoute>} />

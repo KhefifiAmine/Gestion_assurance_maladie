@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     X, FileText, User, Activity, Upload, ChevronRight, ChevronDown,
@@ -9,6 +9,41 @@ import { getMyBeneficiaries } from '../services/beneficiaryService';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 
+const DocumentPreview = ({ file, url }) => {
+    const [fileUrl, setFileUrl] = useState(null);
+
+    useEffect(() => {
+        if (file) {
+            const objectUrl = URL.createObjectURL(file);
+            setFileUrl(objectUrl);
+
+            return () => URL.revokeObjectURL(objectUrl); // 🔥 cleanup
+        } else if (url) {
+            setFileUrl(`http://localhost:5000/uploads/${url}`);
+        }
+    }, [file, url]);
+
+    if (!fileUrl) return null;
+
+    const fileName = file ? file.name : url;
+    const isPdf = fileName?.toLowerCase().endsWith('.pdf');
+
+    return <div className="h-full rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-950 flex items-center justify-center relative group min-h-[400px] lg:min-h-0">
+            {isPdf ? (
+                <iframe
+                    src={`${fileUrl}#toolbar=0`}
+                    className="w-full h-full"
+                    title="Aperçu du document"
+                />
+            ) : (
+                <img
+                    src={fileUrl}
+                    alt="Aperçu"
+                    className="max-w-full h-full object-contain"
+                />
+            )}
+        </div>
+};
 const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => {
     const { user } = useAuth();
     const { showToast } = useToast();
@@ -238,48 +273,6 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
 
     if (!isOpen) return null;
 
-    const DocumentPreview = ({ file, url }) => {
-        if (!file && !url) return null;
-
-        // Si on a un fichier local (objet File), on utilise createObjectURL
-        // Sinon on utilise l'URL du backend
-        const fileUrl = file ? URL.createObjectURL(file) : `http://localhost:5000/uploads/${url}`;
-        const fileName = file ? file.name : url;
-        const isPdf = fileName?.toLowerCase().endsWith('.pdf');
-
-        return (
-            <div className="h-full rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-950 flex items-center justify-center relative group min-h-[400px] lg:min-h-0">
-                {isPdf ? (
-                    <iframe
-                        src={`${fileUrl}#toolbar=0`}
-                        className="w-full h-full min-h-[500px]"
-                        title="Aperçu du document"
-                    />
-                ) : (
-                    <img
-                        src={fileUrl}
-                        alt="Aperçu"
-                        className="max-w-full h-full object-contain"
-                        onLoad={() => {
-                            // Si c'est un blob local, on pourrait vouloir libérer l'URL après chargement
-                            // Mais attention si le composant re-render
-                        }}
-                    />
-                )}
-                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
-                    <a
-                        href={fileUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="p-4 bg-white rounded-full text-purple-600 hover:scale-110 transition-transform shadow-xl"
-                        title="Ouvrir dans un nouvel onglet"
-                    >
-                        <ExternalLink size={24} />
-                    </a>
-                </div>
-            </div>
-        );
-    };
 
     const showSidePreview = step === 2 && formData.fichierUrl;
 

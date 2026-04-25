@@ -2,12 +2,11 @@ import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
-import LandingPage from '../pages/LandingPage';
 
 // Composant pour rediriger l'utilisateur vers son espace approprié
 export const HomeRedirect = () => {
     const { isAuthenticated, user } = useAuth();
-    if (!isAuthenticated) return <LandingPage />;
+    if (!isAuthenticated) return <Navigate to="/login" replace />;
     return ['ADMIN', 'RESPONSABLE_RH'].includes(user?.role)
         ? <Navigate to="/admin" replace />
         : <Navigate to="/dashboard" replace />;

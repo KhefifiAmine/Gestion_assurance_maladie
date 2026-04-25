@@ -1,4 +1,3 @@
-const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const { Op } = require('sequelize');
@@ -280,20 +279,43 @@ const deleteBulletin = async (req, res) => {
             return res.status(403).json({ message: 'Accès non autorisé' });
         }
 
-        // Vérifier le statut pour la suppression
-        // On autorise la suppression uniquement si le bulletin est "En attente" (0) ou "Refusé" (3)
+        // Autoriser suppression seulement si EN ATTENTE (0) ou REFUSÉ (3)
         if (bulletin.statut !== 0 && bulletin.statut !== 3) {
-            return res.status(400).json({ 
-                message: 'Impossible de supprimer un bulletin en cours de traitement (En cours) ou déjà validé (Approuvée).' 
+            return res.status(400).json({
+                message: 'Impossible de supprimer un bulletin en cours ou validé.'
             });
         }
 
+        // 🔥 Récupérer le document associé
+        const doc = await DocumentJustificatif.findOne({
+            where: { bulletinId: id }
+        });
+
+        // 🔥 Supprimer le fichier s'il existe
+        if (doc && doc.fichier) {
+            const filePath = path.join(__dirname, '../../uploads', doc.fichier);
+
+            if (fs.existsSync(filePath)) {
+                fs.unlinkSync(filePath);
+            }
+        }
+
+        // 🔥 Supprimer le document de la DB (optionnel mais recommandé)
+        if (doc) {
+            await doc.destroy();
+        }
+
+        // 🔥 Supprimer le bulletin
         await bulletin.destroy();
 
         res.status(200).json({ message: 'Bulletin supprimé avec succès' });
+
     } catch (error) {
         console.error(error);
-        res.status(500).json({ message: 'Erreur lors de la suppression du bulletin', error: error.message });
+        res.status(500).json({
+            message: 'Erreur lors de la suppression du bulletin',
+            error: error.message
+        });
     }
 };
 

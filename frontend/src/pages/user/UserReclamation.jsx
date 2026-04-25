@@ -8,7 +8,7 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import {
-  getReclamations,
+  getMyReclamations,
   createReclamation,
   updateReclamation,
   deleteReclamation
@@ -321,7 +321,7 @@ const UserReclamation = () => {
     const fetchData = async () => {
       setIsLoading(true);
       try {
-        const [recs, bulls] = await Promise.all([getReclamations(), getMyBulletins().catch(() => [])]);
+        const [recs, bulls] = await Promise.all([getMyReclamations(), getMyBulletins().catch(() => [])]);
         setReclamations(recs);
         setBulletins(bulls);
       } catch (err) {
@@ -357,6 +357,7 @@ const UserReclamation = () => {
         try {
           await deleteReclamation(id);
           setReclamations(prev => prev.filter(r => r.id !== id));
+          closeConfirm();
           showToast('Réclamation supprimée', 'success');
         } catch (err) { showToast(err.message, 'error'); }
       },

@@ -23,11 +23,6 @@ const analyzeBulletin = async (req, res) => {
       return res.status(400).json({ message: "Aucun fichier fourni" });
     }
 
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey || apiKey.trim() === "") {
-      return res.status(500).json({ message: "La clé API Gemini n'est pas configurée dans le fichier .env." });
-    }
-
     // 1. Calculer le hash et vérifier les doublons
     const fileHash = calculateFileHash(req.file.buffer);
     const existingDoc = await DocumentJustificatif.findOne({
@@ -39,6 +34,11 @@ const analyzeBulletin = async (req, res) => {
         message: "Ce document a déjà été soumis dans le système.",
         isDuplicate: true,
       });
+    }
+
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey || apiKey.trim() === "") {
+      return res.status(500).json({ message: "La clé API Gemini n'est pas configurée dans le fichier .env." });
     }
 
     // 2. Préparation du prompt et de l'image

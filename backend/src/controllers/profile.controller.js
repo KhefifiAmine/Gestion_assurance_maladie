@@ -80,7 +80,7 @@ const changePassword = async (req, res) => {
         // Vérifier l'ancien mot de passe
         const valid = await bcrypt.compare(ancienMdp, user.mot_de_passe);
         if (!valid) {
-            return res.status(401).json({ message: 'L\'ancien mot de passe est incorrect.' });
+            return res.status(403).json({ message: 'L\'ancien mot de passe est incorrect.' });
         }
 
         // Validation de la force du mot de passe

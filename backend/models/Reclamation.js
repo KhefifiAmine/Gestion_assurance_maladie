@@ -40,10 +40,6 @@ const Reclamation = sequelize.define('Reclamation', {
         type: DataTypes.INTEGER,
         allowNull: true
     },
-    commentaireModif: {
-        type: DataTypes.TEXT,
-        allowNull: true
-    },
     reference: {
         type: DataTypes.STRING,
         allowNull: true,

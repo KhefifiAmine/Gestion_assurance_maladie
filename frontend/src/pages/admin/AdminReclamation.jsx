@@ -12,7 +12,7 @@ import {
     getReclamations,
     deleteReclamation
 } from '../../services/reclamationService';
-import { getMyBulletins } from '../../services/bulletinService';
+import { getAllBulletins } from '../../services/bulletinService';
 
 import ReclamationDetail from '../../components/ReclamationDetail';
 import ConfirmModal from '../../components/ConfirmModal';
@@ -257,7 +257,7 @@ const AdminReclamation = () => {
         const fetchData = async () => {
             setIsLoading(true);
             try {
-                const [recs, bulls] = await Promise.all([getReclamations(), getMyBulletins().catch(() => [])]);
+                const [recs, bulls] = await Promise.all([getReclamations(), getAllBulletins().catch(() => [])]);
                 setReclamations(recs);
                 setBulletins(bulls);
             } catch (err) {
