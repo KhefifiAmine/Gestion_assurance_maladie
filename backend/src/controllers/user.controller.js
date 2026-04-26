@@ -149,7 +149,7 @@ const createUser = async (req, res) => {
             return res.status(400).json({ message: 'Un utilisateur avec cet email existe déjà.' });
         }
 
-        const plainPassword = '123456';
+        const plainPassword = generateRandomPassword();
         const hashedPassword = await hashPassword(plainPassword);
 
         const newUser = await User.create({

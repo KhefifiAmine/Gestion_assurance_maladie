@@ -66,17 +66,17 @@ export const updateReclamationStatus = async (id, payload) => {
     return data.data;
 };
 
-export const markReclamationAsRead = async (id) => {
-    const res = await fetch(`${API_BASE}/reclamations/${id}/read`, {
-        method: 'PUT',
+export const deleteReclamation = async (id) => {
+    const res = await fetch(`${API_BASE}/reclamations/${id}`, {
+        method: 'DELETE',
         headers: authHeaders()
     });
     return handleResponse(res);
 };
-
-export const deleteReclamation = async (id) => {
-    const res = await fetch(`${API_BASE}/reclamations/${id}`, {
-        method: 'DELETE',
+/*
+export const markReclamationAsRead = async (id) => {
+    const res = await fetch(`${API_BASE}/reclamations/${id}/read`, {
+        method: 'PUT',
         headers: authHeaders()
     });
     return handleResponse(res);
@@ -91,3 +91,4 @@ export const addReclamationMessage = async (id, message) => {
     const data = await handleResponse(res);
     return data.data;
 };
+*/

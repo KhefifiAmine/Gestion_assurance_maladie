@@ -107,22 +107,7 @@ export const analyzeBulletinIA = async (file) => {
     return handleResponse(response);
 };
 
-export const uploadBulletinDocument = async (file) => {
-    const token = localStorage.getItem('token');
-    const formData = new FormData();
-    formData.append('file', file);
-
-    const response = await fetch('http://localhost:5000/api/ai/upload-document', {
-        method: 'POST',
-        headers: {
-            'Authorization': `Bearer ${token}`
-        },
-        body: formData
-    });
-
-    return handleResponse(response);
-};
-
+/*
 export const getBulletinComments = async (id) => {
     const response = await fetch(`${API_URL}/${id}/comments`, {
         method: 'GET',
@@ -141,3 +126,4 @@ export const addBulletinComment = async (id, message) => {
 
     return handleResponse(response);
 };
+*/

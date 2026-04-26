@@ -6,8 +6,8 @@ const {
     getMyBulletins,
     getAllBulletins,
     updateBulletinStatus,
-    addBulletinComment,
-    getBulletinComments,
+    //addBulletinComment,
+    //getBulletinComments,
     updateBulletin,
     deleteBulletin
 } = require('../controllers/bulletin.controller');
@@ -26,7 +26,7 @@ router.get('/all', verifyToken, isAdminOrRH, getAllBulletins);
 router.put('/:id/status', verifyToken, isAdmin, updateBulletinStatus);
 
 // Routes pour les commentaires (accessibles aux deux rôles)
-router.get('/:id/comments', verifyToken, getBulletinComments);
-router.post('/:id/comments', verifyToken, addBulletinComment);
+//router.get('/:id/comments', verifyToken, getBulletinComments);
+//router.post('/:id/comments', verifyToken, addBulletinComment);
 
 module.exports = router;

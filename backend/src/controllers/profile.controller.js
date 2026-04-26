@@ -104,29 +104,8 @@ const changePassword = async (req, res) => {
     }
 };
 
-// DELETE supprimer le compte
-const deleteAccount = async (req, res) => {
-    try {
-        const userId = req.userId;
-
-        const user = await User.findByPk(userId);
-        if (!user) {
-            return res.status(404).json({ message: 'Utilisateur non trouvé.' });
-        }
-
-        // Suppression de l'utilisateur (ou désactivation, ici on supprime définitivement)
-        await user.destroy();
-
-        res.status(200).json({ message: 'Compte supprimé avec succès.' });
-    } catch (error) {
-        console.error('Erreur deleteAccount:', error);
-        res.status(500).json({ message: 'Erreur serveur lors de la suppression du compte.' });
-    }
-};
-
 module.exports = {
     getProfile,
     updateProfile,
-    changePassword,
-    deleteAccount
+    changePassword
 };

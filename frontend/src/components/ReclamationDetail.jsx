@@ -2,12 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft, Clock, MessageSquare, Send, RefreshCw,
-  Trash2, CheckCircle, FileText, Eye, ChevronDown
+  Trash2, CheckCircle, FileText, Eye, ChevronDown,
+  ShieldCheck, Lock, ShieldAlert
 } from 'lucide-react';
 
 import {
   getReclamationById,
-  markReclamationAsRead,
   updateReclamation,
   updateReclamationStatus,
   deleteReclamation
@@ -88,11 +88,6 @@ const ReclamationDetail = ({
         setReclamation(fullData);
         setStatus(fullData.statut);
         setPriority(fullData.priorite || 2);
-
-        if (isAdherent && fullData.unread) {
-          await markReclamationAsRead(id);
-          if (onReclamationUpdate) onReclamationUpdate({ ...fullData, unread: false });
-        }
       } catch (err) {
         showToast(err.message || "Erreur de chargement", 'error');
       } finally {
@@ -263,8 +258,55 @@ const ReclamationDetail = ({
           </motion.div>
 
           {reclamation.reponseAdmin && !reclamation.isRestricted && (
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="bg-indigo-50/30 dark:bg-indigo-900/10 p-8 sm:p-10 rounded-[2.5rem] shadow-xl border-l-[6px] border-indigo-500 relative overflow-hidden">
-              <div className="bg-white dark:bg-slate-900 p-8 rounded-[1.5rem] text-slate-800 dark:text-slate-100 whitespace-pre-wrap font-bold tracking-tight shadow-2xl border border-indigo-100">{reclamation.reponseAdmin}</div>
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }} 
+              animate={{ opacity: 1, y: 0 }} 
+              className="bg-indigo-50/30 dark:bg-indigo-900/10 p-8 sm:p-10 rounded-[2.5rem] shadow-xl border-l-[6px] border-indigo-500 relative overflow-hidden"
+            >
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 bg-indigo-500 rounded-xl text-white shadow-lg shadow-indigo-500/20">
+                    <ShieldCheck size={20} />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest">
+                      Réponse de l'administration
+                    </h4>
+                    <p className="text-[12px] font-bold text-slate-900 uppercase tracking-tight">
+                      {reclamation.admin ? `Par ${reclamation.admin.prenom} ${reclamation.admin.nom}` : 'Officielle'}
+                    </p>
+                  </div>
+                </div>
+                {reclamation.dateReponse && (
+                  <div className="text-[12px] font-black text-slate-900 uppercase tracking-widest bg-white/50 dark:bg-slate-800/50 px-3 py-1.5 rounded-lg border border-indigo-100/50">
+                    {formatDate(reclamation.dateReponse)}
+                  </div>
+                )}
+              </div>
+
+              <div className="bg-white dark:bg-slate-900 p-8 rounded-[1.5rem] text-slate-800 dark:text-slate-100 whitespace-pre-wrap font-bold tracking-tight shadow-2xl border border-indigo-100/50 leading-relaxed">
+                {reclamation.reponseAdmin}
+              </div>
+              
+              <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-3xl -mr-16 -mt-16" />
+            </motion.div>
+          )}
+
+          {reclamation.isRestricted && (
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }} 
+              animate={{ opacity: 1, scale: 1 }} 
+              className="bg-amber-50 dark:bg-amber-900/10 p-8 rounded-[2rem] border border-amber-200 dark:border-amber-800/30 flex flex-col items-center text-center gap-4"
+            >
+              <div className="w-16 h-16 bg-amber-100 dark:bg-amber-900/30 rounded-2xl flex items-center justify-center text-amber-600">
+                <Lock size={32} />
+              </div>
+              <div>
+                <h4 className="text-lg font-black text-amber-900 dark:text-amber-400 mb-1">Accès Restreint</h4>
+                <p className="text-sm font-bold text-amber-700/70 dark:text-amber-500/70 max-w-xs">
+                  {reclamation.restrictionMessage || "Cette discussion est gérée par un autre administrateur."}
+                </p>
+              </div>
             </motion.div>
           )}
 

@@ -288,10 +288,10 @@ const BulletinDetailsModal = ({ isOpen, onClose, bulletin }) => {
                                                                 </div>
                                                                 <div>
                                                                     <p className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-tight">{doc.type_document || 'Document'}</p>
-                                                                    <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1 mt-0.5">
+                                                                    {isAdmin && (<p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1 mt-0.5">
                                                                         <span className={`w-1.5 h-1.5 rounded-full inline-block ${doc.est_suspect ? 'bg-red-500' : 'bg-emerald-400'}`} />
                                                                         {isPdf ? 'PDF' : 'Image'} · {doc.est_suspect ? <span className="text-red-500">Suspect</span> : 'Officiel'}
-                                                                    </p>
+                                                                    </p>)}
                                                                 </div>
                                                             </div>
                                                             <div className="flex items-center gap-2">

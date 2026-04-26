@@ -523,13 +523,13 @@ const UserBeneficiarie = () => {
                             <div className="flex-1 bg-slate-100 dark:bg-[#0B1120] relative p-8 flex items-center justify-center overflow-auto pattern-grid">
                                 {previewDocument.toLowerCase().endsWith('.pdf') ? (
                                     <iframe
-                                        src={`http://localhost:5000/${previewDocument}`}
+                                        src={`http://localhost:5000/uploads/${previewDocument}`}
                                         className="w-full h-full rounded-2xl shadow-sm border border-slate-200 dark:border-white/5 bg-white"
                                         title="Document"
                                     />
                                 ) : (
                                     <img
-                                        src={`http://localhost:5000/${previewDocument}`}
+                                        src={`http://localhost:5000/uploads/${previewDocument}`}
                                         alt="Document Justificatif"
                                         className="max-w-full max-h-full object-contain rounded-2xl shadow-xl border border-slate-200 dark:border-white/5"
                                     />

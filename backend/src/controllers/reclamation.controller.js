@@ -150,7 +150,7 @@ const getById = async (req, res) => {
 const update = async (req, res) => {
   try {
     const { id } = req.params;
-    const { objet, description, } = req.body;
+    const { objet, description, bulletinId} = req.body;
     const { userId } = req;
 
     const reclamation = await Reclamation.findByPk(id);
@@ -165,6 +165,7 @@ const update = async (req, res) => {
       }
       if (objet) reclamation.objet = objet;
       if (description) reclamation.description = description;
+      if (bulletinId) reclamation.bulletinId = bulletinId;
     } else {
       return res.status(403).json({ success: false, message: 'Accès non autorisé.' });
     }
@@ -226,6 +227,7 @@ const updateStatus = async (req, res) => {
   }
 };
 
+/*
 // 5. Marquer la réponse comme lue (Accessible pour: Adhérent)
 const markAsRead = async (req, res) => {
   try {
@@ -297,7 +299,7 @@ const addMessage = async (req, res) => {
     console.error('Erreur lors de l\'ajout du message:', error);
     res.status(500).json({ success: false, message: 'Erreur serveur.' });
   }
-};
+};*/
 
 // 7. Supprimer une réclamation (Accessible pour: Admin, Adhérent si Ouverte)
 const deleteReclamation = async (req, res) => {
@@ -332,4 +334,4 @@ const deleteReclamation = async (req, res) => {
 };
 
 
-module.exports = { getAll, getById, create, update, updateStatus, deleteReclamation, getMyReclamation, addMessage, markAsRead };
+module.exports = { getAll, getById, create, update, updateStatus, deleteReclamation, getMyReclamation };

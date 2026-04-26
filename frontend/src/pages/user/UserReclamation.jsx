@@ -61,7 +61,6 @@ const ReclamationForm = ({ onBack, initialData = null, bulletins = [], addToast,
     prestataire: initialData?.prestataire || 'GAT',
     objet: initialData?.objet || '',
     description: initialData?.description || '',
-    commentaireModif: initialData?.commentaireModif || ''
   });
   const [isReasonDropdownOpen, setIsReasonDropdownOpen] = useState(false);
   const [errors, setErrors] = useState({});
@@ -78,7 +77,6 @@ const ReclamationForm = ({ onBack, initialData = null, bulletins = [], addToast,
     let error = '';
     if (name === 'objet' && !value) error = "L'objet est obligatoire";
     if (name === 'bulletinId' && !value) error = "Veuillez sélectionner le bulletin concerné";
-    if (isEdit && name === 'commentaireModif' && !value.trim()) error = 'Veuillez justifier la modification';
     setErrors(prev => ({ ...prev, [name]: error }));
     return error;
   };
@@ -93,12 +91,12 @@ const ReclamationForm = ({ onBack, initialData = null, bulletins = [], addToast,
     e.preventDefault();
     const e1 = validateField('objet', formData.objet);
     const e2 = validateField('bulletinId', formData.bulletinId);
-    const e3 = isEdit ? validateField('commentaireModif', formData.commentaireModif) : '';
 
-    if (e1 || e2 || e3) {
+    if (e1 || e2) {
       addToast('Veuillez remplir les champs obligatoires.', 'warning');
       return;
     }
+
 
     setIsSubmitting(true);
     try {
@@ -168,20 +166,12 @@ const ReclamationForm = ({ onBack, initialData = null, bulletins = [], addToast,
             <textarea name="description" value={formData.description} onChange={handleChange} rows={4} className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 rounded-[1.5rem] p-6 outline-none focus:ring-4 focus:ring-purple-500/10 font-bold dark:text-white transition shadow-inner resize-none" placeholder="Ajoutez des détails si nécessaire..." />
           </div>
 
-          {isEdit && (
-            <div className="animate-slide-up">
-              <label className="block text-[10px] font-black uppercase text-purple-600 mb-2 px-1">Commentaire de modification <span className="text-red-500">*</span></label>
-              <textarea name="commentaireModif" value={formData.commentaireModif} onChange={handleChange} rows={3} className={`w-full bg-purple-50/30 dark:bg-purple-900/10 border ${errors.commentaireModif ? 'border-red-500' : 'border-purple-100 dark:border-purple-800/30'} rounded-[1.5rem] p-6 outline-none focus:ring-4 focus:ring-purple-500/10 font-bold dark:text-white transition shadow-inner resize-none`} placeholder="Justifiez votre modification..." />
-              {errors.commentaireModif && <p className="text-red-500 text-[10px] font-black mt-2 px-1 uppercase">{errors.commentaireModif}</p>}
-            </div>
-          )}
-
           <div className="pt-4">
             <label className="block text-[10px] font-black uppercase text-slate-400 mb-3 px-1">Lien avec un bulletin <span className="text-red-500">*</span></label>
-            <select 
-              name="bulletinId" 
-              value={formData.bulletinId} 
-              onChange={handleChange} 
+            <select
+              name="bulletinId"
+              value={formData.bulletinId}
+              onChange={handleChange}
               className={`w-full bg-slate-50 dark:bg-slate-800/50 border ${errors.bulletinId ? 'border-red-500' : 'border-slate-100 dark:border-slate-800'} rounded-xl p-4 outline-none focus:ring-4 focus:ring-purple-500/10 font-bold dark:text-white transition shadow-inner`}
             >
               <option value="">Sélectionner un bulletin...</option>

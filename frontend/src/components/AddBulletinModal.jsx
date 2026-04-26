@@ -104,6 +104,15 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
 
     useEffect(() => {
         if (isOpen) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = 'unset';
+        }
+        return () => { document.body.style.overflow = 'unset'; };
+    }, [isOpen]);
+
+    useEffect(() => {
+        if (isOpen) {
             fetchBeneficiaries();
             if (isEdit) {
                 setFormData({
@@ -185,7 +194,7 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
             showToast("Analyse du document par l'IA en cours...", "info");
 
             const aiData = await analyzeBulletinIA(file);
-
+            console.log(aiData);
             // Vérification si le document est médical
             if (aiData.est_document_medical === false) {
                 showToast("ALERTE : Ce document n'est PAS un document médical valide (Bulletin, Ordonnance, Facture). Veuillez télécharger un document conforme.", "error");
@@ -203,13 +212,36 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
                 return v;
             };
 
+            const formatDateForInput = (dateStr) => {
+                if (!dateStr) return '';
+                const s = String(dateStr).trim();
+                
+                // Format attendu par Gemini : DD-MM-YYYY
+                const parts = s.match(/^(\d{2})[-/](\d{2})[-/](\d{4})$/);
+                if (parts) {
+                    return `${parts[3]}-${parts[2]}-${parts[1]}`; // YYYY-MM-DD
+                }
+                
+                // Si déjà au format YYYY-MM-DD
+                if (/^\d{4}-\d{2}-\d{2}/.test(s)) {
+                    return s.split(' ')[0];
+                }
+                
+                // Tentative avec l'objet Date
+                const date = new Date(s);
+                if (!isNaN(date.getTime())) {
+                    return date.toISOString().split('T')[0];
+                }
+                return '';
+            };
+
             setSelectedFile(file);
             setFormData(prev => ({
                 ...prev,
                 nom_prenom_malade: clean(aiData.nom_prenom_malade) || prev.nom_prenom_malade,
                 qualite_malade: clean(aiData.qualite_malade) || prev.qualite_malade,
                 montant_total: (aiData.montant_total && aiData.montant_total > 0) ? aiData.montant_total : prev.montant_total,
-                date_soin: clean(aiData.date_soin) || prev.date_soin,
+                date_soin: formatDateForInput(aiData.date_soin) || prev.date_soin,
                 type_dossier: clean(aiData.type_dossier) || prev.type_dossier,
                 matricule_adherent: user?.matricule || prev.matricule_adherent,
                 est_suspect: aiData.est_suspect || false,
@@ -581,7 +613,7 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
                                             <button type="button" onClick={() => setStep(1)} className="px-6 py-3.5 text-slate-500 font-bold hover:text-slate-700 dark:hover:text-slate-300 transition-all">Retour</button>
                                             <button
                                                 type="submit"
-                                                disabled={!formData.nom_prenom_malade || !formData.montant_total || !!formData.alerte_beneficiaire}
+                                                disabled={!formData.nom_prenom_malade || !formData.montant_total }
                                                 className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 text-white px-8 py-4 rounded-2xl font-black text-xs md:text-sm uppercase tracking-widest flex items-center justify-center gap-3 shadow-xl shadow-green-600/20 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 disabled:scale-100"
                                             >
                                                 <CheckCircle2 size={20} /> Valider et Sauvegarder

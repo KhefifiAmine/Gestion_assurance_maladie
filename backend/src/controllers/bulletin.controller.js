@@ -91,7 +91,7 @@ const createBulletin = async (req, res) => {
             // 3. Créer le Document Justificatif
             if (documentHash || req.file) {
                 await DocumentJustificatif.create({
-                    type_document: documentType || type_dossier || 'Document',
+                    type_document: documentType || 'Document',
                     fichier: currentFichierUrl,
                     hash_fichier: documentHash,
                     score: confiance_score || 0,
@@ -410,6 +410,7 @@ const updateBulletinStatus = async (req, res) => {
     }
 };
 
+/*
 const addBulletinComment = async (req, res) => {
     try {
         const { id } = req.params;
@@ -484,7 +485,7 @@ const getBulletinComments = async (req, res) => {
         res.status(500).json({ message: 'Erreur lors de la récupération des commentaires', error: error.message });
     }
 };
-
+*/
 
 
 module.exports = {
@@ -492,8 +493,6 @@ module.exports = {
     getMyBulletins,
     getAllBulletins,
     updateBulletinStatus,
-    addBulletinComment,
-    getBulletinComments,
     updateBulletin,
     deleteBulletin
 };
