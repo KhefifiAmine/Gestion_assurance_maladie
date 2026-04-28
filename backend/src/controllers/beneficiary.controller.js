@@ -1,6 +1,7 @@
-const { Beneficiary, User } = require('../../models');
+const { Beneficiary, User, Notification } = require('../../models');
 const path = require('path');
 const fs = require('fs');
+const { sendNotificationEmail } = require('../utils/emailService');
 
 // Récupérer mes bénéficiaires
 const getMyBeneficiaries = async (req, res) => {
@@ -20,13 +21,28 @@ const getMyBeneficiaries = async (req, res) => {
 const addBeneficiary = async (req, res) => {
     try {
         const { nom, prenom, relation, ddn, sexe } = req.body;
-        
+
         // Gérer le fichier document
         let documentPath = null;
         if (req.file) {
             documentPath = req.file.filename;
         }
-        
+        // Vérifier si le conjoint existe déjà
+        if (relation === 'Conjoint') {
+            const existingSpouse = await Beneficiary.findOne({
+                where: {
+                    userId: req.userId,
+                    relation: 'Conjoint'
+                }
+            });
+
+            if (existingSpouse) {
+                return res.status(400).json({
+                    message: 'Vous avez déjà un conjoint enregistré comme bénéficiaire.'
+                });
+            }
+        }
+
         const newBeneficiary = await Beneficiary.create({
             userId: req.userId,
             nom,
@@ -36,6 +52,28 @@ const addBeneficiary = async (req, res) => {
             sexe,
             document: documentPath
         });
+
+        // --- Notification pour les Responsables RH ---
+        try {
+            const user = await User.findByPk(req.userId);
+            const userName = user ? `${user.prenom} ${user.nom}` : 'Un adhérent';
+
+            const rhManagers = await User.findAll({ where: { role: 'RESPONSABLE_RH' } });
+
+            if (rhManagers.length > 0) {
+                const notifPromises = rhManagers.map(rh => Notification.create({
+                    titre: '👶 Nouveau bénéficiaire à valider',
+                    description: `Un nouveau bénéficiaire (${prenom} ${nom}) a été ajouté par ${userName}.`,
+                    type: 'beneficiaire',
+                    priorite: 'normale',
+                    userId: rh.id,
+                    lu: false
+                }));
+                await Promise.all(notifPromises);
+            }
+        } catch (notifErr) {
+            console.error('Erreur notification RH beneficiary:', notifErr);
+        }
 
         res.status(201).json(newBeneficiary);
     } catch (error) {
@@ -59,8 +97,8 @@ const deleteBeneficiary = async (req, res) => {
 
         // ❌ Interdire suppression si validé
         if (beneficiary.statut === 'Validé') {
-            return res.status(400).json({ 
-                message: 'Un bénéficiaire validé ne peut plus être supprimé.' 
+            return res.status(400).json({
+                message: 'Un bénéficiaire validé ne peut plus être supprimé.'
             });
         }
 
@@ -94,7 +132,7 @@ const updateBeneficiary = async (req, res) => {
     try {
         const { id } = req.params;
         const { nom, prenom, relation, ddn, sexe } = req.body;
-        
+
         const beneficiary = await Beneficiary.findOne({
             where: { id, userId: req.userId }
         });
@@ -106,6 +144,21 @@ const updateBeneficiary = async (req, res) => {
         // Seuls les bénéficiaires "En attente" ou "Rejeté" peuvent être modifiés
         if (beneficiary.statut === 'Validé') {
             return res.status(400).json({ message: 'Un bénéficiaire validé ne peut plus être modifié.' });
+        }
+
+        if (relation === 'Conjoint') {
+            const existingSpouse = await Beneficiary.findOne({
+                where: {
+                    userId: req.userId,
+                    relation: 'Conjoint'
+                }
+            });
+
+            if (existingSpouse) {
+                return res.status(400).json({
+                    message: 'Vous avez déjà un conjoint enregistré comme bénéficiaire.'
+                });
+            }
         }
 
         beneficiary.nom = nom || beneficiary.nom;
@@ -124,6 +177,8 @@ const updateBeneficiary = async (req, res) => {
                 await fs.promises.unlink(filePath);
             }
         }
+
+
 
         await beneficiary.save();
         res.status(200).json(beneficiary);
@@ -156,7 +211,7 @@ const updateStatus = async (req, res) => {
     try {
         const { id } = req.params;
         const { statut, motifRefus } = req.body;
-        
+
         const beneficiary = await Beneficiary.findByPk(id);
         if (!beneficiary) {
             return res.status(404).json({ message: 'Bénéficiaire non trouvé.' });
@@ -170,6 +225,43 @@ const updateStatus = async (req, res) => {
         }
 
         await beneficiary.save();
+
+        // --- Notification en base de données + Email ---
+        try {
+            const userId = beneficiary.userId;
+            const user = await User.findByPk(userId, { attributes: ['email', 'prenom', 'nom'] });
+
+            let titre, description;
+            if (statut === 'Validé') {
+                titre = '✅ Bénéficiaire validé';
+                description = `Votre demande d'ajout du bénéficiaire ${beneficiary.prenom} ${beneficiary.nom} a été validée par l'administration.`;
+            } else if (statut === 'Rejeté') {
+                titre = '❌ Bénéficiaire rejeté';
+                description = `Votre demande d'ajout du bénéficiaire ${beneficiary.prenom} ${beneficiary.nom} a été rejetée.${motifRefus ? ' Motif : ' + motifRefus : ''}`;
+            } else {
+                titre = 'ℹ️ Statut bénéficiaire mis à jour';
+                description = `Le statut du bénéficiaire ${beneficiary.prenom} ${beneficiary.nom} a été mis à jour : ${statut}.`;
+            }
+
+            // Créer la notification en base
+            await Notification.create({
+                titre,
+                description,
+                type: 'beneficiaire',
+                priorite: statut === 'Rejeté' ? 'haute' : 'normale',
+                userId,
+                lu: false
+            });
+
+            // Envoyer l'email (sans bloquer la réponse)
+            if (user?.email) {
+                sendNotificationEmail(user.email, titre, description)
+                    .catch(err => console.error('Email notification beneficiaire:', err));
+            }
+        } catch (notifErr) {
+            console.error('Erreur création notification bénéficiaire:', notifErr);
+        }
+
         res.status(200).json(beneficiary);
     } catch (error) {
         console.error('Erreur updateStatus:', error);

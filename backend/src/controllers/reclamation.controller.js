@@ -1,4 +1,5 @@
-const { Reclamation, User, BulletinSoin, ReclamationMessage } = require('../../models');
+const { Reclamation, User, BulletinSoin, ReclamationMessage, Notification } = require('../../models');
+const { sendNotificationEmail } = require('../utils/emailService');
 
 const create = async (req, res) => {
   try {
@@ -16,6 +17,29 @@ const create = async (req, res) => {
       bulletinId,
       prestataire: prestataire || 'GAT',
     });
+
+    
+    // --- Notification pour les Administrateurs ---
+    try {
+      const user = await User.findByPk(userId);
+      const userName = user ? `${user.prenom} ${user.nom}` : 'Un adhérent';
+      
+      const admins = await User.findAll({ where: { role: 'ADMIN' } });
+      
+      if (admins.length > 0) {
+        const notifPromises = admins.map(admin => Notification.create({
+          titre: '📢 Nouvelle réclamation',
+          description: `Une nouvelle réclamation ("${objet}") a été déposée par ${userName}.`,
+          type: 'reclamation',
+          priorite: 'normale',
+          userId: admin.id,
+          lu: false
+        }));
+        await Promise.all(notifPromises);
+      }
+    } catch (notifErr) {
+      console.error('Erreur notification admin reclamation:', notifErr);
+    }
 
     res.status(201).json({
       success: true,
@@ -35,7 +59,7 @@ const getAll = async (req, res) => {
         {
           model: User,
           as: 'adherent',
-          attributes: ['id', 'nom', 'prenom', 'matricule']
+          attributes: ['id', 'nom', 'prenom', 'matricule' ]
         },
         {
           model: User,
@@ -106,7 +130,7 @@ const getById = async (req, res) => {
     const reclamation = await Reclamation.findOne({
       where: { id },
       include: [
-        { model: User, as: 'adherent', attributes: ['id', 'nom', 'prenom', 'matricule', 'email', 'telephone', 'ddn', 'adresse', 'ville', 'role', 'statut'] },
+        { model: User, as: 'adherent', attributes: ['id', 'nom', 'prenom', 'matricule', 'email', 'telephone', 'ddn', 'adresse', 'ville', 'role', 'statut', 'sexe'] },
         { model: User, as: 'admin', attributes: ['id', 'nom', 'prenom'] },
         { model: BulletinSoin, as: 'bulletinSoin' },
         {
@@ -198,7 +222,7 @@ const updateStatus = async (req, res) => {
     if (userRole === 'ADMIN') {
       if (statut) {
         reclamation.statut = statut;
-        reclamation.adminId = userId; // Assign admin when updating status
+        reclamation.adminId = userId;
       }
       if (priorite !== undefined) {
         reclamation.priorite = priorite;
@@ -209,12 +233,57 @@ const updateStatus = async (req, res) => {
         reclamation.adminId = userId;
         reclamation.unread = true;
       }
-    }
-    else {
+
+      await reclamation.save();
+
+      // --- Notification en base de données + Email ---
+      try {
+        const reclamationUserId = reclamation.userId;
+        const user = await User.findByPk(reclamationUserId, { attributes: ['email', 'prenom', 'nom'] });
+
+        let titre, description, notifPriorite;
+
+        if (reponseAdmin && !statut) {
+          // Cas : l'admin a ajouté une réponse
+          titre = '💬 Réponse à votre réclamation';
+          description = `L'administration a répondu à votre réclamation "${reclamation.objet}". Réponse : ${reponseAdmin}`;
+          notifPriorite = 'normale';
+        } else if (statut === 'Fermée' || statut === 'Résolue') {
+          titre = '✅ Réclamation résolue';
+          description = `Votre réclamation "${reclamation.objet}" a été marquée comme ${statut}.`;
+          notifPriorite = 'normale';
+        } else if (statut === 'En cours') {
+          titre = '🔄 Réclamation en cours de traitement';
+          description = `Votre réclamation "${reclamation.objet}" est maintenant en cours de traitement.`;
+          notifPriorite = 'basse';
+        } else {
+          titre = 'ℹ️ Mise à jour de votre réclamation';
+          description = `Le statut de votre réclamation "${reclamation.objet}" a été mis à jour${statut ? ' : ' + statut : ''}.`;
+          notifPriorite = 'basse';
+        }
+
+        // Créer la notification en base
+        await Notification.create({
+          titre,
+          description,
+          type: 'reclamation',
+          priorite: notifPriorite,
+          userId: reclamationUserId,
+          lu: false
+        });
+
+        // Envoyer l'email (sans bloquer la réponse)
+        if (user?.email) {
+          sendNotificationEmail(user.email, titre, description)
+            .catch(err => console.error('Email notification reclamation:', err));
+        }
+      } catch (notifErr) {
+        console.error('Erreur création notification réclamation:', notifErr);
+      }
+
+    } else {
       return res.status(403).json({ success: false, message: 'Accès non autorisé.' });
     }
-
-    await reclamation.save();
 
     res.status(200).json({
       success: true,

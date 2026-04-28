@@ -13,6 +13,7 @@ const reclamationRoutes = require("./src/routes/reclamation.routes");
 const aiRoutes = require("./src/routes/ai.routes");
 const statsRoutes = require("./src/routes/stats.routes");
 const beneficiaryRoutes = require("./src/routes/beneficiary.routes");
+const notificationRoutes = require("./src/routes/notification.routes");
 const app = express();
 
 app.use(cors());
@@ -31,6 +32,7 @@ app.use("/api/reclamations", reclamationRoutes);
 app.use("/api/ai", aiRoutes);
 app.use("/api/stats", statsRoutes);
 app.use("/api/beneficiaries", beneficiaryRoutes);
+app.use("/api/notifications", notificationRoutes);
 
 app.use("/uploads", express.static("uploads"));
 

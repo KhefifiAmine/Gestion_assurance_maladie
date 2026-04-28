@@ -26,7 +26,8 @@ const AddUserModal = ({ isOpen, onClose, onSubmit }) => {
         telephone: '',
         ddn: '',
         adresse: '',
-        ville: ''
+        ville: '',
+        sexe: 'M'
     });
     const [errors, setErrors] = useState({});
     const [loading, setLoading] = useState(false);
@@ -45,18 +46,15 @@ const AddUserModal = ({ isOpen, onClose, onSubmit }) => {
         if (formData.prenom.trim() && !nameRegex.test(formData.prenom)) newErrors.prenom = "Prénom invalide (2 lettres min)";
 
         // Validation Email (Domaines autorisés, si non vide)
-        const emailRegex = /^[a-zA-Z0-9._%+-]+@(tunisietelecom\.tn|gmail\.com)$/;
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (formData.email.trim() && !emailRegex.test(formData.email)) {
-            newErrors.email = "Email invalide (@tunisietelecom.tn ou @gmail.com)";
+            newErrors.email = "Email invalide";
         }
 
         // Validation Telephone (si non vide)
         if (formData.telephone && !/^\d{8}$/.test(formData.telephone)) {
             newErrors.telephone = "Le téléphone doit contenir 8 chiffres";
         }
-
-        // Pour ddn, adresse et ville, c'est optionnel ou requis selon le cas
-        // On n'impose pas pour l'Admin/RH, mais on garantit le bon type.
 
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
@@ -69,7 +67,7 @@ const AddUserModal = ({ isOpen, onClose, onSubmit }) => {
         setLoading(true);
         try {
             await onSubmit(formData);
-            setFormData({ nom: '', prenom: '', email: '', role: 'ADHERENT', matricule: '', telephone: '', ddn: '', adresse: '', ville: '' });
+            setFormData({ nom: '', prenom: '', email: '', role: 'ADHERENT', matricule: '', telephone: '', ddn: '', adresse: '', ville: '', sexe: 'M' });
             setErrors({});
             onClose();
         } catch (error) {
@@ -264,6 +262,37 @@ const AddUserModal = ({ isOpen, onClose, onSubmit }) => {
                                     value={formData.ville}
                                     onChange={(e) => setFormData({...formData, ville: e.target.value})}
                                 />
+                            </div>
+                        </div>
+
+                        {/* Sexe Selection */}
+                        <div className="space-y-2">
+                            <label className="text-xs font-black uppercase text-slate-500 tracking-widest flex items-center gap-2">
+                                <User size={14} className="text-purple-500" /> Sexe
+                            </label>
+                            <div className="flex gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setFormData({...formData, sexe: 'M'})}
+                                    className={`flex-1 py-3 rounded-xl border-2 transition-all font-bold text-xs ${
+                                        formData.sexe === 'M'
+                                            ? 'bg-purple-600 border-purple-600 text-white shadow-lg'
+                                            : 'bg-slate-50 dark:bg-slate-800 border-transparent text-slate-500 hover:border-slate-200 dark:hover:border-slate-700'
+                                    }`}
+                                >
+                                    HOMME
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setFormData({...formData, sexe: 'F'})}
+                                    className={`flex-1 py-3 rounded-xl border-2 transition-all font-bold text-xs ${
+                                        formData.sexe === 'F'
+                                            ? 'bg-purple-600 border-purple-600 text-white shadow-lg'
+                                            : 'bg-slate-50 dark:bg-slate-800 border-transparent text-slate-500 hover:border-slate-200 dark:hover:border-slate-700'
+                                    }`}
+                                >
+                                    FEMME
+                                </button>
                             </div>
                         </div>
 

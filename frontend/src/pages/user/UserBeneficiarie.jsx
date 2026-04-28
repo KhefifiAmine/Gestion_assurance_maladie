@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useToast } from '../../context/ToastContext';
+import { useAuth } from '../../context/AuthContext';
 import { getMyBeneficiaries, addBeneficiary, deleteBeneficiary, updateBeneficiary } from '../../services/beneficiaryService';
 import ConfirmModal from '../../components/ConfirmModal';
 import {
@@ -9,13 +10,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 const UserBeneficiarie = () => {
     const { showToast } = useToast();
+    const { user: currentUser } = useAuth();
     const [listBeneficiaires, setListBeneficiaires] = useState([]);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [deleteId, setDeleteId] = useState(null);
     const [editingBeneficiaryId, setEditingBeneficiaryId] = useState(null);
-    const [newBeneficiary, setNewBeneficiary] = useState({ nom: '', prenom: '', relation: 'Conjoint', ddn: '', sexe: 'M' });
+    const [newBeneficiary, setNewBeneficiary] = useState({ nom: '', prenom: '', relation: 'Enfant', ddn: '', sexe: 'M', avezConjoint: 'false' });
     const [isRelationDropdownOpen, setIsRelationDropdownOpen] = useState(false);
     const [documentFile, setDocumentFile] = useState(null);
     const [previewDocument, setPreviewDocument] = useState(null);
@@ -50,6 +52,13 @@ const UserBeneficiarie = () => {
         try {
             const fetchedBeneficiaries = await getMyBeneficiaries();
 
+            setNewBeneficiary(prev => ({
+                ...prev,
+                avezConjoint: !fetchedBeneficiaries.some(
+                    b => b.relation === 'Conjoint'
+                )
+            }));
+
             const beneficiariesWithStyle = fetchedBeneficiaries.map(b => ({
                 ...b,
                 initials: (b.nom[0] + (b.prenom ? b.prenom[0] : '')).toUpperCase(),
@@ -70,6 +79,10 @@ const UserBeneficiarie = () => {
             return;
         }
         setIsSaving(true);
+        if (!newBeneficiary.avezConjoint && newBeneficiary.relation === "Conjoint") {
+            showToast("Vous avez deja un conjoint dans les beneficiares", "error");
+            return;
+        }
         try {
             const formData = new FormData();
             Object.keys(newBeneficiary).forEach(key => {
@@ -90,7 +103,7 @@ const UserBeneficiarie = () => {
                 showToast("Bénéficiaire ajouté avec succès (En attente de validation)", "success");
             }
 
-            setNewBeneficiary({ nom: '', prenom: '', relation: 'Conjoint', ddn: '', sexe: 'M' });
+            setNewBeneficiary({ nom: '', prenom: '', relation: 'Enfant', ddn: '', sexe: 'M' });
             setDocumentFile(null);
             setEditingBeneficiaryId(null);
             setIsAddModalOpen(false);
@@ -139,7 +152,7 @@ const UserBeneficiarie = () => {
                 <button
                     onClick={() => {
                         setEditingBeneficiaryId(null);
-                        setNewBeneficiary({ nom: '', prenom: '', relation: 'Conjoint', ddn: '', sexe: 'M' });
+                        setNewBeneficiary({ nom: '', prenom: '', relation: 'Enfant', ddn: '', sexe: 'M' });
                         setDocumentFile(null);
                         setIsAddModalOpen(true);
                     }}
@@ -252,7 +265,7 @@ const UserBeneficiarie = () => {
                                         <button
                                             onClick={() => {
                                                 setEditingBeneficiaryId(null);
-                                                setNewBeneficiary({ nom: '', prenom: '', relation: 'Conjoint', ddn: '', sexe: 'M' });
+                                                setNewBeneficiary({ nom: '', prenom: '', relation: 'Enfant', ddn: '', sexe: 'M' });
                                                 setDocumentFile(null);
                                                 setIsAddModalOpen(true);
                                             }}
@@ -331,7 +344,7 @@ const UserBeneficiarie = () => {
                                                     onClick={() => setIsRelationDropdownOpen(!isRelationDropdownOpen)}
                                                 >
                                                     <span className={newBeneficiary.relation ? "text-slate-900 dark:text-white" : "text-black-400"}>
-                                                        {newBeneficiary.relation === 'Conjoint' ? 'Conjoint(e)' : (newBeneficiary.relation || "Sélectionnez une relation")}
+                                                        {newBeneficiary.relation === 'Enfant' ? 'Enfant' : (newBeneficiary.relation || "Sélectionnez une relation")}
                                                     </span>
                                                     <ChevronDown size={18} className={`text-slate-400 transition-transform ${isRelationDropdownOpen ? 'rotate-180' : ''}`} />
                                                 </div>
@@ -344,14 +357,18 @@ const UserBeneficiarie = () => {
                                                             className="absolute top-[100%] left-0 w-full mt-2 py-2 bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-700 flex flex-col overflow-hidden"
                                                         >
                                                             {[
-                                                                { value: "Conjoint", label: "Conjoint(e)" },
                                                                 { value: "Enfant", label: "Enfant" },
+                                                                { value: "Conjoint", label: "Conjoint(e)" },
                                                             ].map((option) => (
                                                                 <button
                                                                     key={option.value}
                                                                     onClick={(e) => {
                                                                         e.preventDefault();
-                                                                        setNewBeneficiary({ ...newBeneficiary, relation: option.value });
+                                                                        let autoSexe = newBeneficiary.sexe;
+                                                                        if (option.value === 'Conjoint' && currentUser?.sexe) {
+                                                                            autoSexe = currentUser.sexe === 'M' ? 'F' : 'M';
+                                                                        }
+                                                                        setNewBeneficiary({ ...newBeneficiary, relation: option.value, sexe: autoSexe });
                                                                         setIsRelationDropdownOpen(false);
                                                                     }}
                                                                     className={`px-6 py-4 text-left text-sm font-bold transition-all hover:bg-slate-50 dark:hover:bg-slate-700/50 flex items-center justify-between ${newBeneficiary.relation === option.value ? 'text-purple-600 bg-purple-50 dark:bg-purple-900/20' : 'text-slate-700 dark:text-slate-300'}`}
@@ -363,6 +380,11 @@ const UserBeneficiarie = () => {
                                                         </motion.div>
                                                     )}
                                                 </AnimatePresence>
+                                                {!newBeneficiary.avezConjoint && newBeneficiary.relation === 'Conjoint' && (
+                                                    <span className="text-red-500 text-xs font-bold">
+                                                        Attention ! Vous avez déjà ajouté un conjoint
+                                                    </span>
+                                                )}
                                             </div>
 
                                             <div className="grid grid-cols-2 gap-4">
@@ -378,15 +400,29 @@ const UserBeneficiarie = () => {
                                                 <div className="space-y-2">
                                                     <label className="text-[10px] font-black uppercase tracking-widest text-black-400">Sexe</label>
                                                     <div className="flex gap-2">
-                                                        {['M', 'F'].map(s => (
-                                                            <button
-                                                                key={s}
-                                                                onClick={() => setNewBeneficiary({ ...newBeneficiary, sexe: s })}
-                                                                className={`flex-1 py-4 rounded-2xl border font-black transition-all ${newBeneficiary.sexe === s ? 'bg-purple-600 border-purple-600 text-white' : 'bg-slate-50 dark:bg-slate-800/50 border-gray-400 text-black-400'}`}
-                                                            >
-                                                                {s === 'M' ? 'Masculin' : 'Féminin'}
-                                                            </button>
-                                                        ))}
+                                                        {['M', 'F'].map(s => {
+                                                            const isLocked = newBeneficiary.relation === 'Conjoint';
+
+                                                            return (
+                                                                <button
+                                                                    key={s}
+                                                                    disabled={isLocked}
+                                                                    onClick={() => {
+                                                                        if (!isLocked) {
+                                                                            setNewBeneficiary({ ...newBeneficiary, sexe: s });
+                                                                        }
+                                                                    }}
+                                                                    className={`flex-1 py-3 rounded-xl border
+                                                                    ${newBeneficiary.sexe === s
+                                                                            ? 'bg-purple-600 text-white'
+                                                                            : 'bg-gray-100'}
+                                                                    ${isLocked ? 'opacity-50 cursor-not-allowed' : ''}
+                                                                    `}
+                                                                >
+                                                                    {s === 'M' ? 'Masculin' : 'Féminin'}
+                                                                </button>
+                                                            );
+                                                        })}
                                                     </div>
                                                 </div>
                                             </div>

@@ -21,6 +21,7 @@ const UserDetailsModal = ({ isOpen, onClose, user }) => {
         { label: 'Nom', value: user.nom, icon: User },
         { label: 'Prénom', value: user.prenom, icon: User },
         { label: 'Matricule', value: user.matricule || 'N/A', icon: Hash },
+        { label: 'Sexe', value: user.sexe === 'M' ? 'Masculin' : 'Féminin', icon: User },
         { label: 'Email', value: user.email, icon: Mail },
         { label: 'Téléphone', value: user.telephone || 'Non renseigné', icon: Phone },
         { label: 'Date de naissance', value: user.ddn ? new Date(user.ddn).toLocaleDateString('fr-FR') : 'Non renseignée', icon: Calendar },

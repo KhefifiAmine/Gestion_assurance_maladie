@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
@@ -22,11 +22,13 @@ import {
   ChevronsLeft,
   ChevronsRight,
   Info,
-  Zap
+  Zap,
+  CheckCheck
 } from 'lucide-react';
 import logoApp1 from '../assets/logo_app_1.png';
 import AddBulletinModal from '../components/AddBulletinModal';
 import ConfirmModal from '../components/ConfirmModal';
+import { fetchMyNotifications, fetchUnreadCount, markNotificationAsRead, markAllNotificationsAsRead } from '../services/notificationService';
 
 const UserLayout = () => {
   const { user, logout } = useAuth();
@@ -38,6 +40,59 @@ const UserLayout = () => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+
+  // --- Notification State ---
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const notifRef = useRef(null);
+
+  // Fetch notifications on mount and every 30s
+  useEffect(() => {
+    const loadNotifications = async () => {
+      try {
+        const [notifData, countData] = await Promise.all([
+          fetchMyNotifications(),
+          fetchUnreadCount()
+        ]);
+        setNotifications(notifData.data || []);
+        setUnreadCount(countData.count || 0);
+      } catch (err) {
+        // silently ignore
+      }
+    };
+    loadNotifications();
+    const interval = setInterval(loadNotifications, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (notifRef.current && !notifRef.current.contains(e.target)) {
+        setShowNotifications(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleMarkAllRead = async () => {
+    try {
+      await markAllNotificationsAsRead();
+      setNotifications(prev => prev.map(n => ({ ...n, lu: true })));
+      setUnreadCount(0);
+    } catch (err) { /* ignore */ }
+  };
+
+  const handleMarkOneRead = async (id) => {
+    try {
+      await markNotificationAsRead(id);
+      setNotifications(prev => prev.map(n => n.id === id ? { ...n, lu: true } : n));
+      setUnreadCount(prev => Math.max(0, prev - 1));
+    } catch (err) { /* ignore */ }
+  };
+
 
   // 60-30-10 Color Tokens
   const colors = {
@@ -222,6 +277,95 @@ const UserLayout = () => {
             <button onClick={toggleTheme} className="p-2.5 rounded-xl bg-white/10 hover:bg-white/20 transition-all border border-white/10">
               {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
             </button>
+
+            {/* --- Notification Bell --- */}
+            <div className="relative" ref={notifRef}>
+              <button
+                id="notification-bell-btn"
+                onClick={() => setShowNotifications(prev => !prev)}
+                className={`relative p-2.5 rounded-xl transition-all border ${
+                  theme === 'dark'
+                    ? 'bg-white/10 hover:bg-white/20 border-white/10 text-white'
+                    : 'bg-gray-100 hover:bg-gray-200 border-gray-200 text-slate-700'
+                }`}
+                title="Notifications"
+              >
+                <Bell size={20} />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] rounded-full bg-red-500 text-white text-[10px] font-black flex items-center justify-center px-1 shadow-lg animate-pulse">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
+              </button>
+
+              <AnimatePresence>
+                {showNotifications && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -8, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -8, scale: 0.95 }}
+                    transition={{ duration: 0.2, ease: 'easeOut' }}
+                    className={`absolute right-0 mt-2 w-80 rounded-2xl shadow-2xl border z-50 overflow-hidden ${
+                      theme === 'dark' ? 'bg-slate-800 border-white/10' : 'bg-white border-gray-200'
+                    }`}
+                    style={{ top: '100%' }}
+                  >
+                    {/* Header */}
+                    <div className="flex items-center justify-between px-4 py-3 border-b dark:border-white/10">
+                      <span className={`text-sm font-black ${ theme === 'dark' ? 'text-white' : 'text-slate-800'}`}>
+                        Notifications {unreadCount > 0 && <span className="ml-1 text-xs bg-red-500 text-white rounded-full px-2 py-0.5">{unreadCount}</span>}
+                      </span>
+                      {unreadCount > 0 && (
+                        <button
+                          onClick={handleMarkAllRead}
+                          className="flex items-center gap-1 text-xs font-bold text-purple-500 hover:text-purple-700 transition-colors"
+                          title="Tout marquer comme lu"
+                        >
+                          <CheckCheck size={14} />
+                          Tout lire
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Notification list */}
+                    <div className="max-h-72 overflow-y-auto">
+                      {notifications.length === 0 ? (
+                        <div className="py-8 text-center">
+                          <Bell size={28} className="mx-auto mb-2 opacity-30" />
+                          <p className={`text-xs opacity-50 ${ theme === 'dark' ? 'text-white' : 'text-slate-700'}`}>Aucune notification</p>
+                        </div>
+                      ) : (
+                        notifications.map(notif => (
+                          <div
+                            key={notif.id}
+                            onClick={() => !notif.lu && handleMarkOneRead(notif.id)}
+                            className={`px-4 py-3 border-b last:border-b-0 cursor-pointer transition-colors ${
+                              notif.lu
+                                ? theme === 'dark' ? 'border-white/5 hover:bg-white/5' : 'border-gray-100 hover:bg-gray-50'
+                                : theme === 'dark' ? 'bg-purple-900/30 border-purple-500/20 hover:bg-purple-900/50' : 'bg-purple-50 border-purple-100 hover:bg-purple-100'
+                            }`}
+                          >
+                            <div className="flex items-start gap-2">
+                              {!notif.lu && (
+                                <span className="mt-1.5 w-2 h-2 rounded-full bg-purple-500 shrink-0" />
+                              )}
+                              <div className={!notif.lu ? '' : 'pl-4'}>
+                                <p className={`text-xs font-bold leading-tight ${ theme === 'dark' ? 'text-white' : 'text-slate-800'}`}>{notif.titre}</p>
+                                <p className={`text-[11px] mt-0.5 leading-snug ${ theme === 'dark' ? 'text-white/60' : 'text-slate-500'}`}>{notif.description}</p>
+                                <p className="text-[10px] mt-1 opacity-40">
+                                  {new Date(notif.createdAt).toLocaleDateString('fr-FR', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' })}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+            {/* --- End Notification Bell --- */}
             
             <div className="flex items-center gap-3 sm:gap-4 pl-4 sm:pl-6 border-l border-slate-200 dark:border-white/10 transition-colors">
               <div className={`text-right hidden sm:block ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>

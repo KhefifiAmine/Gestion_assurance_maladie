@@ -67,7 +67,8 @@ const Register = () => {
     ddn: '',
     adresse: '',
     ville: '',
-    email: ''
+    email: '',
+    sexe: 'M'
   });
 
   const [errors, setErrors] = useState({});
@@ -228,6 +229,28 @@ const Register = () => {
 
         <div className="grid grid-cols-2 gap-4">          
           <InputField label="Adresse" name="adresse" placeholder="Adresse" icon={MapPin} error={errors.adresse} value={formData.adresse} onChange={handleChange} onBlur={() => validateField('adresse', formData.adresse)} />
+          <div className="space-y-1">
+            <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1">Sexe</label>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setFormData(prev => ({ ...prev, sexe: 'M' }))}
+                className={`flex-1 py-2.5 rounded-xl border-2 font-bold text-xs transition-all ${formData.sexe === 'M' ? 'bg-purple-600 border-purple-600 text-white' : 'bg-slate-50 dark:bg-slate-900 border-slate-100 dark:border-slate-800 text-slate-400'}`}
+              >
+                HOMME
+              </button>
+              <button
+                type="button"
+                onClick={() => setFormData(prev => ({ ...prev, sexe: 'F' }))}
+                className={`flex-1 py-2.5 rounded-xl border-2 font-bold text-xs transition-all ${formData.sexe === 'F' ? 'bg-purple-600 border-purple-600 text-white' : 'bg-slate-50 dark:bg-slate-900 border-slate-100 dark:border-slate-800 text-slate-400'}`}
+              >
+                FEMME
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4">
           <InputField label="Ville" name="ville" placeholder="Ville" icon={MapPin} error={errors.ville} value={formData.ville} onChange={handleChange} onBlur={() => validateField('ville', formData.ville)} />
         </div>
 

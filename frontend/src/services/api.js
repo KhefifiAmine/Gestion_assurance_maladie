@@ -48,7 +48,8 @@ export const registerUser = async (formData) => {
         ddn: formData.ddn,
         adresse: formData.adresse,
         email: formData.email,
-        ville: formData.ville
+        ville: formData.ville,
+        sexe: formData.sexe
     };
     const res = await fetch(`${API_BASE}/auth/register`, {
         method: 'POST',

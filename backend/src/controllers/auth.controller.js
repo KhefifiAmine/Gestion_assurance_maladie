@@ -1,10 +1,10 @@
 const { hashPassword, comparePassword } = require('../utils/bcrypt');
 const jwt = require('jsonwebtoken');
-const { User } = require('../../models');
+const { User, Notification } = require('../../models');
 
 const register = async (req, res) => {
     try {
-        const { nom, prenom, telephone, ddn, adresse, ville, email } = req.body;
+        const { nom, prenom, telephone, ddn, adresse, ville, email, sexe } = req.body;
 
         const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!regex.test(email)){
@@ -62,9 +62,7 @@ const register = async (req, res) => {
                 formattedDdn = ddn;
             }
         }
-
-        
-
+    
         const newUser = await User.create({
             nom,
             prenom,
@@ -75,7 +73,27 @@ const register = async (req, res) => {
             email: normalizedEmail,
             role: 'ADHERENT', 
             statut: 0,
+            sexe
         });
+
+        // --- Notification pour les Responsables RH ---
+        try {
+            const rhManagers = await User.findAll({ where: { role: 'RESPONSABLE_RH' } });
+            
+            if (rhManagers.length > 0) {
+                const notifPromises = rhManagers.map(rh => Notification.create({
+                    titre: '🆕 Nouvelle inscription',
+                    description: `Un nouvel utilisateur (${prenom} ${nom}) s'est inscrit et attend votre validation.`,
+                    type: 'user',
+                    priorite: 'normale',
+                    userId: rh.id,
+                    lu: false
+                }));
+                await Promise.all(notifPromises);
+            }
+        } catch (notifErr) {
+            console.error('Erreur notification RH register:', notifErr);
+        }
 
         res.status(201).json({
             message: 'Inscription réussie.',

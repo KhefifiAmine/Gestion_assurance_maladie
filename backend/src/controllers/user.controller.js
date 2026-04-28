@@ -142,7 +142,7 @@ const updateUserRole = async (req, res) => {
 // Créer un utilisateur (Par le RH)
 const createUser = async (req, res) => {
     try {
-        const { nom, prenom, email, role, matricule, telephone, adresse } = req.body;
+        const { nom, prenom, email, role, matricule, telephone, sexe, ddn, ville, adresse } = req.body;
 
         const existingUser = await User.findOne({ where: { email } });
         if (existingUser) {
@@ -160,6 +160,9 @@ const createUser = async (req, res) => {
             matricule,
             telephone,
             adresse,
+            ville,
+            sexe,
+            ddn,
             mot_de_passe: hashedPassword,
             statut: 1 // Directement actif quand créé par RH
         });

@@ -2,6 +2,7 @@ const path = require('path');
 const fs = require('fs');
 const { Op } = require('sequelize');
 const { BulletinSoin, ActeMedical, Pharmacie, SoinDentaire, User, Medecin, DocumentJustificatif, Beneficiary, BulletinComment, Notification, sequelize } = require('../../models');
+const { sendNotificationEmail } = require('../utils/emailService');
 
 const createBulletin = async (req, res) => {
     try {
@@ -135,7 +136,30 @@ const createBulletin = async (req, res) => {
             });
         });
 
+        // --- Notification pour les Administrateurs ---
+        try {
+            const user = await User.findByPk(userId);
+            const userName = user ? `${user.prenom} ${user.nom}` : 'Un adhérent';
+            
+            const admins = await User.findAll({ where: { role: 'ADMIN' } });
+            
+            if (admins.length > 0) {
+                const notifPromises = admins.map(admin => Notification.create({
+                    titre: '📄 Nouveau bulletin de soin',
+                    description: `Un nouveau bulletin a été soumis par ${userName}.`,
+                    type: 'bulletin',
+                    priorite: 'normale',
+                    userId: admin.id,
+                    lu: false
+                }));
+                await Promise.all(notifPromises);
+            }
+        } catch (notifErr) {
+            console.error('Erreur notification admin bulletin:', notifErr);
+        }
+
         res.status(201).json({ message: 'Bulletin créé avec succès', bulletin: result });
+
     } catch (error) {
         console.error(error);
         if (error.name === 'SequelizeUniqueConstraintError') {
@@ -381,27 +405,47 @@ const updateBulletinStatus = async (req, res) => {
 
         await bulletin.save();
 
-        // Création d'une notification pour l'utilisateur
-        /*let notificationTitle = "";
-        let notificationDesc = "";
+        // --- Notification en base de données + Email ---
+        try {
+            const userId = bulletin.userId;
+            const user = bulletin.adherent || await User.findByPk(userId, { attributes: ['email', 'prenom', 'nom'] });
 
-        if (statut === 2) {
-            notificationTitle = "Bulletin Approuvé";
-            notificationDesc = `Votre bulletin #${bulletin.numero_bulletin} a été accepté. Montant remboursé: ${bulletin.montant_remboursement || 0} TND.`;
-        } else if (statut === 3) {
-            notificationTitle = "Bulletin Rejeté";
-            notificationDesc = `Votre bulletin #${bulletin.numero_bulletin} a été rejeté. Motif : ${motif_refus || 'Non spécifié'}.`;
-        }
+            const statutLabels = { 0: 'En attente', 1: 'En cours', 2: 'Validé', 3: 'Refusé' };
+            const statutLabel = statutLabels[statut] || `Statut ${statut}`;
 
-        if (notificationTitle) {
+            let titre, description, priorite;
+            if (statut === 2) {
+                titre = '✅ Bulletin validé';
+                description = `Votre bulletin de soin n°${bulletin.numero_bulletin || id} a été validé par l'administration.`;
+                priorite = 'normale';
+            } else if (statut === 3) {
+                titre = '❌ Bulletin refusé';
+                description = `Votre bulletin de soin n°${bulletin.numero_bulletin || id} a été refusé.${motif_refus ? ' Motif : ' + motif_refus : ''}`;
+                priorite = 'haute';
+            } else {
+                titre = 'ℹ️ Statut bulletin mis à jour';
+                description = `Votre bulletin de soin n°${bulletin.numero_bulletin || id} est maintenant : ${statutLabel}.`;
+                priorite = 'basse';
+            }
+
+            // Créer la notification en base
             await Notification.create({
-                titre: notificationTitle,
-                description: notificationDesc,
-                userId: bulletin.userId,
-                type: statut === 2 ? 'success' : 'error',
-                priorite: 'haute'
+                titre,
+                description,
+                type: 'bulletin',
+                priorite,
+                userId,
+                lu: false
             });
-        }*/
+
+            // Envoyer l'email (sans bloquer la réponse)
+            if (user?.email) {
+                sendNotificationEmail(user.email, titre, description)
+                    .catch(err => console.error('Email notification bulletin:', err));
+            }
+        } catch (notifErr) {
+            console.error('Erreur création notification bulletin:', notifErr);
+        }
 
         res.status(200).json({ message: 'Statut du bulletin mis à jour', bulletin });
     } catch (error) {
