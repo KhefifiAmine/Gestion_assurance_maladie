@@ -1,6 +1,6 @@
-import { handleResponse } from './api';
+import { API_BASE, handleResponse } from './api';
 
-const API_URL = 'http://localhost:5000/api/beneficiaries';
+const API_URL = `${API_BASE}/beneficiaries`;
 
 const getAuthHeaders = () => {
     const token = localStorage.getItem('token');

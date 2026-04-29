@@ -1,6 +1,4 @@
-import { handleResponse } from './api';
-
-const API_BASE = 'http://localhost:5000/api';
+import { API_BASE, handleResponse } from './api';
 
 const getToken = () => localStorage.getItem('token');
 

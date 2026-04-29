@@ -294,6 +294,7 @@ const AdminBulletins = () => {
                                 <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.25em]">Dossier</th>
                                 <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.25em]">Adhérent</th>
                                 <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.25em]">Patient</th>
+                                <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.25em]">Risque</th>
                                 <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.25em]">Administrateur</th>
                                 <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.25em]">Montant</th>
                                 <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.25em]">Reboursement</th>
@@ -304,6 +305,9 @@ const AdminBulletins = () => {
                         <tbody className="divide-y divide-slate-100 dark:divide-white/5">
                             {filteredData.map((b, idx) => {
                                 const status = getStatusStyles(b.statut);
+                                const riskColor = b.fraud_score > 70 ? 'text-red-500 bg-red-50 dark:bg-red-900/20 border-red-100 dark:border-red-800/30' : 
+                                                 b.fraud_score > 40 ? 'text-orange-500 bg-orange-50 dark:bg-orange-900/20 border-orange-100 dark:border-orange-800/30' : 
+                                                 'text-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 border-emerald-100 dark:border-emerald-800/30';
                                 return (
                                     <motion.tr
                                         key={b.id}
@@ -315,12 +319,6 @@ const AdminBulletins = () => {
                                         <td className="px-10 py-7 font-black text-purple-600 dark:text-purple-400 tracking-tighter text-lg">
                                             <div className="flex items-center gap-2">
                                                 <span>#{b.numero_bulletin}</span>
-                                                {/*{b.est_suspect && (
-                                                    <span className="flex items-center gap-1 px-2 py-0.5 bg-red-100 text-red-600 rounded-lg text-[10px] uppercase tracking-wider" title="Modification suspectée (Analyse ELA)">
-                                                        <AlertCircle size={12} />
-                                                        Suspect
-                                                    </span>
-                                                )}*/}
                                             </div>
                                         </td>
                                         <td className="px-8 py-7">
@@ -335,6 +333,12 @@ const AdminBulletins = () => {
                                             <div className="flex flex-col">
                                                 <span className="font-bold text-slate-700 dark:text-slate-300">{b.nom_prenom_malade}</span>
                                                 <span className="text-[9px] text-slate-400 font-black tracking-widest uppercase">{b.qualite_malade}</span>
+                                            </div>
+                                        </td>
+                                        <td className="px-8 py-7">
+                                            <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-[10px] font-black uppercase tracking-widest ${riskColor}`}>
+                                                <Activity size={12} />
+                                                <span>{b.fraud_score || 0}%</span>
                                             </div>
                                         </td>
                                         <td className="px-8 py-7">
@@ -372,7 +376,7 @@ const AdminBulletins = () => {
                                                 {/* Logic for assignment conflict avoidance */}
                                                 {currentUser?.role === 'ADMIN' && (() => {
                                                     const isAssignedToOther = b.adminId && b.adminId !== currentUser?.id && b.statut === 1;
-
+ 
                                                     return (
                                                         <>
                                                             <button

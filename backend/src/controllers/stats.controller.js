@@ -1,4 +1,4 @@
-const { User, BulletinSoin, Reclamation, sequelize } = require('../../models');
+const { User, BulletinSoin, Reclamation, FraudAlert, Medecin, sequelize } = require('../../models');
 const { Op } = require('sequelize');
 
 const getAdminStats = async (req, res) => {
@@ -81,6 +81,62 @@ const getAdminStats = async (req, res) => {
             cash: calculateGrowth(currentMonth.cash, previousMonth.cash)
         };
 
+        // ===== FRAUDE DASHBOARD =====
+        const activeAlertsCount = await FraudAlert.count({ where: { statut: 'active' } });
+        const highRiskAlertsCount = await FraudAlert.count({ where: { statut: 'active', score: { [Op.gte]: 80 } } });
+
+        const activeAlerts = await FraudAlert.findAll({
+            where: { statut: 'active' },
+            order: [['createdAt', 'DESC']],
+            limit: 10
+        });
+
+        const doctorsFraudRaw = await FraudAlert.findAll({
+            where: { entity_type: 'medecin' },
+            attributes: [
+                'entity_id',
+                [sequelize.fn('MAX', sequelize.col('score')), 'maxScore'],
+                [sequelize.fn('COUNT', sequelize.col('id')), 'alertsCount']
+            ],
+            group: ['entity_id'],
+            order: [[sequelize.literal('maxScore'), 'DESC']],
+            limit: 10,
+            raw: true
+        });
+
+        const doctorIds = doctorsFraudRaw.map((d) => d.entity_id);
+        const doctors = doctorIds.length > 0
+            ? await Medecin.findAll({ where: { id_medecin: { [Op.in]: doctorIds } }, raw: true })
+            : [];
+        const doctorsMap = new Map(doctors.map((d) => [d.id_medecin, d]));
+
+        const topSuspectDoctors = doctorsFraudRaw.map((item) => ({
+            medecinId: item.entity_id,
+            nom: doctorsMap.get(item.entity_id)?.nom_prenom || `Medecin #${item.entity_id}`,
+            specialite: doctorsMap.get(item.entity_id)?.specialite || '',
+            score: Number(item.maxScore || 0),
+            alertsCount: Number(item.alertsCount || 0),
+        }));
+
+        const fraudMonthlyTrend = [];
+        for (let i = 5; i >= 0; i--) {
+            const startOfMonth = new Date(now.getFullYear(), now.getMonth() - i, 1);
+            const endOfMonth = new Date(now.getFullYear(), now.getMonth() - i + 1, 0, 23, 59, 59);
+            const avgFraud = await BulletinSoin.findOne({
+                attributes: [[sequelize.fn('AVG', sequelize.col('fraud_score')), 'avgFraud']],
+                where: { createdAt: { [Op.between]: [startOfMonth, endOfMonth] } },
+                raw: true
+            });
+            const alerts = await FraudAlert.count({
+                where: { createdAt: { [Op.between]: [startOfMonth, endOfMonth] } }
+            });
+            fraudMonthlyTrend.push({
+                name: startOfMonth.toLocaleString('fr-FR', { month: 'short' }),
+                avgFraudScore: Number(avgFraud?.avgFraud || 0),
+                alerts
+            });
+        }
+
         res.status(200).json({
             totalUsers,
             totalBulletins,
@@ -92,7 +148,14 @@ const getAdminStats = async (req, res) => {
             reclamationsByStatus,
             distributionByType,
             monthlyData,
-            growth
+            growth,
+            fraud: {
+                activeAlertsCount,
+                highRiskAlertsCount,
+                activeAlerts,
+                topSuspectDoctors,
+                fraudMonthlyTrend
+            }
         });
     } catch (error) {
         console.error('Erreur getAdminStats:', error);

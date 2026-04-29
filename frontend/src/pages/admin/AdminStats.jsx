@@ -1,12 +1,11 @@
-import React, { useMemo, useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import React, { useState, useEffect } from 'react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
   AreaChart, Area
 } from 'recharts';
 import { 
-  TrendingUp, Users, FileText, AlertTriangle, 
-  ArrowUpRight, Wallet, Activity, Zap, Loader2
+  Users, FileText, AlertTriangle, 
+  Wallet, Loader2
 } from 'lucide-react';
 import { getAdminStats } from '../../services/statsService';
 
@@ -93,6 +92,51 @@ const AdminStats = () => {
               <Area type="monotone" dataKey="cash" stroke="#7C3AED" fill="#7C3AED" fillOpacity={0.1} />
             </AreaChart>
           </ResponsiveContainer>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="bg-white dark:bg-slate-900 p-8 rounded-[2rem] shadow-xl border border-slate-100 dark:border-white/5">
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">Alertes actives</p>
+          <h3 className="text-3xl font-black text-slate-900 dark:text-white">{data?.fraud?.activeAlertsCount || 0}</h3>
+        </div>
+        <div className="bg-white dark:bg-slate-900 p-8 rounded-[2rem] shadow-xl border border-slate-100 dark:border-white/5">
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">Risque eleve</p>
+          <h3 className="text-3xl font-black text-rose-600">{data?.fraud?.highRiskAlertsCount || 0}</h3>
+        </div>
+        <div className="bg-white dark:bg-slate-900 p-8 rounded-[2rem] shadow-xl border border-slate-100 dark:border-white/5">
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">Top medecins suspects</p>
+          <h3 className="text-3xl font-black text-slate-900 dark:text-white">{data?.fraud?.topSuspectDoctors?.length || 0}</h3>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-white dark:bg-slate-900 p-8 rounded-[2rem] shadow-xl border border-slate-100 dark:border-white/5 h-[360px]">
+          <h3 className="text-xl font-black mb-6">Evolution fraude</h3>
+          <ResponsiveContainer width="100%" height="85%">
+            <BarChart data={data?.fraud?.fraudMonthlyTrend || []}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} />
+              <XAxis dataKey="name" />
+              <YAxis />
+              <Tooltip />
+              <Bar dataKey="avgFraudScore" fill="#ef4444" radius={[8, 8, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+
+        <div className="bg-white dark:bg-slate-900 p-8 rounded-[2rem] shadow-xl border border-slate-100 dark:border-white/5">
+          <h3 className="text-xl font-black mb-6">Top medecins suspects</h3>
+          <div className="space-y-3 max-h-[280px] overflow-auto pr-1">
+            {(data?.fraud?.topSuspectDoctors || []).map((doc) => (
+              <div key={doc.medecinId} className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40">
+                <div>
+                  <p className="font-bold text-slate-900 dark:text-slate-100">{doc.nom}</p>
+                  <p className="text-xs text-slate-500">{doc.specialite || 'N/A'} - {doc.alertsCount} alertes</p>
+                </div>
+                <span className="text-sm font-black text-rose-600">{doc.score}</span>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );

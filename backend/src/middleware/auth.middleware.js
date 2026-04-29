@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const { User } = require('../../models');
+const JWT_SECRET = process.env.JWT_SECRET;
 
 const verifyToken = async (req, res, next) => {
     const authHeader = req.headers['authorization'];
@@ -13,7 +14,10 @@ const verifyToken = async (req, res, next) => {
     }
 
     try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret');
+        if (!JWT_SECRET) {
+            return res.status(500).json({ message: 'Configuration serveur invalide (JWT_SECRET manquant).' });
+        }
+        const decoded = jwt.verify(token, JWT_SECRET);
         
         // Fetch user to check status
         const user = await User.findByPk(decoded.id);

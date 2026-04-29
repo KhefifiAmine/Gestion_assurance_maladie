@@ -1,5 +1,6 @@
 const bcrypt = require('bcrypt');
 const { User } = require('../../models');
+const BASE_URL = process.env.APP_BASE_URL || `http://localhost:${process.env.PORT || 5000}`;
 
 // GET profil de l'utilisateur connecté
 const getProfile = async (req, res) => {
@@ -44,7 +45,7 @@ const updateProfile = async (req, res) => {
         };
 
         if (req.file) {
-            updateData.avatar = `http://localhost:5000/uploads/${req.file.filename}`;
+            updateData.avatar = `${BASE_URL}/uploads/${req.file.filename}`;
         }
 
         await user.update(updateData);

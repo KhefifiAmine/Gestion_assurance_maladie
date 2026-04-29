@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { getAllBeneficiaries, deleteBeneficiary, updateStatus } from '../../services/beneficiaryService';
@@ -217,9 +218,10 @@ const AdminBeneficiarie = () => {
             />
 
             {/* Reject Modal */}
-            <AnimatePresence>
-                {showRejectModal && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+            {showRejectModal && createPortal(
+                <AnimatePresence>
+                    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/40 backdrop-blur-sm">
+                        <div className="flex min-h-full items-center justify-center p-4">
                         <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="bg-white rounded-[2rem] p-8 max-w-md w-full shadow-2xl">
                             <h2 className="text-2xl font-black mb-2 text-slate-900">Refuser la demande</h2>
                             <p className="text-xs font-bold text-slate-500 mb-6">Veuillez indiquer le motif du refus pour l'adhérent.</p>
@@ -247,8 +249,10 @@ const AdminBeneficiarie = () => {
                             </div>
                         </motion.div>
                     </div>
-                )}
-            </AnimatePresence>
+                </div>
+                </AnimatePresence>,
+                document.body
+            )}
 
             {/* Document Viewer Slide-over */}
             <AnimatePresence>

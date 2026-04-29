@@ -68,7 +68,7 @@ const updateUserStatus = async (req, res) => {
         if (previousStatus === 0 && statut === 1) {
             const plainPassword = generateRandomPassword();
             const hashedPassword = await hashPassword(plainPassword);
-            const result = await sendApprovalEmail(user.email, plainPassword);
+            const result = await sendApprovalEmail(user.email);
             if (!result) {
                 return res.status(500).json({ message: 'Erreur lors de l\'envoi de l\'email d\'approbation' });
             }
@@ -168,7 +168,7 @@ const createUser = async (req, res) => {
         });
 
         // Email avec les identifiants
-        sendApprovalEmail(newUser.email, plainPassword).catch(err => console.error("Could not send creation email: ", err));
+        sendApprovalEmail(newUser.email).catch(err => console.error("Could not send creation email: ", err));
 
         res.status(201).json({
             message: 'Utilisateur créé avec succès.',

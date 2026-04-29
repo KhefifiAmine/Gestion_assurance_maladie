@@ -1,6 +1,6 @@
-import { handleResponse } from './api';
+import { API_BASE, handleResponse } from './api';
 
-const API_URL = 'http://localhost:5000/api/users'; // Ajustez le port si nécessaire
+const API_URL = `${API_BASE}/users`;
 
 // Helper to get token
 const getAuthHeaders = () => {

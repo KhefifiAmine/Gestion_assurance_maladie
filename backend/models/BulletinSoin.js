@@ -82,6 +82,20 @@ const BulletinSoin = sequelize.define('BulletinSoin', {
             model: 'users',
             key: 'id'
         }
+    },
+    confiance_score: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        defaultValue: 100
+    },
+    suspicion_locale: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false
+    },
+    fraud_score: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        defaultValue: 0
     }
 }, {
     tableName: 'bulletin_soins',

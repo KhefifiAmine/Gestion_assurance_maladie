@@ -1,10 +1,12 @@
 const { hashPassword, comparePassword } = require('../utils/bcrypt');
 const jwt = require('jsonwebtoken');
 const { User, Notification } = require('../../models');
+const JWT_SECRET = process.env.JWT_SECRET;
 
 const register = async (req, res) => {
     try {
         const { nom, prenom, telephone, ddn, adresse, ville, email, sexe } = req.body;
+        let ddnError = null;
 
         const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!regex.test(email)){
@@ -18,7 +20,7 @@ const register = async (req, res) => {
             return res.status(400).json({ message: 'Un utilisateur avec cet email existe déjà.' });
         }
 
-        if (nom.length < 2 && prenom.length < 2){
+        if (!nom || !prenom || nom.trim().length < 2 || prenom.trim().length < 2){
             return res.status(400).json({ message: "le nom ou le prenom n'est pas valide" });
         }
 
@@ -28,15 +30,15 @@ const register = async (req, res) => {
 
 
         if (!ddn) {
-          error = "Date de naissance requise";
+          ddnError = "Date de naissance requise";
         } else {
           const today = new Date();
           const birthDate = new Date(ddn);
 
           if (isNaN(birthDate.getTime())) {
-            error = "Date invalide";
+            ddnError = "Date invalide";
           } else if (birthDate > today) {
-            error = "Date dans le futur interdite";
+            ddnError = "Date dans le futur interdite";
           } else {
             // Vérifier âge >= 18 ans
             let age = today.getFullYear() - birthDate.getFullYear();
@@ -47,9 +49,12 @@ const register = async (req, res) => {
             }
 
             if (age < 18) {
-              error = "Vous devez avoir au moins 18 ans";
+              ddnError = "Vous devez avoir au moins 18 ans";
             }
           }
+        }
+        if (ddnError) {
+            return res.status(400).json({ message: ddnError });
         }
         
         // Format DD/MM/YYYY to YYYY-MM-DD
@@ -57,7 +62,7 @@ const register = async (req, res) => {
         if (ddn) {
             const parts = ddn.split('/');
             if (parts.length === 3) {
-                formattedDdn = `${parts[0]}-${parts[1]}-${parts[2]}`; // YYYY-MM-DD
+                formattedDdn = `${parts[2]}-${parts[1]}-${parts[0]}`; // YYYY-MM-DD
             } else {
                 formattedDdn = ddn;
             }
@@ -111,6 +116,9 @@ const register = async (req, res) => {
 
 const login = async (req, res) => {
     try {
+        if (!JWT_SECRET) {
+            return res.status(500).json({ message: 'Configuration serveur invalide (JWT_SECRET manquant).' });
+        }
         const { email, password } = req.body;
         const normalizedEmail = email.toLowerCase();
 
@@ -154,7 +162,7 @@ const login = async (req, res) => {
         // Generate JWT token
         const token = jwt.sign(
             { id: user.id, email: user.email, role: user.role },
-            process.env.JWT_SECRET || 'fallback_secret',
+            JWT_SECRET,
             { expiresIn: '1d' }
         );
 

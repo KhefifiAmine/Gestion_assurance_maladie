@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useToast } from '../../context/ToastContext';
 import { useAuth } from '../../context/AuthContext';
 import { getMyBeneficiaries, addBeneficiary, deleteBeneficiary, updateBeneficiary } from '../../services/beneficiaryService';
@@ -282,9 +283,10 @@ const UserBeneficiarie = () => {
             </div>
 
             {/* --- ADD BENEFICIARY MODAL --- */}
-            <AnimatePresence>
-                {isAddModalOpen && (
-                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            {isAddModalOpen && createPortal(
+                <AnimatePresence>
+                    <div className="fixed inset-0 z-[100] overflow-y-auto">
+                        <div className="flex min-h-full items-center justify-center p-4">
                         <motion.div
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
@@ -519,8 +521,10 @@ const UserBeneficiarie = () => {
                             </div>
                         </motion.div>
                     </div>
-                )}
-            </AnimatePresence>
+                </div>
+                </AnimatePresence>,
+                document.body
+            )}
 
             {/* --- DOCUMENT VIEWER SLIDE-OVER --- */}
             <AnimatePresence>

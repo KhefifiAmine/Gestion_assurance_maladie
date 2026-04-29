@@ -16,7 +16,28 @@ const beneficiaryRoutes = require("./src/routes/beneficiary.routes");
 const notificationRoutes = require("./src/routes/notification.routes");
 const app = express();
 
-app.use(cors());
+const requiredEnvVars = ["JWT_SECRET"];
+const missingEnvVars = requiredEnvVars.filter((name) => !process.env[name]);
+if (missingEnvVars.length > 0) {
+  throw new Error(`Variables d'environnement manquantes: ${missingEnvVars.join(", ")}`);
+}
+
+const allowedOrigins = (process.env.CORS_ORIGIN || "http://localhost:5173")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+app.use(
+  cors({
+    origin(origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      return callback(new Error("Origine non autorisee par CORS"));
+    },
+    credentials: true,
+  })
+);
 app.use(express.json());
 
 // Middleware morgan pour afficher les requêtes

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     X, FileText, User, Activity, Upload, ChevronRight, ChevronDown,
@@ -6,6 +7,7 @@ import {
 } from 'lucide-react';
 import { createBulletin, updateBulletin, analyzeBulletinIA } from '../services/bulletinService';
 import { getMyBeneficiaries } from '../services/beneficiaryService';
+import { UPLOADS_BASE } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 
@@ -19,7 +21,7 @@ const DocumentPreview = ({ file, url }) => {
 
             return () => URL.revokeObjectURL(objectUrl); // 🔥 cleanup
         } else if (url) {
-            setFileUrl(`http://localhost:5000/uploads/${url}`);
+            setFileUrl(`${UPLOADS_BASE}/uploads/${url}`);
         }
     }, [file, url]);
 
@@ -44,6 +46,7 @@ const DocumentPreview = ({ file, url }) => {
             )}
         </div>
 };
+
 const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => {
     const { user } = useAuth();
     const { showToast } = useToast();
@@ -94,8 +97,6 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
     const fetchBeneficiaries = async () => {
         try {
             const data = await getMyBeneficiaries();
-            // Filtrer uniquement ceux qui sont acceptés (statut 1 d'après le contrôleur ?)
-            // On va garder tout ce qui est retourné pour l'instant
             setBeneficiaries(data);
         } catch (error) {
             console.error("Erreur bénéficiaires:", error);
@@ -138,7 +139,6 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
                 });
                 setStep(2);
             } else {
-                // Réinitialisation complète pour un nouveau bulletin
                 setFormData({
                     ...initialFormState,
                     matricule_adherent: user?.matricule || '',
@@ -161,7 +161,6 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
         { id: 'Analyse', label: 'Analyses Médicales', icon: <FileText size={18} /> }
     ];
 
-
     const handleManualFileUpload = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
@@ -175,7 +174,6 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
         showToast("Fichier bien téléchargé", "success");
     };
 
-
     const handleFileUpload = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
@@ -185,17 +183,15 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
             showToast("Analyse du document par l'IA en cours...", "info");
 
             const aiData = await analyzeBulletinIA(file);
-            console.log(aiData);
-            // Vérification si le document est médical
+            
             if (aiData.est_document_medical === false) {
-                showToast("ALERTE : Ce document n'est PAS un document médical valide (Bulletin, Ordonnance, Facture). Veuillez télécharger un document conforme.", "error");
+                showToast("ALERTE : Ce document n'est PAS un document médical valide. Veuillez télécharger un document conforme.", "error");
                 setSelectedFile(null);
                 setIsAnalyzing(false);
                 if (fileInputRef.current) fileInputRef.current.value = "";
                 return;
             }
 
-            // Nettoyage des valeurs parasites renvoyées par l'IA (null, undefined, string...)
             const clean = (v) => {
                 if (!v) return '';
                 const s = String(v).toLowerCase().trim();
@@ -206,23 +202,11 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
             const formatDateForInput = (dateStr) => {
                 if (!dateStr) return '';
                 const s = String(dateStr).trim();
-                
-                // Format attendu par Gemini : DD-MM-YYYY
                 const parts = s.match(/^(\d{2})[-/](\d{2})[-/](\d{4})$/);
-                if (parts) {
-                    return `${parts[3]}-${parts[2]}-${parts[1]}`; // YYYY-MM-DD
-                }
-                
-                // Si déjà au format YYYY-MM-DD
-                if (/^\d{4}-\d{2}-\d{2}/.test(s)) {
-                    return s.split(' ')[0];
-                }
-                
-                // Tentative avec l'objet Date
+                if (parts) return `${parts[3]}-${parts[2]}-${parts[1]}`;
+                if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.split(' ')[0];
                 const date = new Date(s);
-                if (!isNaN(date.getTime())) {
-                    return date.toISOString().split('T')[0];
-                }
+                if (!isNaN(date.getTime())) return date.toISOString().split('T')[0];
                 return '';
             };
 
@@ -252,7 +236,7 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
                 showPreview: true
             }));
 
-            setStep(2); // Aller directement à l'étape de vérification
+            setStep(2);
         } catch (error) {
             console.error(error);
             showToast(error.message || "Erreur lors de l'analyse du fichier", "error");
@@ -262,7 +246,6 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
             if (fileInputRef.current) fileInputRef.current.value = "";
         }
     };
-
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -296,169 +279,166 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
 
     if (!isOpen) return null;
 
-
     const showSidePreview = step === 2 && formData.fichierUrl;
 
-    return (
+    const modalContent = (
         <AnimatePresence>
-            <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
-                <motion.div
-                    initial="hidden"
-                    animate="visible"
-                    exit="hidden"
-                    variants={backdropVariants}
-                    onClick={onClose}
-                    className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm"
-                />
-
-                <motion.div
-                    initial="hidden"
-                    animate="visible"
-                    exit="hidden"
-                    variants={modalVariants}
-                    className={`relative bg-white dark:bg-slate-900 w-full rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 max-h-[95vh] flex flex-col transition-all duration-500 ${showSidePreview ? 'max-w-7xl' : 'max-w-2xl'}`}
-                >
-                    {/* Header */}
-                    <div className="bg-gradient-to-r from-purple-700 to-indigo-800 p-8 text-white relative sticky top-0 z-10">
-                        <button
+            {isOpen && (
+                <div className="fixed inset-0 z-[9999] overflow-y-auto">
+                    <div className="flex min-h-full items-center justify-center p-4">
+                        <motion.div
+                            initial="hidden"
+                            animate="visible"
+                            exit="hidden"
+                            variants={backdropVariants}
                             onClick={onClose}
-                            className="absolute top-6 right-6 p-2 bg-white/10 hover:bg-white/20 rounded-full transition-all"
+                            className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm"
+                        />
+
+                        <motion.div
+                            initial="hidden"
+                            animate="visible"
+                            exit="hidden"
+                            variants={modalVariants}
+                            className={`relative bg-white dark:bg-slate-900 w-full rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 max-h-[95vh] flex flex-col transition-all duration-500 ${showSidePreview ? 'max-w-7xl' : 'max-w-2xl'}`}
                         >
-                            <X size={20} />
-                        </button>
-                        <div className="flex items-center gap-4">
-                            <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-md">
-                                <FileText size={32} />
-                            </div>
-                            <div>
-                                <h2 className="text-2xl font-black tracking-tight">{isEdit ? 'Modifier le Bulletin' : 'Nouveau Bulletin de Soin'}</h2>
-                                <p className="text-purple-100 text-sm font-medium">
-                                    {isAnalyzing ? "Analyse IA en cours..." : isEdit ? 'Vérification et modification' : `Étape ${step} sur 2 : ${step === 1 ? 'Scan IA du document' : 'Vérification et confirmation'}`}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className={`flex flex-col lg:flex-row overflow-hidden h-full ${showSidePreview ? 'lg:divide-x lg:divide-x-reverse divide-slate-100 dark:divide-slate-800' : ''}`}>
-                        {/* Preview Column */}
-                        {showSidePreview && (
-                            <div className="flex-1 bg-slate-50 dark:bg-slate-950 p-6 overflow-hidden flex flex-col min-h-[400px] lg:min-h-0 border-b lg:border-b-0 border-slate-100 dark:border-slate-800">
-                                <div className="flex items-center justify-between mb-4 shrink-0">
-                                    <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
-                                        <Eye size={14} className="text-purple-500" /> APERÇU DU JUSTIFICATIF
-                                    </h3>
-                                    <span className="px-3 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-full text-[9px] font-black uppercase">
-                                        {formData.fichierUrl.split('.').pop().toUpperCase()}
-                                    </span>
-                                </div>
-                                <div className="flex-1 overflow-hidden">
-                                    <DocumentPreview file={selectedFile} url={formData.fichierUrl} />
+                            {/* Header */}
+                            <div className="bg-gradient-to-r from-purple-700 to-indigo-800 p-8 text-white relative sticky top-0 z-10">
+                                <button
+                                    onClick={onClose}
+                                    className="absolute top-6 right-6 p-2 bg-white/10 hover:bg-white/20 rounded-full transition-all"
+                                >
+                                    <X size={20} />
+                                </button>
+                                <div className="flex items-center gap-4">
+                                    <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-md">
+                                        <FileText size={32} />
+                                    </div>
+                                    <div>
+                                        <h2 className="text-2xl font-black tracking-tight">{isEdit ? 'Modifier le Bulletin' : 'Nouveau Bulletin de Soin'}</h2>
+                                        <p className="text-purple-100 text-sm font-medium">
+                                            {isAnalyzing ? "Analyse IA en cours..." : isEdit ? 'Vérification et modification' : `Étape ${step} sur 2 : ${step === 1 ? 'Scan IA du document' : 'Vérification et confirmation'}`}
+                                        </p>
+                                    </div>
                                 </div>
                             </div>
-                        )}
 
-                        {/* Form Column */}
-                        <div className={`flex-1 overflow-y-auto ${showSidePreview ? 'lg:max-w-2xl' : ''}`}>
-                            <form onSubmit={handleSubmit} className="p-8">
-                                {step === 1 ? (
-                                    <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
-                                        <div className="text-center mb-8 mt-4">
-                                            <div className="inline-flex items-center justify-center p-4 bg-purple-100 dark:bg-purple-900/30 rounded-full mb-4">
-                                                <Upload size={32} className="text-purple-600 dark:text-purple-400" />
-                                            </div>
-                                            <h3 className="text-2xl font-black text-slate-800 dark:text-white mb-2">Déposez votre justificatif</h3>
-                                            <p className="text-slate-500 dark:text-slate-400 text-sm max-w-sm mx-auto">Notre Intelligence Artificielle va scanner et extraire automatiquement toutes les informations.</p>
+                            <div className={`flex flex-col lg:flex-row overflow-hidden h-full ${showSidePreview ? 'lg:divide-x lg:divide-x-reverse divide-slate-100 dark:divide-slate-800' : ''}`}>
+                                {/* Preview Column */}
+                                {showSidePreview && (
+                                    <div className="flex-1 bg-slate-50 dark:bg-slate-950 p-6 overflow-hidden flex flex-col min-h-[400px] lg:min-h-0 border-b lg:border-b-0 border-slate-100 dark:border-slate-800">
+                                        <div className="flex items-center justify-between mb-4 shrink-0">
+                                            <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
+                                                <Eye size={14} className="text-purple-500" /> APERÇU DU JUSTIFICATIF
+                                            </h3>
+                                            <span className="px-3 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-full text-[9px] font-black uppercase">
+                                                {formData.fichierUrl.split('.').pop().toUpperCase()}
+                                            </span>
                                         </div>
-
-                                        <div className="border-2 border-dashed border-purple-200 dark:border-purple-800 rounded-3xl p-12 flex flex-col items-center justify-center gap-6 bg-purple-50/50 dark:bg-purple-900/10 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-all cursor-pointer group relative">
-                                            <input
-                                                ref={fileInputRef}
-                                                type="file"
-                                                className="absolute inset-0 opacity-0 cursor-pointer z-10"
-                                                onChange={handleFileUpload}
-                                                disabled={isAnalyzing}
-                                                accept=".pdf,image/*"
-                                            />
-                                            <div className={`p-6 bg-white dark:bg-slate-800 rounded-full shadow-lg group-hover:scale-110 transition-transform ${isAnalyzing ? 'animate-pulse ring-4 ring-purple-500/30' : ''}`}>
-                                                <Upload className={`${isAnalyzing ? 'text-purple-600' : 'text-purple-500'}`} size={32} />
-                                            </div>
-                                            <div className="text-center space-y-1">
-                                                <p className="text-lg font-black text-slate-700 dark:text-slate-200">
-                                                    {isAnalyzing ? "Analyse IA en cours..." : "Cliquez ou Glissez un fichier ici"}
-                                                </p>
-                                                <p className="text-xs font-medium text-slate-400">PDF, JPG, PNG acceptés</p>
-                                            </div>
-                                        </div>
-
-                                        <div className="flex justify-center mt-8">
-                                            <button
-                                                type="button"
-                                                onClick={() => setStep(2)}
-                                                className="group relative flex items-center gap-4 px-8 py-4 bg-gradient-to-r from-purple-50 to-fuchsia-50 dark:from-purple-900/20 dark:to-fuchsia-900/20 hover:from-purple-100 hover:to-fuchsia-100 dark:hover:from-purple-900/40 dark:hover:to-fuchsia-900/40 border border-purple-200/50 dark:border-purple-700/50 rounded-2xl text-sm font-black transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-purple-500/20 active:scale-95 overflow-hidden"
-                                            >
-                                                {/* Shine effect */}
-                                                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/60 dark:via-white/10 to-transparent -translate-x-[150%] group-hover:translate-x-[150%] transition-transform duration-1000 ease-in-out"></div>
-
-                                                <div className="relative p-2.5 bg-white dark:bg-slate-800 shadow-sm rounded-xl text-purple-600 dark:text-purple-400 group-hover:scale-110 group-hover:text-fuchsia-600 dark:group-hover:text-fuchsia-400 transition-all duration-300">
-                                                    <FileText size={18} />
-                                                </div>
-
-                                                <span className="relative z-10 bg-gradient-to-r from-purple-700 to-fuchsia-600 dark:from-purple-300 dark:to-fuchsia-300 bg-clip-text text-transparent group-hover:from-fuchsia-700 group-hover:to-purple-700 transition-all duration-500">
-                                                    Saisir les informations manuellement
-                                                </span>
-
-                                                <div className="relative p-1.5 bg-purple-200 dark:bg-purple-800/80 rounded-lg text-purple-700 dark:text-purple-300 transform group-hover:translate-x-1 transition-all duration-300">
-                                                    <ChevronRight size={14} strokeWidth={3} />
-                                                </div>
-                                            </button>
+                                        <div className="flex-1 overflow-hidden">
+                                            <DocumentPreview file={selectedFile} url={formData.fichierUrl} />
                                         </div>
                                     </div>
-                                ) : (
-                                    <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
-                                        <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-2xl border border-green-100 dark:border-green-800 flex items-center gap-3">
-                                            <div className="p-2 bg-green-500 rounded-lg text-white">
-                                                <CheckCircle2 size={18} />
-                                            </div>
-                                            <h3 className="text-sm font-bold text-green-900 dark:text-green-100 uppercase tracking-tight">Vérifiez et complétez les données</h3>
-                                        </div>
+                                )}
 
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            <div className="space-y-1">
-                                                <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Matricule Adhérent</label>
-                                                <input
-                                                    readOnly
-                                                    className="w-full p-3 bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-sm text-slate-500 dark:text-slate-400 cursor-not-allowed"
-                                                    value={formData.matricule_adherent}
-                                                />
-                                            </div>
-                                            <div className="space-y-1">
-                                                <label className="text-[10px] font-black uppercase text-slate-400 ml-1 flex items-center gap-2">
-                                                    <Hash size={12} className="text-indigo-500" /> Code CNAM
-                                                </label>
-                                                <div className="relative">
-                                                    <input
-                                                        readOnly
-                                                        className="w-full p-3 pr-10 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 border border-indigo-200 dark:border-indigo-800/40 rounded-xl font-black text-sm text-indigo-700 dark:text-indigo-300 cursor-not-allowed"
-                                                        value={formData.code_cnam || ''}
-                                                        placeholder="Non attribué"
-                                                    />
-                                                    <Lock size={13} className="absolute right-3 top-1/2 -translate-y-1/2 text-indigo-400 opacity-60" />
+                                {/* Form Column */}
+                                <div className={`flex-1 overflow-y-auto ${showSidePreview ? 'lg:max-w-2xl' : ''}`}>
+                                    <form onSubmit={handleSubmit} className="p-8">
+                                        {step === 1 ? (
+                                            <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+                                                <div className="text-center mb-8 mt-4">
+                                                    <div className="inline-flex items-center justify-center p-4 bg-purple-100 dark:bg-purple-900/30 rounded-full mb-4">
+                                                        <Upload size={32} className="text-purple-600 dark:text-purple-400" />
+                                                    </div>
+                                                    <h3 className="text-2xl font-black text-slate-800 dark:text-white mb-2">Déposez votre justificatif</h3>
+                                                    <p className="text-slate-500 dark:text-slate-400 text-sm max-w-sm mx-auto">Notre Intelligence Artificielle va scanner et extraire automatiquement toutes les informations.</p>
                                                 </div>
+
+                                                <div className="border-2 border-dashed border-purple-200 dark:border-purple-800 rounded-3xl p-12 flex flex-col items-center justify-center gap-6 bg-purple-50/50 dark:bg-purple-900/10 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-all cursor-pointer group relative">
+                                                    <input
+                                                        ref={fileInputRef}
+                                                        type="file"
+                                                        className="absolute inset-0 opacity-0 cursor-pointer z-10"
+                                                        onChange={handleFileUpload}
+                                                        disabled={isAnalyzing}
+                                                        accept=".pdf,image/*"
+                                                    />
+                                                    <div className={`p-6 bg-white dark:bg-slate-800 rounded-full shadow-lg group-hover:scale-110 transition-transform ${isAnalyzing ? 'animate-pulse ring-4 ring-purple-500/30' : ''}`}>
+                                                        <Upload className={`${isAnalyzing ? 'text-purple-600' : 'text-purple-500'}`} size={32} />
+                                                    </div>
+                                                    <div className="text-center space-y-1">
+                                                        <p className="text-lg font-black text-slate-700 dark:text-slate-200">
+                                                            {isAnalyzing ? "Analyse IA en cours..." : "Cliquez ou Glissez un fichier ici"}
+                                                        </p>
+                                                        <p className="text-xs font-medium text-slate-400">PDF, JPG, PNG acceptés</p>
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex justify-center mt-8">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setStep(2)}
+                                                        className="group relative flex items-center gap-4 px-8 py-4 bg-gradient-to-r from-purple-50 to-fuchsia-50 dark:from-purple-900/20 dark:to-fuchsia-900/20 hover:from-purple-100 hover:to-fuchsia-100 dark:hover:from-purple-900/40 dark:hover:to-fuchsia-900/40 border border-purple-200/50 dark:border-purple-700/50 rounded-2xl text-sm font-black transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-purple-500/20 active:scale-95 overflow-hidden"
+                                                    >
+                                                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/60 dark:via-white/10 to-transparent -translate-x-[150%] group-hover:translate-x-[150%] transition-transform duration-1000 ease-in-out"></div>
+                                                        <div className="relative p-2.5 bg-white dark:bg-slate-800 shadow-sm rounded-xl text-purple-600 dark:text-purple-400 group-hover:scale-110 group-hover:text-fuchsia-600 dark:group-hover:text-fuchsia-400 transition-all duration-300">
+                                                            <FileText size={18} />
+                                                        </div>
+                                                        <span className="relative z-10 bg-gradient-to-r from-purple-700 to-fuchsia-600 dark:from-purple-300 dark:to-fuchsia-300 bg-clip-text text-transparent group-hover:from-fuchsia-700 group-hover:to-purple-700 transition-all duration-500">
+                                                            Saisir les informations manuellement
+                                                        </span>
+                                                        <div className="relative p-1.5 bg-purple-200 dark:bg-purple-800/80 rounded-lg text-purple-700 dark:text-purple-300 transform group-hover:translate-x-1 transition-all duration-300">
+                                                            <ChevronRight size={14} strokeWidth={3} />
+                                                        </div>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+                                                <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-2xl border border-green-100 dark:border-green-800 flex items-center gap-3">
+                                                    <div className="p-2 bg-green-500 rounded-lg text-white">
+                                                        <CheckCircle2 size={18} />
+                                                    </div>
+                                                    <h3 className="text-sm font-bold text-green-900 dark:text-green-100 uppercase tracking-tight">Vérifiez et complétez les données</h3>
+                                                </div>
+
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                    <div className="space-y-1">
+                                                        <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Matricule Adhérent</label>
+                                                        <input
+                                                            readOnly
+                                                            className="w-full p-3 bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-sm text-slate-500 dark:text-slate-400 cursor-not-allowed"
+                                                            value={formData.matricule_adherent}
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <label className="text-[10px] font-black uppercase text-slate-400 ml-1 flex items-center gap-2">
+                                                            <Hash size={12} className="text-indigo-500" /> Code CNAM
+                                                        </label>
+                                                        <div className="relative">
+                                                            <input
+                                                                readOnly
+                                                                className="w-full p-3 pr-10 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 border border-indigo-200 dark:border-indigo-800/40 rounded-xl font-black text-sm text-indigo-700 dark:text-indigo-300 cursor-not-allowed"
+                                                                value={formData.code_cnam || ''}
+                                                                placeholder="Non attribué"
+                                                            />
+                                                            <Lock size={13} className="absolute right-3 top-1/2 -translate-y-1/2 text-indigo-400 opacity-60" />
+                                                        </div>
                                                 {!formData.code_cnam && (
                                                     <p className="text-[9px] text-amber-500 font-bold ml-1">⚠ Code CNAM non attribué — Tu peux l'ajouter ou modifier au section information personnelles</p>
                                                 )}
-                                            </div>
-                                            <div className="space-y-1 col-span-1 md:col-span-2">
-                                                <label className="text-[10px] font-black uppercase text-slate-400 ml-1 flex items-center gap-2">
+                                                    </div>
+                                                    <div className="space-y-1 col-span-1 md:col-span-2">
+                                                        <label className="text-[10px] font-black uppercase text-slate-400 ml-1 flex items-center gap-2">
                                                     <Users size={12} className="text-purple-500" /> Personne Concernée par les soins
-                                                </label>
+                                                        </label>
                                                 <div className="flex flex-col gap-2">
-                                                    <input
+                                                        <input
                                                         placeholder="Nom du patient (extrait automatiquement)"
-                                                        className={`w-full p-3 bg-slate-50 dark:bg-slate-800/50 border ${formData.alerte_beneficiaire ? 'border-red-400 dark:border-red-500' : 'border-slate-200 dark:border-slate-700'} rounded-xl font-bold text-sm dark:text-white`}
-                                                        value={formData.nom_prenom_malade}
-                                                        onChange={e => setFormData({ ...formData, nom_prenom_malade: e.target.value })}
-                                                    />
+                                                            className={`w-full p-3 bg-slate-50 dark:bg-slate-800/50 border ${formData.alerte_beneficiaire ? 'border-red-400 dark:border-red-500' : 'border-slate-200 dark:border-slate-700'} rounded-xl font-bold text-sm dark:text-white`}
+                                                            value={formData.nom_prenom_malade}
+                                                            onChange={e => setFormData({ ...formData, nom_prenom_malade: e.target.value })}
+                                                        />
                                                     {formData.alerte_beneficiaire && (
                                                         <div className="p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-xs font-bold rounded-lg flex items-start gap-2 border border-red-100 dark:border-red-800">
                                                             <span className="text-base leading-none">⚠️</span>
@@ -466,17 +446,15 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
                                                         </div>
                                                     )}
                                                 </div>
-                                            </div>
-
-                                            {/* Nouveaux champs rajoutés suite à la fusion */}
-                                            <div className="space-y-1">
-                                                <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Date de Soin</label>
-                                                <input type="date" required className="w-full p-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-sm dark:text-white" value={formData.date_soin} onChange={e => setFormData({ ...formData, date_soin: e.target.value })} />
-                                            </div>
-                                            <div className="space-y-1">
-                                                <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Montant Total (TND)</label>
-                                                <input required type="number" step="0.100" placeholder="0.000" className="w-full p-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-sm dark:text-white" value={formData.montant_total} onChange={e => setFormData({ ...formData, montant_total: e.target.value })} />
-                                            </div>
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Date de Soin</label>
+                                                        <input type="date" required className="w-full p-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-sm dark:text-white" value={formData.date_soin} onChange={e => setFormData({ ...formData, date_soin: e.target.value })} />
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Montant Total (TND)</label>
+                                                        <input required type="number" step="0.100" placeholder="0.000" className="w-full p-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-sm dark:text-white" value={formData.montant_total} onChange={e => setFormData({ ...formData, montant_total: e.target.value })} />
+                                                    </div>
                                             <div className="col-span-2 space-y-1">
                                                 <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Type de Document</label>
                                                 <div className="relative">
@@ -580,15 +558,15 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
                                                 </div>
                                             </div>
 
-                                        </div>
+                                                </div>
 
-                                        <div className="p-4 bg-purple-50 dark:bg-purple-900/10 rounded-2xl border border-purple-100 dark:border-purple-800/50">
-                                            <h4 className="text-[10px] font-black uppercase tracking-widest text-purple-600 dark:text-purple-400 mb-3 flex items-center gap-2"><User size={14} /> Informations du Médecin Trouvées</h4>
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                                <input placeholder="Nom du médecin" className="w-full p-2.5 text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white" value={formData.medecin.nom_prenom} onChange={e => setFormData({ ...formData, medecin: { ...formData.medecin, nom_prenom: e.target.value } })} />
-                                                <input placeholder="Spécialité médecin" className="w-full p-2.5 text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white" value={formData.medecin.specialite} onChange={e => setFormData({ ...formData, medecin: { ...formData.medecin, specialite: e.target.value } })} />
-                                            </div>
-                                        </div>
+                                                <div className="p-4 bg-purple-50 dark:bg-purple-900/10 rounded-2xl border border-purple-100 dark:border-purple-800/50">
+                                                    <h4 className="text-[10px] font-black uppercase tracking-widest text-purple-600 dark:text-purple-400 mb-3">Informations Médecin</h4>
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                        <input placeholder="Nom du médecin" className="w-full p-2.5 text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white" value={formData.medecin.nom_prenom} onChange={e => setFormData({ ...formData, medecin: { ...formData.medecin, nom_prenom: e.target.value } })} />
+                                                        <input placeholder="Spécialité médecin" className="w-full p-2.5 text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white" value={formData.medecin.specialite} onChange={e => setFormData({ ...formData, medecin: { ...formData.medecin, specialite: e.target.value } })} />
+                                                    </div>
+                                                </div>
 
                                         {(formData.type_dossier === 'Pharmacie' || formData.documentType === 'Facture Pharmacie') && (
                                             <div className="p-4 bg-blue-50 dark:bg-blue-900/10 rounded-2xl border border-blue-100 dark:border-blue-800/50">
@@ -600,25 +578,29 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
                                             </div>
                                         )}
 
-                                        <div className="pt-4 flex items-center justify-between gap-4">
-                                            <button type="button" onClick={() => setStep(1)} className="px-6 py-3.5 text-slate-500 font-bold hover:text-slate-700 dark:hover:text-slate-300 transition-all">Retour</button>
-                                            <button
-                                                type="submit"
+                                                <div className="pt-4 flex items-center justify-between gap-4">
+                                                    <button type="button" onClick={() => setStep(1)} className="px-6 py-3.5 text-slate-500 font-bold hover:text-slate-700 dark:hover:text-slate-300 transition-all">Retour</button>
+                                                    <button
+                                                        type="submit"
                                                 disabled={!formData.nom_prenom_malade || !formData.montant_total }
                                                 className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 text-white px-8 py-4 rounded-2xl font-black text-xs md:text-sm uppercase tracking-widest flex items-center justify-center gap-3 shadow-xl shadow-green-600/20 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 disabled:scale-100"
-                                            >
+                                                    >
                                                 <CheckCircle2 size={20} /> Valider et Sauvegarder
-                                            </button>
-                                        </div>
-                                    </div>
-                                )}
-                            </form>
-                        </div>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </form>
+                                </div>
+                            </div>
+                        </motion.div>
                     </div>
-                </motion.div>
-            </div>
+                </div>
+            )}
         </AnimatePresence>
     );
+
+    return createPortal(modalContent, document.body);
 };
 
 export default AddBulletinModal;

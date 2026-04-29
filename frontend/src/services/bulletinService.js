@@ -1,6 +1,6 @@
-import { handleResponse } from './api';
+import { API_BASE, handleResponse } from './api';
 
-const API_URL = 'http://localhost:5000/api/bulletins';
+const API_URL = `${API_BASE}/bulletins`;
 
 const getAuthHeaders = () => {
     const token = localStorage.getItem('token');
@@ -96,7 +96,7 @@ export const analyzeBulletinIA = async (file) => {
     const formData = new FormData();
     formData.append('file', file);
 
-    const response = await fetch('http://localhost:5000/api/ai/analyze-bulletin', {
+    const response = await fetch(`${API_BASE}/ai/analyze-bulletin`, {
         method: 'POST',
         headers: {
             'Authorization': `Bearer ${token}`

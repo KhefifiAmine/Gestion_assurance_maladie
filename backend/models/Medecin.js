@@ -18,6 +18,11 @@ const Medecin = sequelize.define('Medecin', {
     telephone: {
         type: DataTypes.STRING,
         allowNull: true
+    },
+    matricule_fiscal: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        unique: true
     }
 }, {
     tableName: 'medecins',

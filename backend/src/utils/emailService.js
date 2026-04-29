@@ -40,7 +40,7 @@ const sendResetEmail = async (email, code) => {
   }
 };
 
-const sendApprovalEmail = async (email, password) => {
+const sendApprovalEmail = async (email) => {
   const mailOptions = {
     from: `"Votre Application" TT Asurance`,
     to: email,
@@ -49,12 +49,8 @@ const sendApprovalEmail = async (email, password) => {
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2 style="color: #333;">Félicitations !</h2>
         <p>Votre demande de création de compte a été approuvée par l'administrateur.</p>
-        <p>Voici vos identifiants de connexion :</p>
-        <ul>
-          <li><strong>Email :</strong> ${email}</li>
-          <li><strong>Mot de passe :</strong> ${password}</li>
-        </ul>
-        <p>Nous vous recommandons de modifier ce mot de passe dès votre première connexion.</p>
+        <p>Votre compte est actif. Pour des raisons de sécurité, aucun mot de passe n'est envoyé par email.</p>
+        <p>Utilisez la fonctionnalité <strong>Mot de passe oublié</strong> pour définir votre mot de passe.</p>
         <hr style="margin: 20px 0;">
         <p style="color: #666; font-size: 12px;">
           Cet email a été envoyé automatiquement, merci de ne pas y répondre.

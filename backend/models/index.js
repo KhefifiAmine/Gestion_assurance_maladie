@@ -14,6 +14,7 @@ const DocumentJustificatif = require('./DocumentJustificatif');
 const Medecin = require('./Medecin');
 const ReclamationMessage = require('./ReclamationMessage');
 const BulletinComment = require('./BulletinComment');
+const FraudAlert = require('./FraudAlert');
 
 // Associations
 User.hasMany(Beneficiary, { foreignKey: 'userId', as: 'beneficiaires' });
@@ -90,5 +91,6 @@ module.exports = {
     DocumentJustificatif,
     Medecin,
     ReclamationMessage,
-    BulletinComment
+    BulletinComment,
+    FraudAlert
 };

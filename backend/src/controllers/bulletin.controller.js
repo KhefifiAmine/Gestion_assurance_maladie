@@ -3,10 +3,12 @@ const fs = require('fs');
 const { Op } = require('sequelize');
 const { BulletinSoin, ActeMedical, Pharmacie, SoinDentaire, User, Medecin, DocumentJustificatif, Beneficiary, BulletinComment, Notification, sequelize } = require('../../models');
 const { sendNotificationEmail } = require('../utils/emailService');
+const FraudService = require('../services/fraud.service');
 
 const createBulletin = async (req, res) => {
     try {
-        const rawData = req.body.data ? JSON.parse(req.body.data) : req.body;
+        const payload = req.body.data ? JSON.parse(req.body.data) : req.body;
+        const rawData = FraudService.normalizeExtractionData(payload);
         const {
             code_cnam,
             nom_prenom_malade,
@@ -19,7 +21,7 @@ const createBulletin = async (req, res) => {
             pharmacie,
             soinDentaire,
             medecin,
-            est_suspect,
+            suspicion_locale,
             zones_modifiees,
             confiance_score,
             documentType,
@@ -29,7 +31,7 @@ const createBulletin = async (req, res) => {
         // Des valeurs arrivent depuis middelwares
         const documentHash = req.fileHash;
         const userId = req.userId;
-        const currentFichierUrl = req.file.filename;
+        const currentFichierUrl = req.file ? req.file.filename : null;
 
 
         const result = await sequelize.transaction(async (t) => {
@@ -40,28 +42,18 @@ const createBulletin = async (req, res) => {
                     where: { nom_prenom: medecin.nom_prenom },
                     defaults: {
                         specialite: medecin.specialite,
-                        telephone: medecin.telephone
+                        telephone: medecin.telephone,
+                        matricule_fiscal: medecin.matricule_fiscal
                     },
                     transaction: t
                 });
+                
+                // Mettre à jour le MF si vide
+                if (!medecinRecord.matricule_fiscal && medecin.matricule_fiscal) {
+                    await medecinRecord.update({ matricule_fiscal: medecin.matricule_fiscal }, { transaction: t });
+                }
+                
                 medecinId = medecinRecord.id_medecin;
-            }
-
-            // --- GESTION DE FRAUDE ---
-            let fraudReason = zones_modifiees || "";
-            const currentUser = await User.findByPk(userId, { transaction: t });
-            let expectedPatientName = "";
-
-            if (beneficiaireId) {
-                const beneficiary = await Beneficiary.findByPk(beneficiaireId, { transaction: t });
-                if (beneficiary) expectedPatientName = `${beneficiary.prenom} ${beneficiary.nom}`.toLowerCase().trim();
-            } else {
-                expectedPatientName = `${currentUser.prenom} ${currentUser.nom}`.toLowerCase().trim();
-            }
-
-            const providedName = nom_prenom_malade ? nom_prenom_malade.toLowerCase().trim() : "";
-            if (providedName && expectedPatientName && !expectedPatientName.includes(providedName) && !providedName.includes(expectedPatientName)) {
-                fraudReason = fraudReason ? `${fraudReason} | Nom incohérent` : "Nom du patient incohérent";
             }
 
             // 2. Créer le Bulletin
@@ -75,20 +67,17 @@ const createBulletin = async (req, res) => {
                 qualite_malade,
                 userId,
                 beneficiaireId,
+                confiance_score: confiance_score || 100,
+                suspicion_locale: suspicion_locale || false
             }, { transaction: t });
 
             let niveauRisque = "aucun";
-            if (est_suspect) {
+            if (suspicion_locale) {
                 if (confiance_score > 75) niveauRisque = "faible";
                 else if (confiance_score > 50) niveauRisque = "moyen";
                 else niveauRisque = "eleve";
             }
-            if (documentHash) {
-                const existingDoc = await DocumentJustificatif.findOne({ where: { hash_fichier: documentHash } });
-                if (existingDoc) {
-                    return res.status(400).json({ message: 'Ce document a déjà été soumis (doublon détecté).' });
-                }
-            }
+
             // 3. Créer le Document Justificatif
             if (documentHash || req.file) {
                 await DocumentJustificatif.create({
@@ -98,8 +87,7 @@ const createBulletin = async (req, res) => {
                     score: confiance_score || 0,
                     niveauRisque: niveauRisque,
                     zones_modifiees: zones_modifiees,
-                    est_suspect: est_suspect || false,
-                    resultat_analyse: fraudReason,
+                    est_suspect: suspicion_locale || false,
                     bulletinId: bulletin.id
                 }, { transaction: t });
             }
@@ -125,15 +113,19 @@ const createBulletin = async (req, res) => {
                 await SoinDentaire.create({ ...soinDentaire, bulletinId: bulletin.id }, { transaction: t });
             }
 
-            return await BulletinSoin.findByPk(bulletin.id, {
-                include: [
-                    { model: ActeMedical, as: 'actes' },
-                    { model: Pharmacie, as: 'pharmacie' },
-                    { model: SoinDentaire, as: 'soinDentaire' },
-                    { model: DocumentJustificatif, as: 'documents' }
-                ],
-                transaction: t
-            });
+            return bulletin;
+        });
+
+        // --- CALCUL DU SCORE DE FRAUDE (Etape 7) ---
+        await FraudService.calculateFraudScore(result.id);
+
+        const finalBulletin = await BulletinSoin.findByPk(result.id, {
+            include: [
+                { model: ActeMedical, as: 'actes' },
+                { model: Pharmacie, as: 'pharmacie' },
+                { model: SoinDentaire, as: 'soinDentaire' },
+                { model: DocumentJustificatif, as: 'documents' }
+            ]
         });
 
         // --- Notification pour les Administrateurs ---
@@ -148,7 +140,7 @@ const createBulletin = async (req, res) => {
                     titre: '📄 Nouveau bulletin de soin',
                     description: `Un nouveau bulletin a été soumis par ${userName}.`,
                     type: 'bulletin',
-                    priorite: 'normale',
+                    priorite: finalBulletin.fraud_score > 60 ? 'haute' : 'normale',
                     userId: admin.id,
                     lu: false
                 }));
@@ -158,7 +150,7 @@ const createBulletin = async (req, res) => {
             console.error('Erreur notification admin bulletin:', notifErr);
         }
 
-        res.status(201).json({ message: 'Bulletin créé avec succès', bulletin: result });
+        res.status(201).json({ message: 'Bulletin créé avec succès', bulletin: finalBulletin });
 
     } catch (error) {
         console.error(error);
@@ -173,7 +165,8 @@ const updateBulletin = async (req, res) => {
     try {
         const { id } = req.params;
         const userId = req.userId;
-        const rawData = req.body.data ? JSON.parse(req.body.data) : req.body;
+        const payload = req.body.data ? JSON.parse(req.body.data) : req.body;
+        const rawData = FraudService.normalizeExtractionData(payload);
 
 
         // Vérification du hash si un nouveau document est fourni
