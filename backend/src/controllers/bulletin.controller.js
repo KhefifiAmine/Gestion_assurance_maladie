@@ -337,6 +337,7 @@ const deleteBulletin = async (req, res) => {
 };
 
 const getMyBulletins = async (req, res) => {
+    console.log('[DEBUG] getMyBulletins called, userId:', req.userId);
     try {
         const userId = req.userId;
         const bulletins = await BulletinSoin.findAll({
@@ -349,13 +350,17 @@ const getMyBulletins = async (req, res) => {
             ],
             order: [['createdAt', 'DESC']]
         });
+        console.log('[DEBUG] Found bulletins:', bulletins.length);
         res.status(200).json(bulletins);
     } catch (error) {
+        console.error('[DEBUG] Error in getMyBulletins:', error);
+        console.error('[DEBUG] Stack:', error.stack);
         res.status(500).json({ message: 'Erreur lors de la récupération des bulletins', error: error.message });
     }
 };
 
 const getAllBulletins = async (req, res) => {
+    console.log('[DEBUG] getAllBulletins called');
     try {
         const bulletins = await BulletinSoin.findAll({
             include: [
@@ -368,8 +373,11 @@ const getAllBulletins = async (req, res) => {
             ],
             order: [['createdAt', 'DESC']]
         });
+        console.log('[DEBUG] Found all bulletins:', bulletins.length);
         res.status(200).json(bulletins);
     } catch (error) {
+        console.error('[DEBUG] Error in getAllBulletins:', error);
+        console.error('[DEBUG] Stack:', error.stack);
         res.status(500).json({ message: 'Erreur lors de la récupération de tous les bulletins', error: error.message });
     }
 };

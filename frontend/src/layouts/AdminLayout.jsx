@@ -115,7 +115,7 @@ const AdminLayout = () => {
 
     // Shared feature
     { name: 'Finances & Stats', path: '/admin/statistiques', icon: BarChart2, roles: ['ADMIN', 'RESPONSABLE_RH'] },
-
+{ name: 'Journal d\'activité', path: '/admin/logs', icon: Activity, roles: ['RESPONSABLE_RH'] },
     // Shortcut back
     { name: 'Espace Adhérent', path: '/dashboard', icon: UserIcon, roles: ['ADMIN', 'RESPONSABLE_RH'] },
   ];

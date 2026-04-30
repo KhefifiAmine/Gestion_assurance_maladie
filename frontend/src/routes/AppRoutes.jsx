@@ -22,6 +22,7 @@ import UserBeneficiarie from '../pages/user/UserBeneficiarie';
 import UserReclamation from '../pages/user/UserReclamation';
 import AdminReclamation from '../pages/admin/AdminReclamation';
 import GATVitrine from '../pages/GATVitrine';
+import LogsPage from '../pages/admin/LogsPage'; // ← AJOUTER CET IMPORT
 
 const AppRoutes = () => {
     return (
@@ -49,7 +50,7 @@ const AppRoutes = () => {
                 <Route path="/dashboard" element={<UserDashboard />} />
                 <Route path="/profile" element={<UserProfile />} />
                 <Route path="/reclamations" element={<UserReclamation />} />
-                {/* On peut aussi ajouter /bulletins si le user veut un lien direct */}
+
                 <Route path="/bulletins" element={<BulletinsPage />} />
                 <Route path="/beneficiaires" element={<UserBeneficiarie />} />
                 <Route path="/a-propos-nous" element={<GATVitrine />} />
@@ -68,6 +69,7 @@ const AppRoutes = () => {
                 <Route path="reclamations" element={<ProtectedRoute allowedRoles={['ADMIN']}><AdminReclamation /></ProtectedRoute>} />
                 <Route path="statistiques" element={<ProtectedRoute allowedRoles={['ADMIN', 'RESPONSABLE_RH']}><AdminStats /></ProtectedRoute>} />
                 <Route path="beneficiaires" element={<ProtectedRoute allowedRoles={['RESPONSABLE_RH']}><AdminBeneficiarie /></ProtectedRoute>} />
+                <Route path="logs" element={<ProtectedRoute allowedRoles={["RESPONSABLE_RH"]}><LogsPage /></ProtectedRoute>} /> {/* ← AJOUTER CETTE ROUTE */}
             </Route>
 
             {/* Catch-all redirection */}

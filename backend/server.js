@@ -14,6 +14,7 @@ const aiRoutes = require("./src/routes/ai.routes");
 const statsRoutes = require("./src/routes/stats.routes");
 const beneficiaryRoutes = require("./src/routes/beneficiary.routes");
 const notificationRoutes = require("./src/routes/notification.routes");
+const logRoutes = require('./src/routes/logRoutes');
 const app = express();
 
 const requiredEnvVars = ["JWT_SECRET"];
@@ -56,6 +57,7 @@ app.use("/api/beneficiaries", beneficiaryRoutes);
 app.use("/api/notifications", notificationRoutes);
 
 app.use("/uploads", express.static("uploads"));
+app.use('/api/logs', logRoutes);
 
 // Test DB and sync models
 sequelize.authenticate()
