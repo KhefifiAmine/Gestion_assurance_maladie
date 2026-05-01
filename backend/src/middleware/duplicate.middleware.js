@@ -19,11 +19,11 @@ const storage = multer.diskStorage({
   }
 });
 
-// 📦 Multer upload
+// 📦 Multer upload - Changé de .single('file') à .array('files', 5) pour supporter plusieurs documents
 const upload = multer({
   storage: storage,
   limits: { fileSize: 5 * 1024 * 1024 }
-}).single('file'); // ⚠️ adapte 'file' au nom de ton champ
+}).array('files', 10); 
 
 // 🔐 Hash
 function calculateFileHash(filePath) {
@@ -41,42 +41,65 @@ const uploadWithDuplicateCheck = async (req, res, next) => {
         return res.status(400).json({ message: err.message });
       }
 
-      if (!req.file) {
-        if (req.method === 'POST') {
-          return res.status(400).json({ message: "Aucun fichier fourni" });
-        }
+      // Si aucun fichier n'est fourni, on continue (sauf en POST si requis par la logique métier)
+      if (!req.files || req.files.length === 0) {
+        // Dans certains cas, on pourrait vouloir forcer au moins un fichier en POST
+        // if (req.method === 'POST') return res.status(400).json({ message: "Aucun fichier fourni" });
         return next();
       }
 
-      // 🔐 calcul hash
-      const fileHash = calculateFileHash(req.file.path);
+      const filesWithHashes = [];
+      const duplicateFiles = [];
 
-      // 🔎 vérifier doublon
-      const existingDoc = await DocumentJustificatif.findOne({
-        where: { hash_fichier: fileHash }
-      });
+      // 🔐 calcul hash pour chaque fichier et vérification des doublons
+      for (const file of req.files) {
+        const fileHash = calculateFileHash(file.path);
+        
+        // 🔎 vérifier doublon dans la DB
+        const existingDoc = await DocumentJustificatif.findOne({
+          where: { hash_fichier: fileHash }
+        });
 
-      if (existingDoc) {
-        fs.unlinkSync(req.file.path); // supprimer fichier
+        if (existingDoc) {
+          duplicateFiles.push({ name: file.originalname, hash: fileHash, path: file.path });
+        } else {
+          filesWithHashes.push({ file, hash: fileHash });
+        }
+      }
+
+      // Si des doublons sont détectés, on supprime TOUS les fichiers téléchargés et on renvoie une erreur
+      if (duplicateFiles.length > 0) {
+        req.files.forEach(f => {
+          if (fs.existsSync(f.path)) fs.unlinkSync(f.path);
+        });
+
+        const fileNames = duplicateFiles.map(f => f.name).join(', ');
         return res.status(400).json({
-          message: "Ce document a déjà été soumis (doublon détecté).",
-          isDuplicate: true
+          message: `Doublon détecté pour les fichiers suivants : ${fileNames}`,
+          isDuplicate: true,
+          duplicateFiles: duplicateFiles.map(f => f.name)
         });
       }
 
-      // 💾 injecter dans req pour usage après
-      req.fileHash = fileHash;
+      // 💾 injecter les hashes dans req pour usage après
+      req.fileHashes = filesWithHashes.map(f => ({ 
+        filename: f.file.filename, 
+        hash: f.hash,
+        originalname: f.file.originalname 
+      }));
 
       next();
     } catch (error) {
       console.error("Erreur middleware upload:", error);
 
-      if (req.file && fs.existsSync(req.file.path)) {
-        fs.unlinkSync(req.file.path);
+      if (req.files) {
+        req.files.forEach(f => {
+          if (fs.existsSync(f.path)) fs.unlinkSync(f.path);
+        });
       }
 
       return res.status(500).json({
-        message: "Erreur lors du traitement du fichier",
+        message: "Erreur lors du traitement des fichiers",
         error: error.message
       });
     }

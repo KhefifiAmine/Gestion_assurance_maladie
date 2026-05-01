@@ -10,16 +10,18 @@ const getAuthHeaders = () => {
     };
 };
 
-export const createBulletin = async (bulletinData, file = null) => {
+export const createBulletin = async (bulletinData, files = []) => {
     const token = localStorage.getItem('token');
     const formData = new FormData();
     
     // On ajoute toutes les données du bulletin dans un champ 'data'
     formData.append('data', JSON.stringify(bulletinData));
     
-    // On ajoute le fichier si présent
-    if (file) {
-        formData.append('file', file);
+    // On ajoute les fichiers si présents
+    if (files && files.length > 0) {
+        files.forEach(file => {
+            formData.append('files', file);
+        });
     }
 
     const response = await fetch(API_URL, {
@@ -33,14 +35,16 @@ export const createBulletin = async (bulletinData, file = null) => {
     return handleResponse(response);
 };
 
-export const updateBulletin = async (id, bulletinData, file = null) => {
+export const updateBulletin = async (id, bulletinData, files = []) => {
     const token = localStorage.getItem('token');
     const formData = new FormData();
     
     formData.append('data', JSON.stringify(bulletinData));
     
-    if (file) {
-        formData.append('file', file);
+    if (files && files.length > 0) {
+        files.forEach(file => {
+            formData.append('files', file);
+        });
     }
 
     const response = await fetch(`${API_URL}/${id}`, {

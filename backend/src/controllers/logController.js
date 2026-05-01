@@ -7,6 +7,7 @@ const logController = {
             const { 
                 action, 
                 userId, 
+                userName,
                 startDate, 
                 endDate, 
                 page = 1, 
@@ -37,13 +38,23 @@ const logController = {
 
             const offset = (parseInt(page) - 1) * parseInt(limit);
 
+            const userWhere = {};
+            if (userName) {
+                userWhere[Op.or] = [
+                    { nom: { [Op.like]: `%${userName}%` } },
+                    { prenom: { [Op.like]: `%${userName}%` } }
+                ];
+            }
+
             const { count, rows: logs } = await Journal.findAndCountAll({
                 where,
                 include: [
                     {
                         model: User,
                         as: 'user',
-                        attributes: ['id', 'nom', 'prenom', 'email', 'role']
+                        attributes: ['id', 'nom', 'prenom', 'email', 'role'],
+                        where: userName ? userWhere : undefined,
+                        required: userName ? true : false
                     }
                 ],
                 order: [['createdAt', 'DESC']],

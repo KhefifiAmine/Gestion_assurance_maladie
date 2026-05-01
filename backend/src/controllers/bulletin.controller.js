@@ -28,10 +28,9 @@ const createBulletin = async (req, res) => {
             beneficiaireId
         } = rawData;
 
-        // Des valeurs arrivent depuis middelwares
-        const documentHash = req.fileHash;
+        // Des valeurs arrivent depuis middlewares
+        const fileHashes = req.fileHashes || []; // Tableau de { filename, hash, originalname }
         const userId = req.userId;
-        const currentFichierUrl = req.file ? req.file.filename : null;
 
 
         const result = await sequelize.transaction(async (t) => {
@@ -78,18 +77,18 @@ const createBulletin = async (req, res) => {
                 else niveauRisque = "eleve";
             }
 
-            // 3. Créer le Document Justificatif
-            if (documentHash || req.file) {
-                await DocumentJustificatif.create({
-                    type_document: documentType || 'Document',
-                    fichier: currentFichierUrl,
-                    hash_fichier: documentHash,
+            // 3. Créer les Documents Justificatifs
+            if (fileHashes.length > 0) {
+                await Promise.all(fileHashes.map(f => DocumentJustificatif.create({
+                    type_document: documentType || 'Justificatif',
+                    fichier: f.filename,
+                    hash_fichier: f.hash,
                     score: confiance_score || 0,
                     niveauRisque: niveauRisque,
                     zones_modifiees: zones_modifiees,
                     est_suspect: suspicion_locale || false,
                     bulletinId: bulletin.id
-                }, { transaction: t });
+                }, { transaction: t })));
             }
 
             // 4. Créer les Actes Médicaux
@@ -169,16 +168,18 @@ const updateBulletin = async (req, res) => {
         const rawData = FraudService.normalizeExtractionData(payload);
 
 
-        // Vérification du hash si un nouveau document est fourni
-        if (req.fileHash) {
-            const existingDoc = await DocumentJustificatif.findOne({
-                where: {
-                    hash_fichier: req.fileHash,
-                    bulletinId: { [Op.ne]: id }
+        // Vérification des hashes si de nouveaux documents sont fournis
+        if (req.fileHashes && req.fileHashes.length > 0) {
+            for (const f of req.fileHashes) {
+                const existingDoc = await DocumentJustificatif.findOne({
+                    where: {
+                        hash_fichier: f.hash,
+                        bulletinId: { [Op.ne]: id }
+                    }
+                });
+                if (existingDoc) {
+                    return res.status(400).json({ message: `Le document ${f.originalname} a déjà été soumis pour un autre bulletin.` });
                 }
-            });
-            if (existingDoc) {
-                return res.status(400).json({ message: 'Ce document a déjà été soumis pour un autre bulletin.' });
             }
         }
 
@@ -227,37 +228,23 @@ const updateBulletin = async (req, res) => {
                 }, { transaction: t });
             }
 
-            // Gérer le nouveau fichier s'il y en a un
-            if (req.file) {
-                const [doc, created] = await DocumentJustificatif.findOrCreate({
-                    where: { bulletinId: id },
-                    defaults: {
-                        type_document: rawData.documentType || 'Document',
-                        fichier: req.file.filename,
-                        hash_fichier: req.fileHash,
-                        bulletinId: id
-                    },
-                    transaction: t
-                });
-
-                if (!created) {
-                    const oldFile = doc.fichier;
-
-                    // ✅ update DB d'abord
-                    await doc.update({
-                        fichier: req.file.filename,
-                        hash_fichier: req.fileHash
-                    }, { transaction: t });
-
-                    // ✅ suppression après (safe)
-                    if (oldFile) {
-                        const filePath = path.join(__dirname, '../../uploads', oldFile);
-
-                        if (fs.existsSync(filePath)) {
-                            fs.unlinkSync(filePath);
-                        }
-                    }
+            // Gérer les nouveaux fichiers s'il y en a
+            if (req.fileHashes && req.fileHashes.length > 0) {
+                let niveauRisque = "aucun";
+                if (rawData.suspicion_locale) {
+                    if (rawData.confiance_score > 75) niveauRisque = "faible";
+                    else if (rawData.confiance_score > 50) niveauRisque = "moyen";
+                    else niveauRisque = "eleve";
                 }
+
+                await Promise.all(req.fileHashes.map(f => DocumentJustificatif.create({
+                    type_document: rawData.documentType || 'Justificatif',
+                    fichier: f.filename,
+                    hash_fichier: f.hash,
+                    score: rawData.confiance_score || 0,
+                    niveauRisque: niveauRisque,
+                    bulletinId: id
+                }, { transaction: t })));
             }
 
             return await BulletinSoin.findByPk(id, {
@@ -303,22 +290,19 @@ const deleteBulletin = async (req, res) => {
             });
         }
 
-        // 🔥 Récupérer le document associé
-        const doc = await DocumentJustificatif.findOne({
+        // 🔥 Récupérer tous les documents associés
+        const docs = await DocumentJustificatif.findAll({
             where: { bulletinId: id }
         });
 
-        // 🔥 Supprimer le fichier s'il existe
-        if (doc && doc.fichier) {
-            const filePath = path.join(__dirname, '../../uploads', doc.fichier);
-
-            if (fs.existsSync(filePath)) {
-                fs.unlinkSync(filePath);
+        // 🔥 Supprimer les fichiers physiques
+        for (const doc of docs) {
+            if (doc.fichier) {
+                const filePath = path.join(__dirname, '../../uploads', doc.fichier);
+                if (fs.existsSync(filePath)) {
+                    fs.unlinkSync(filePath);
+                }
             }
-        }
-
-        // 🔥 Supprimer le document de la DB (optionnel mais recommandé)
-        if (doc) {
             await doc.destroy();
         }
 

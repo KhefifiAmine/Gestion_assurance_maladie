@@ -1,45 +1,71 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  Search, 
+  RefreshCw, 
+  Calendar, 
+  User as UserIcon, 
+  FileText, 
+  Trash2, 
+  Edit, 
+  LogIn, 
+  LogOut, 
+  Eye, 
+  PlusCircle, 
+  AlertCircle, 
+  Bell, 
+  Users, 
+  BarChart2, 
+  ClipboardList,
+  ChevronLeft,
+  ChevronRight,
+  Filter,
+  X,
+  Info,
+  Activity
+} from 'lucide-react';
 import { API_BASE } from "../../services/api";
+import { useTheme } from '../../context/ThemeContext';
 
-const ACTION_LABELS = {
+const ACTION_MAP = {
     // Authentification
-    'POST sur /api/auth/login': { label: 'Connexion', icon: '🔑', color: '#22c55e', bg: '#f0fdf4' },
-    'POST sur /api/auth/logout': { label: 'Déconnexion', icon: '🚪', color: '#f97316', bg: '#fff7ed' },
+    'POST sur /api/auth/login': { label: 'Connexion', icon: LogIn, color: 'text-green-500', bg: 'bg-green-50' },
+    'POST sur /api/auth/logout': { label: 'Déconnexion', icon: LogOut, color: 'text-orange-500', bg: 'bg-orange-50' },
     
     // Profil utilisateur
-    'PUT sur /api/profile': { label: 'Modification du profil', icon: '👤', color: '#3b82f6', bg: '#eff6ff' },
-    'GET sur /api/profile': { label: 'Consultation du profil', icon: '👁️', color: '#6366f1', bg: '#eef2ff' },
+    'PUT sur /api/profile': { label: 'Modif. Profil', icon: UserIcon, color: 'text-blue-500', bg: 'bg-blue-50' },
+    'GET sur /api/profile': { label: 'Consult. Profil', icon: Eye, color: 'text-indigo-500', bg: 'bg-indigo-50' },
     
     // Bulletins
-    'POST sur /api/bulletins': { label: 'Création d\'un bulletin', icon: '📝', color: '#8b5cf6', bg: '#f5f3ff' },
-    'PUT sur /api/bulletins': { label: 'Modification d\'un bulletin', icon: '✏️', color: '#06b6d4', bg: '#ecfeff' },
-    'DELETE sur /api/bulletins': { label: 'Suppression d\'un bulletin', icon: '🗑️', color: '#ef4444', bg: '#fef2f2' },
-    'PATCH sur /api/bulletins': { label: 'Mise à jour statut bulletin', icon: '🔄', color: '#f59e0b', bg: '#fffbeb' },
+    'POST sur /api/bulletins': { label: 'Création Bulletin', icon: PlusCircle, color: 'text-purple-500', bg: 'bg-purple-50' },
+    'PUT sur /api/bulletins': { label: 'Modif. Bulletin', icon: Edit, color: 'text-cyan-500', bg: 'bg-cyan-50' },
+    'DELETE sur /api/bulletins': { label: 'Suppr. Bulletin', icon: Trash2, color: 'text-red-500', bg: 'bg-red-50' },
+    'PATCH sur /api/bulletins': { label: 'Statut Bulletin', icon: RefreshCw, color: 'text-amber-500', bg: 'bg-amber-50' },
     
     // Réclamations
-    'POST sur /api/reclamations': { label: 'Création d\'une réclamation', icon: '📋', color: '#ec4899', bg: '#fdf2f8' },
-    'PUT sur /api/reclamations': { label: 'Modification d\'une réclamation', icon: '✏️', color: '#d946ef', bg: '#faf5ff' },
-    'DELETE sur /api/reclamations': { label: 'Suppression d\'une réclamation', icon: '🗑️', color: '#ef4444', bg: '#fef2f2' },
+    'POST sur /api/reclamations': { label: 'Création Réclamation', icon: AlertCircle, color: 'text-pink-500', bg: 'bg-pink-50' },
+    'PUT sur /api/reclamations': { label: 'Modif. Réclamation', icon: Edit, color: 'text-fuchsia-500', bg: 'bg-fuchsia-50' },
+    'DELETE sur /api/reclamations': { label: 'Suppr. Réclamation', icon: Trash2, color: 'text-red-500', bg: 'bg-red-50' },
     
     // Bénéficiaires
-    'POST sur /api/beneficiaries': { label: 'Ajout d\'un bénéficiaire', icon: '➕', color: '#10b981', bg: '#ecfdf5' },
-    'PUT sur /api/beneficiaries': { label: 'Modification d\'un bénéficiaire', icon: '✏️', color: '#14b8a6', bg: '#f0fdfa' },
-    'DELETE sur /api/beneficiaries': { label: 'Suppression d\'un bénéficiaire', icon: '🗑️', color: '#ef4444', bg: '#fef2f2' },
+    'POST sur /api/beneficiaries': { label: 'Ajout Bénéficiaire', icon: UserIcon, color: 'text-emerald-500', bg: 'bg-emerald-50' },
+    'PUT sur /api/beneficiaries': { label: 'Modif. Bénéficiaire', icon: Edit, color: 'text-teal-500', bg: 'bg-teal-50' },
+    'DELETE sur /api/beneficiaries': { label: 'Suppr. Bénéficiaire', icon: Trash2, color: 'text-red-500', bg: 'bg-red-50' },
     
     // Notifications
-    'PUT sur /api/notifications/read-all': { label: 'Lecture des notifications', icon: '🔔', color: '#64748b', bg: '#f8fafc' },
-    'PUT sur /api/notifications': { label: 'Mise à jour notification', icon: '🔔', color: '#94a3b8', bg: '#f1f5f9' },
+    'PUT sur /api/notifications/read-all': { label: 'Lecture Notifications', icon: Bell, color: 'text-slate-500', bg: 'bg-slate-50' },
+    'PUT sur /api/notifications': { label: 'MAJ Notification', icon: Bell, color: 'text-slate-400', bg: 'bg-slate-50' },
     
     // Utilisateurs (Admin)
-    'PUT sur /api/users': { label: 'Modification d\'un utilisateur', icon: '👥', color: '#0ea5e9', bg: '#f0f9ff' },
-    'DELETE sur /api/users': { label: 'Suppression d\'un utilisateur', icon: '🚫', color: '#dc2626', bg: '#fef2f2' },
-    'PATCH sur /api/users': { label: 'Blocage/Déblocage utilisateur', icon: '🔒', color: '#f97316', bg: '#fff7ed' },
+    'PUT sur /api/users': { label: 'Modif. Utilisateur', icon: Users, color: 'text-sky-500', bg: 'bg-sky-50' },
+    'DELETE sur /api/users': { label: 'Suppr. Utilisateur', icon: Trash2, color: 'text-red-600', bg: 'bg-red-50' },
+    'PATCH sur /api/users': { label: 'Statut Utilisateur', icon: RefreshCw, color: 'text-orange-600', bg: 'bg-orange-50' },
     
     // Stats
-    'GET sur /api/stats': { label: 'Consultation des statistiques', icon: '📊', color: '#0891b2', bg: '#ecfeff' },
+    'GET sur /api/stats': { label: 'Consult. Stats', icon: BarChart2, color: 'text-cyan-600', bg: 'bg-cyan-50' },
     
     // Logs
-    'GET sur /api/logs': { label: 'Consultation du journal', icon: '📋', color: '#6b7280', bg: '#f9fafb' },
+    'GET sur /api/logs': { label: 'Consult. Journal', icon: ClipboardList, color: 'text-gray-500', bg: 'bg-gray-50' },
 };
 
 const getToken = () => localStorage.getItem('token');
@@ -47,7 +73,7 @@ const getToken = () => localStorage.getItem('token');
 const fetchLogs = async (filters) => {
     const params = new URLSearchParams();
     if (filters.action) params.append('action', filters.action);
-    if (filters.userId) params.append('userId', filters.userId);
+    if (filters.userName) params.append('userName', filters.userName);
     if (filters.startDate) params.append('startDate', filters.startDate);
     if (filters.endDate) params.append('endDate', filters.endDate);
     params.append('page', filters.page);
@@ -66,58 +92,31 @@ const fetchLogs = async (filters) => {
 const formatDate = (dateStr) => {
     if (!dateStr) return '—';
     const d = new Date(dateStr);
-    return d.toLocaleDateString('fr-FR', {
-        day: '2-digit', month: '2-digit', year: 'numeric',
-        hour: '2-digit', minute: '2-digit', second: '2-digit'
-    });
+    return new Intl.DateTimeFormat('fr-FR', {
+        day: '2-digit', month: 'short', year: 'numeric',
+        hour: '2-digit', minute: '2-digit'
+    }).format(d);
 };
 
-const getActionLabel = (action) => {
-    // Chercher une correspondance exacte
-    if (ACTION_LABELS[action]) {
-        return ACTION_LABELS[action];
-    }
+const getActionInfo = (action) => {
+    if (ACTION_MAP[action]) return ACTION_MAP[action];
     
-    // Chercher une correspondance partielle
-    for (const [key, value] of Object.entries(ACTION_LABELS)) {
+    for (const [key, value] of Object.entries(ACTION_MAP)) {
         if (action && action.includes(key.split('sur')[0].trim())) {
             return value;
         }
     }
     
-    // Fallback pour les actions inconnues
     return { 
         label: action || 'Action inconnue', 
-        icon: '📌', 
-        color: '#6b7280', 
-        bg: '#f9fafb' 
+        icon: Info, 
+        color: 'text-gray-400', 
+        bg: 'bg-gray-50' 
     };
 };
 
-const ActionBadge = ({ action }) => {
-    const info = getActionLabel(action);
-    return (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '16px' }}>{info.icon}</span>
-            <span style={{
-                display: 'inline-block',
-                padding: '4px 12px',
-                borderRadius: '8px',
-                fontSize: '12px',
-                fontWeight: 600,
-                color: info.color,
-                background: info.bg,
-                border: `1px solid ${info.color}30`,
-                letterSpacing: '0.3px',
-                whiteSpace: 'nowrap'
-            }}>
-                {info.label}
-            </span>
-        </div>
-    );
-};
-
 export default function LogsPage() {
+    const { theme } = useTheme();
     const [logs, setLogs] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
@@ -126,12 +125,14 @@ export default function LogsPage() {
 
     const [filters, setFilters] = useState({
         action: '',
-        userId: '',
+        userName: '',
         startDate: '',
         endDate: '',
         page: 1,
-        limit: 20
+        limit: 15
     });
+
+    const [showFilters, setShowFilters] = useState(false);
 
     const loadLogs = useCallback(async () => {
         setLoading(true);
@@ -153,362 +154,341 @@ export default function LogsPage() {
     }, [loadLogs]);
 
     const handleFilterChange = (e) => {
-        setFilters(prev => ({ ...prev, [e.target.name]: e.target.value, page: 1 }));
+        const { name, value } = e.target;
+        setFilters(prev => ({ ...prev, [name]: value, page: 1 }));
     };
 
     const handleReset = () => {
-        setFilters({ action: '', userId: '', startDate: '', endDate: '', page: 1, limit: 20 });
+        setFilters({ action: '', userName: '', startDate: '', endDate: '', page: 1, limit: 15 });
     };
 
     const handlePageChange = (newPage) => {
-        setFilters(prev => ({ ...prev, page: newPage }));
+        if (newPage >= 1 && newPage <= totalPages) {
+            setFilters(prev => ({ ...prev, page: newPage }));
+        }
     };
 
     return (
-        <div style={{ padding: '24px', fontFamily: "'Segoe UI', system-ui, sans-serif", background: '#f8fafc', minHeight: '100vh' }}>
-            {/* Header */}
-            <div style={{ marginBottom: '24px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-                    <span style={{ fontSize: '28px' }}>📋</span>
-                    <h1 style={{ fontSize: '24px', fontWeight: 700, color: '#1e293b', margin: 0 }}>
+        <div className={`min-h-screen p-4 lg:p-8 ${theme === 'dark' ? 'text-white' : 'text-slate-800'}`}>
+            {/* Header Section */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+                <div>
+                    <h1 className="text-3xl font-black tracking-tight uppercase flex items-center gap-3">
+                        <div className="p-2 bg-purple-600 rounded-xl shadow-lg shadow-purple-500/20">
+                            <ClipboardList className="text-white" size={28} />
+                        </div>
                         Journal d'activité
                     </h1>
+                    <p className="mt-2 text-sm font-medium opacity-60">
+                        Suivi en temps réel des interactions sur la plateforme
+                    </p>
                 </div>
-                <p style={{ color: '#64748b', marginTop: '4px', fontSize: '14px', marginLeft: '40px' }}>
-                    Historique détaillé de toutes les actions effectuées sur la plateforme
-                </p>
-            </div>
 
-            {/* Filters */}
-            <div style={{
-                background: '#fff',
-                borderRadius: '12px',
-                padding: '20px',
-                marginBottom: '20px',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.07)',
-                border: '1px solid #e2e8f0'
-            }}>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'flex-end' }}>
-                    {/* Filtre action */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <label style={{ fontSize: '12px', fontWeight: 600, color: '#475569' }}>Action</label>
-                        <select
-                            name="action"
-                            value={filters.action}
-                            onChange={handleFilterChange}
-                            style={selectStyle}
-                        >
-                            <option value="">Toutes les actions</option>
-                            {Object.entries(ACTION_LABELS).map(([key, val]) => (
-                                <option key={key} value={key}>{val.icon} {val.label}</option>
-                            ))}
-                        </select>
-                    </div>
-
-                    {/* Filtre userId */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <label style={{ fontSize: '12px', fontWeight: 600, color: '#475569' }}>ID Utilisateur</label>
-                        <input
-                            type="number"
-                            name="userId"
-                            value={filters.userId}
-                            onChange={handleFilterChange}
-                            placeholder="Ex: 42"
-                            style={inputStyle}
-                        />
-                    </div>
-
-                    {/* Date début */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <label style={{ fontSize: '12px', fontWeight: 600, color: '#475569' }}>Date début</label>
-                        <input
-                            type="date"
-                            name="startDate"
-                            value={filters.startDate}
-                            onChange={handleFilterChange}
-                            style={inputStyle}
-                        />
-                    </div>
-
-                    {/* Date fin */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <label style={{ fontSize: '12px', fontWeight: 600, color: '#475569' }}>Date fin</label>
-                        <input
-                            type="date"
-                            name="endDate"
-                            value={filters.endDate}
-                            onChange={handleFilterChange}
-                            style={inputStyle}
-                        />
-                    </div>
-
-                    {/* Bouton reset */}
+                <div className="flex items-center gap-2">
                     <button 
-                        onClick={handleReset} 
-                        style={resetBtnStyle}
-                        onMouseEnter={e => { e.target.style.background = '#f1f5f9'; e.target.style.borderColor = '#94a3b8'; }}
-                        onMouseLeave={e => { e.target.style.background = '#fff'; e.target.style.borderColor = '#cbd5e1'; }}
+                        onClick={() => setShowFilters(!showFilters)}
+                        className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-all border ${
+                            showFilters 
+                            ? 'bg-purple-600 border-purple-500 text-white shadow-lg shadow-purple-500/30' 
+                            : theme === 'dark' ? 'bg-white/5 border-white/10 hover:bg-white/10' : 'bg-white border-slate-200 hover:border-purple-300 hover:text-purple-600'
+                        }`}
                     >
-                        ↺ Réinitialiser
+                        {showFilters ? <X size={18} /> : <Filter size={18} />}
+                        {showFilters ? 'Fermer Filtres' : 'Filtrer les logs'}
+                    </button>
+                    <button 
+                        onClick={loadLogs}
+                        disabled={loading}
+                        className={`p-2.5 rounded-xl border transition-all ${
+                            loading ? 'animate-spin opacity-50' : ''
+                        } ${theme === 'dark' ? 'bg-white/5 border-white/10 hover:bg-white/10' : 'bg-white border-slate-200 hover:border-purple-300'}`}
+                    >
+                        <RefreshCw size={18} />
                     </button>
                 </div>
             </div>
 
-            {/* Stats bar */}
-            <div style={{ 
-                marginBottom: '16px', 
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                alignItems: 'center' 
-            }}>
-                {!loading && !error && (
-                    <span style={{ fontSize: '13px', color: '#64748b' }}>
-                        <strong style={{ color: '#1e293b' }}>{total}</strong> entrée{total > 1 ? 's' : ''} trouvée{total > 1 ? 's' : ''}
-                    </span>
-                )}
-                {!loading && !error && (
-                    <span style={{ fontSize: '12px', color: '#94a3b8' }}>
-                        Page {filters.page} sur {totalPages || 1}
-                    </span>
-                )}
-            </div>
+            {/* Filters Panel */}
+            <AnimatePresence>
+                {showFilters && (
+                    <motion.div 
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        className="overflow-hidden mb-6"
+                    >
+                        <div className={`p-6 rounded-2xl border ${
+                            theme === 'dark' ? 'bg-slate-900 border-white/5' : 'bg-white border-slate-200 shadow-sm'
+                        }`}>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                                <div className="space-y-2">
+                                    <label className="text-xs font-black uppercase tracking-widest opacity-50">Action</label>
+                                    <select 
+                                        name="action"
+                                        value={filters.action}
+                                        onChange={handleFilterChange}
+                                        className={`w-full px-4 py-2.5 rounded-xl border appearance-none outline-none focus:ring-2 focus:ring-purple-500/50 transition-all ${
+                                            theme === 'dark' ? 'bg-slate-800 border-white/10 text-white' : 'bg-slate-50 border-slate-200'
+                                        }`}
+                                    >
+                                        <option value="">Toutes les actions</option>
+                                        {Object.entries(ACTION_MAP).map(([key, val]) => (
+                                            <option key={key} value={key}>{val.label}</option>
+                                        ))}
+                                    </select>
+                                </div>
 
-            {/* Table */}
-            <div style={{
-                background: '#fff',
-                borderRadius: '12px',
-                border: '1px solid #e2e8f0',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.07)',
-                overflow: 'hidden'
-            }}>
-                {loading ? (
-                    <div style={{ padding: '80px', textAlign: 'center' }}>
-                        <div style={{ fontSize: '40px', marginBottom: '16px', animation: 'spin 1s linear infinite' }}>⏳</div>
-                        <div style={{ color: '#64748b', fontSize: '14px' }}>Chargement du journal d'activité...</div>
+                                <div className="space-y-2">
+                                    <label className="text-xs font-black uppercase tracking-widest opacity-50">Nom Utilisateur</label>
+                                    <div className="relative">
+                                        <input 
+                                            type="text"
+                                            name="userName"
+                                            placeholder="Ex: Ahmed"
+                                            value={filters.userName}
+                                            onChange={handleFilterChange}
+                                            className={`w-full pl-10 pr-4 py-2.5 rounded-xl border outline-none focus:ring-2 focus:ring-purple-500/50 transition-all ${
+                                                theme === 'dark' ? 'bg-slate-800 border-white/10 text-white' : 'bg-slate-50 border-slate-200'
+                                            }`}
+                                        />
+                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 opacity-30" size={18} />
+                                    </div>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-xs font-black uppercase tracking-widest opacity-50">Depuis</label>
+                                    <div className="relative">
+                                        <input 
+                                            type="date"
+                                            name="startDate"
+                                            value={filters.startDate}
+                                            onChange={handleFilterChange}
+                                            className={`w-full pl-10 pr-4 py-2.5 rounded-xl border outline-none focus:ring-2 focus:ring-purple-500/50 transition-all ${
+                                                theme === 'dark' ? 'bg-slate-800 border-white/10 text-white' : 'bg-slate-50 border-slate-200'
+                                            }`}
+                                        />
+                                        <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 opacity-30" size={18} />
+                                    </div>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-xs font-black uppercase tracking-widest opacity-50">Jusqu'à</label>
+                                    <div className="relative">
+                                        <input 
+                                            type="date"
+                                            name="endDate"
+                                            value={filters.endDate}
+                                            onChange={handleFilterChange}
+                                            className={`w-full pl-10 pr-4 py-2.5 rounded-xl border outline-none focus:ring-2 focus:ring-purple-500/50 transition-all ${
+                                                theme === 'dark' ? 'bg-slate-800 border-white/10 text-white' : 'bg-slate-50 border-slate-200'
+                                            }`}
+                                        />
+                                        <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 opacity-30" size={18} />
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div className="mt-6 flex justify-end">
+                                <button 
+                                    onClick={handleReset}
+                                    className="px-6 py-2 rounded-xl font-bold text-xs uppercase tracking-widest bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all"
+                                >
+                                    Réinitialiser
+                                </button>
+                            </div>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Content Table */}
+            <div className={`rounded-2xl border overflow-hidden ${
+                theme === 'dark' ? 'bg-slate-900/50 border-white/5' : 'bg-white border-slate-200 shadow-xl shadow-slate-200/50'
+            }`}>
+                {loading && logs.length === 0 ? (
+                    <div className="py-24 flex flex-col items-center justify-center space-y-4">
+                        <div className="w-12 h-12 border-4 border-purple-600 border-t-transparent rounded-full animate-spin" />
+                        <p className="text-sm font-black uppercase tracking-widest opacity-40">Récupération des données...</p>
                     </div>
                 ) : error ? (
-                    <div style={{ padding: '60px', textAlign: 'center' }}>
-                        <div style={{ fontSize: '40px', marginBottom: '12px' }}>⚠️</div>
-                        <div style={{ color: '#ef4444', fontWeight: 500, marginBottom: '8px' }}>Erreur de chargement</div>
-                        <div style={{ color: '#64748b', fontSize: '13px' }}>{error}</div>
+                    <div className="py-24 text-center">
+                        <AlertCircle className="mx-auto text-red-500 mb-4" size={48} />
+                        <h3 className="text-xl font-black uppercase">Erreur de connexion</h3>
+                        <p className="opacity-60 mt-2">{error}</p>
+                        <button onClick={loadLogs} className="mt-6 px-8 py-3 bg-red-500 text-white rounded-xl font-black uppercase text-xs tracking-widest">Réessayer</button>
                     </div>
                 ) : logs.length === 0 ? (
-                    <div style={{ padding: '80px', textAlign: 'center' }}>
-                        <div style={{ fontSize: '48px', marginBottom: '16px' }}>📭</div>
-                        <div style={{ color: '#64748b', fontWeight: 500, marginBottom: '4px' }}>Aucune activité enregistrée</div>
-                        <div style={{ color: '#94a3b8', fontSize: '13px' }}>Les actions effectuées sur la plateforme apparaîtront ici</div>
+                    <div className="py-24 text-center">
+                        <ClipboardList className="mx-auto text-slate-300 mb-4" size={64} />
+                        <h3 className="text-xl font-black uppercase opacity-30">Aucun log trouvé</h3>
+                        <p className="opacity-40 mt-2">Essayez d'ajuster vos filtres de recherche</p>
                     </div>
                 ) : (
-                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                        <thead>
-                            <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
-                                <th style={{ ...thStyle, width: '60px' }}>#</th>
-                                <th style={thStyle}>Action</th>
-                                <th style={{ ...thStyle, width: '140px' }}>Utilisateur</th>
-                                <th style={{ ...thStyle, width: '130px' }}>Adresse IP</th>
-                                <th style={{ ...thStyle, width: '170px' }}>Date</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {logs.map((log, idx) => (
-                                <tr 
-                                    key={log.id_log} 
-                                    style={{
-                                        borderBottom: '1px solid #f1f5f9',
-                                        transition: 'all 0.2s ease',
-                                        background: idx % 2 === 0 ? '#fff' : '#fafafa'
-                                    }}
-                                    onMouseEnter={e => e.currentTarget.style.background = '#f0f9ff'}
-                                    onMouseLeave={e => e.currentTarget.style.background = idx % 2 === 0 ? '#fff' : '#fafafa'}
-                                >
-                                    <td style={{ ...tdStyle, textAlign: 'center', width: '60px' }}>
-                                        <span style={{ 
-                                            color: '#94a3b8', 
-                                            fontSize: '12px',
-                                            fontWeight: 600,
-                                            background: '#f1f5f9',
-                                            padding: '2px 8px',
-                                            borderRadius: '6px'
-                                        }}>
-                                            #{log.id_log}
-                                        </span>
-                                    </td>
-                                    <td style={tdStyle}>
-                                        <ActionBadge action={log.action} />
-                                    </td>
-                                    <td style={{ ...tdStyle, width: '140px' }}>
-                                        <div style={{
-                                            display: 'inline-flex',
-                                            alignItems: 'center',
-                                            gap: '6px',
-                                            background: '#f1f5f9',
-                                            borderRadius: '8px',
-                                            padding: '4px 10px',
-                                            fontSize: '13px',
-                                            fontWeight: 500,
-                                            color: '#475569'
-                                        }}>
-                                            <span style={{ fontSize: '14px' }}>👤</span>
-                                            <span>ID: {log.userId}</span>
-                                        </div>
-                                    </td>
-                                    <td style={{ ...tdStyle, width: '130px' }}>
-                                        <code style={{ 
-                                            fontSize: '12px', 
-                                            color: '#64748b',
-                                            background: '#f8fafc',
-                                            padding: '4px 8px',
-                                            borderRadius: '4px',
-                                            fontFamily: 'monospace'
-                                        }}>
-                                            {log.adresse_ip || '—'}
-                                        </code>
-                                    </td>
-                                    <td style={{ ...tdStyle, width: '170px' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                            <span style={{ fontSize: '14px' }}>🕐</span>
-                                            <span style={{ fontSize: '13px', color: '#64748b', fontWeight: 500 }}>
-                                                {formatDate(log.createdAt)}
-                                            </span>
-                                        </div>
-                                    </td>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse">
+                            <thead>
+                                <tr className={`border-b ${theme === 'dark' ? 'bg-white/5 border-white/5' : 'bg-slate-50 border-slate-100'}`}>
+                                    <th className="px-6 py-5 text-[10px] font-black uppercase tracking-[0.2em] opacity-50">Utilisateur</th>
+                                    <th className="px-6 py-5 text-[10px] font-black uppercase tracking-[0.2em] opacity-50">Action Effectuée</th>
+                                    <th className="px-6 py-5 text-[10px] font-black uppercase tracking-[0.2em] opacity-50">Horodatage</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                {logs.map((log) => {
+                                    const action = getActionInfo(log.action);
+                                    const ActionIcon = action.icon;
+                                    
+                                    return (
+                                        <tr 
+                                            key={log.id_log}
+                                            className={`group transition-colors border-b last:border-0 ${
+                                                theme === 'dark' ? 'hover:bg-white/5 border-white/5' : 'hover:bg-slate-50 border-slate-100'
+                                            }`}
+                                        >
+                                            <td className="px-6 py-4">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-10 h-10 rounded-xl bg-purple-600/10 flex items-center justify-center text-purple-600 font-black text-sm">
+                                                        {log.user?.prenom?.[0]}{log.user?.nom?.[0]}
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-sm font-black truncate max-w-[150px]">
+                                                            {log.user ? `${log.user.prenom} ${log.user.nom}` : 'Utilisateur inconnu'}
+                                                        </p>
+                                                        <p className="text-[10px] opacity-40 uppercase font-bold tracking-wider">
+                                                            {log.user?.role || 'N/A'}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <div className="flex items-center gap-2">
+                                                    <div className={`p-1.5 rounded-lg ${theme === 'dark' ? 'bg-white/10' : action.bg}`}>
+                                                        <ActionIcon size={14} className={action.color} />
+                                                    </div>
+                                                    <span className="text-xs font-bold">{action.label}</span>
+                                                </div>
+                                            </td>
+
+                                            <td className="px-6 py-4">
+                                                <p className="text-xs font-medium opacity-70">
+                                                    {formatDate(log.createdAt)}
+                                                </p>
+                                            </td>
+        
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+
+                {/* Pagination */}
+                {totalPages > 1 && (
+                    <div className={`p-6 flex items-center justify-between border-t ${
+                        theme === 'dark' ? 'border-white/5' : 'border-slate-100'
+                    }`}>
+                        <p className="text-xs font-medium opacity-40">
+                            Affichage de {logs.length} sur {total} entrées
+                        </p>
+                        
+                        <div className="flex items-center gap-2">
+                            <button 
+                                onClick={() => handlePageChange(filters.page - 1)}
+                                disabled={filters.page === 1}
+                                className={`p-2 rounded-xl border transition-all ${
+                                    filters.page === 1 
+                                    ? 'opacity-20 cursor-not-allowed' 
+                                    : theme === 'dark' ? 'hover:bg-white/10 border-white/10' : 'hover:bg-slate-50 border-slate-200'
+                                }`}
+                            >
+                                <ChevronLeft size={18} />
+                            </button>
+                            
+                            <div className="flex items-center gap-1">
+                                {[...Array(totalPages)].map((_, i) => {
+                                    const pageNum = i + 1;
+                                    // Logic to show only some pages if total is large
+                                    if (totalPages > 5) {
+                                        if (pageNum !== 1 && pageNum !== totalPages && (pageNum < filters.page - 1 || pageNum > filters.page + 1)) {
+                                            if (pageNum === filters.page - 2 || pageNum === filters.page + 2) return <span key={pageNum} className="px-1 opacity-20">...</span>;
+                                            return null;
+                                        }
+                                    }
+                                    
+                                    return (
+                                        <button 
+                                            key={pageNum}
+                                            onClick={() => handlePageChange(pageNum)}
+                                            className={`w-8 h-8 rounded-lg text-xs font-black transition-all ${
+                                                filters.page === pageNum 
+                                                ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/30' 
+                                                : theme === 'dark' ? 'hover:bg-white/10 text-white/40' : 'hover:bg-slate-100 text-slate-400'
+                                            }`}
+                                        >
+                                            {pageNum}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+
+                            <button 
+                                onClick={() => handlePageChange(filters.page + 1)}
+                                disabled={filters.page === totalPages}
+                                className={`p-2 rounded-xl border transition-all ${
+                                    filters.page === totalPages 
+                                    ? 'opacity-20 cursor-not-allowed' 
+                                    : theme === 'dark' ? 'hover:bg-white/10 border-white/10' : 'hover:bg-slate-50 border-slate-200'
+                                }`}
+                            >
+                                <ChevronRight size={18} />
+                            </button>
+                        </div>
+                    </div>
                 )}
             </div>
 
-            {/* Pagination */}
-            {totalPages > 1 && !loading && (
-                <div style={{ 
-                    display: 'flex', 
-                    justifyContent: 'center', 
-                    alignItems: 'center', 
-                    gap: '12px', 
-                    marginTop: '24px',
-                    padding: '16px 0'
-                }}>
-                    <button
-                        onClick={() => handlePageChange(filters.page - 1)}
-                        disabled={filters.page === 1}
-                        style={pageBtnStyle(filters.page === 1)}
-                    >
-                        ← Précédent
-                    </button>
-                    
-                    <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        padding: '8px 16px',
-                        background: '#fff',
-                        borderRadius: '8px',
-                        border: '1px solid #e2e8f0',
-                        fontSize: '13px',
-                        color: '#64748b'
-                    }}>
-                        <span>Page</span>
-                        <strong style={{ color: '#1e293b', fontSize: '14px' }}>{filters.page}</strong>
-                        <span>sur</span>
-                        <strong style={{ color: '#1e293b', fontSize: '14px' }}>{totalPages}</strong>
+            {/* Summary Footer */}
+            <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className={`p-6 rounded-2xl border ${theme === 'dark' ? 'bg-white/5 border-white/5' : 'bg-white border-slate-200 shadow-sm'}`}>
+                    <div className="flex items-center gap-3 mb-2">
+                        <div className="w-8 h-8 rounded-lg bg-green-500/10 flex items-center justify-center text-green-500">
+                            <LogIn size={18} />
+                        </div>
+                        <span className="text-[10px] font-black uppercase tracking-widest opacity-50">Dernières Connexions</span>
                     </div>
-
-                    <button
-                        onClick={() => handlePageChange(filters.page + 1)}
-                        disabled={filters.page === totalPages}
-                        style={pageBtnStyle(filters.page === totalPages)}
-                    >
-                        Suivant →
-                    </button>
+                    <p className="text-2xl font-black">
+                        {logs.filter(l => l.action.includes('login')).length}
+                        <span className="text-sm font-bold opacity-30 ml-2">sessions</span>
+                    </p>
                 </div>
-            )}
 
-            {/* Footer */}
-            {!loading && !error && logs.length > 0 && (
-                <div style={{ 
-                    textAlign: 'center', 
-                    marginTop: '16px', 
-                    padding: '12px',
-                    fontSize: '11px',
-                    color: '#94a3b8'
-                }}>
-                    Affichage de {logs.length} entrée{logs.length > 1 ? 's' : ''} sur {total} au total
+                <div className={`p-6 rounded-2xl border ${theme === 'dark' ? 'bg-white/5 border-white/5' : 'bg-white border-slate-200 shadow-sm'}`}>
+                    <div className="flex items-center gap-3 mb-2">
+                        <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-500">
+                            <FileText size={18} />
+                        </div>
+                        <span className="text-[10px] font-black uppercase tracking-widest opacity-50">Actions Documents</span>
+                    </div>
+                    <p className="text-2xl font-black">
+                        {logs.filter(l => l.action.includes('bulletins') || l.action.includes('reclamations')).length}
+                        <span className="text-sm font-bold opacity-30 ml-2">opérations</span>
+                    </p>
                 </div>
-            )}
+
+                <div className={`p-6 rounded-2xl border ${theme === 'dark' ? 'bg-white/5 border-white/5' : 'bg-white border-slate-200 shadow-sm'}`}>
+                    <div className="flex items-center gap-3 mb-2">
+                        <div className="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center text-purple-500">
+                            <Activity size={18} />
+                        </div>
+                        <span className="text-[10px] font-black uppercase tracking-widest opacity-50">Intensité Activity</span>
+                    </div>
+                    <p className="text-2xl font-black">
+                        {total}
+                        <span className="text-sm font-bold opacity-30 ml-2">total logs</span>
+                    </p>
+                </div>
+            </div>
         </div>
     );
 }
-
-// ─── Styles ───────────────────────────────────────────────
-
-const inputStyle = {
-    padding: '8px 12px',
-    borderRadius: '8px',
-    border: '1px solid #cbd5e1',
-    fontSize: '13px',
-    color: '#1e293b',
-    background: '#f8fafc',
-    outline: 'none',
-    minWidth: '140px',
-    transition: 'all 0.2s ease'
-};
-
-const selectStyle = {
-    ...inputStyle,
-    minWidth: '220px',
-    cursor: 'pointer',
-    appearance: 'none',
-    WebkitAppearance: 'none',
-    backgroundImage: 'url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%23475569\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3e%3cpolyline points=\'6 9 12 15 18 9\'%3e%3c/polyline%3e%3c/svg%3e")',
-    backgroundRepeat: 'no-repeat',
-    backgroundPosition: 'right 8px center',
-    backgroundSize: '16px',
-    paddingRight: '32px'
-};
-
-const resetBtnStyle = {
-    padding: '8px 16px',
-    borderRadius: '8px',
-    border: '1px solid #cbd5e1',
-    background: '#fff',
-    color: '#475569',
-    fontSize: '13px',
-    fontWeight: 500,
-    cursor: 'pointer',
-    transition: 'all 0.2s ease',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '4px'
-};
-
-const thStyle = {
-    padding: '12px 16px',
-    textAlign: 'left',
-    fontSize: '11px',
-    fontWeight: 700,
-    color: '#64748b',
-    textTransform: 'uppercase',
-    letterSpacing: '0.5px',
-    background: '#f8fafc'
-};
-
-const tdStyle = {
-    padding: '14px 16px',
-    fontSize: '13px',
-    color: '#1e293b',
-    verticalAlign: 'middle'
-};
-
-const pageBtnStyle = (disabled) => ({
-    padding: '8px 16px',
-    borderRadius: '8px',
-    border: '1px solid #e2e8f0',
-    background: disabled ? '#f8fafc' : '#fff',
-    color: disabled ? '#94a3b8' : '#1e293b',
-    fontSize: '13px',
-    fontWeight: 500,
-    cursor: disabled ? 'not-allowed' : 'pointer',
-    opacity: disabled ? 0.6 : 1,
-    transition: 'all 0.2s ease'
-});

@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     X, FileText, User, Activity, Upload, ChevronRight, ChevronDown,
-    Hash, Users, CheckCircle2, Lock, Eye, ExternalLink
+    Hash, Users, CheckCircle2, Lock, Eye, ExternalLink, Plus
 } from 'lucide-react';
 import { createBulletin, updateBulletin, analyzeBulletinIA } from '../services/bulletinService';
 import { getMyBeneficiaries } from '../services/beneficiaryService';
@@ -53,7 +53,8 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
     const [step, setStep] = useState(1);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [isUploadingDoc, setIsUploadingDoc] = useState(false);
-    const [selectedFile, setSelectedFile] = useState(null);
+    const [selectedFiles, setSelectedFiles] = useState([]); // Changé de selectedFile (unique) à selectedFiles (tableau)
+    const [previewIndex, setPreviewIndex] = useState(0); // Pour naviguer entre les aperçus
     const [beneficiaries, setBeneficiaries] = useState([]);
     const [isBeneficiaryDropdownOpen, setIsBeneficiaryDropdownOpen] = useState(false);
     const [isTypeDropdownOpen, setIsTypeDropdownOpen] = useState(false);
@@ -72,7 +73,7 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
         confiance_score: null,
         documentHash: '',
         documentType: '',
-        fichierUrl: '',
+        fichiers: [], // Changé de fichierUrl à un tableau de fichiers existants (pour l'édition)
         medecin: {
             nom_prenom: '',
             specialite: '',
@@ -122,7 +123,7 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
                     confiance_score: initialData.documents?.[0]?.score || null,
                     documentHash: initialData.documents?.[0]?.hash_fichier || '',
                     documentType: initialData.documents?.[0]?.type_document || '',
-                    fichierUrl: initialData.documents?.[0]?.fichier || '',
+                    fichiers: initialData.documents || [],
                     medecin: {
                         nom_prenom: '',
                         specialite: '',
@@ -135,7 +136,7 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
                     },
                     beneficiaireId: initialData.beneficiaireId || null,
                     alerte_beneficiaire: null,
-                    showPreview: !!initialData.documents?.[0]?.fichier
+                    showPreview: (initialData.documents && initialData.documents.length > 0)
                 });
                 setStep(2);
             } else {
@@ -145,11 +146,11 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
                     code_cnam: user?.code_cnam || '',
                     nom_prenom_malade: `${user?.prenom || ''} ${user?.nom || ''}`.trim(),
                 });
-                setSelectedFile(null);
+                setSelectedFiles([]);
                 setStep(1);
             }
         } else {
-            setSelectedFile(null);
+            setSelectedFiles([]);
         }
     }, [isOpen, user, initialData, isEdit]);
 
@@ -162,31 +163,32 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
     ];
 
     const handleManualFileUpload = async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
+        const files = Array.from(e.target.files);
+        if (files.length === 0) return;
 
-        setSelectedFile(file);
+        setSelectedFiles(prev => [...prev, ...files]);
         setFormData(prev => ({
             ...prev,
-            fichierUrl: file.name,
             showPreview: true
         }));
-        showToast("Fichier bien téléchargé", "success");
+        showToast(`${files.length} fichier(s) ajouté(s)`, "success");
     };
 
     const handleFileUpload = async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
+        const files = Array.from(e.target.files);
+        if (files.length === 0) return;
+
+        // On analyse le premier fichier pour extraire les données, mais on garde tous les fichiers
+        const fileToAnalyze = files[0];
 
         try {
             setIsAnalyzing(true);
-            showToast("Analyse du document par l'IA en cours...", "info");
+            showToast("Analyse du document principal par l'IA en cours...", "info");
 
-            const aiData = await analyzeBulletinIA(file);
+            const aiData = await analyzeBulletinIA(fileToAnalyze);
             
             if (aiData.est_document_medical === false) {
-                showToast("ALERTE : Ce document n'est PAS un document médical valide. Veuillez télécharger un document conforme.", "error");
-                setSelectedFile(null);
+                showToast("ALERTE : Ce document n'est PAS un document médical valide.", "error");
                 setIsAnalyzing(false);
                 if (fileInputRef.current) fileInputRef.current.value = "";
                 return;
@@ -210,7 +212,7 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
                 return '';
             };
 
-            setSelectedFile(file);
+            setSelectedFiles(files);
             setFormData(prev => ({
                 ...prev,
                 nom_prenom_malade: clean(aiData.nom_prenom_malade) || prev.nom_prenom_malade,
@@ -224,7 +226,6 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
                 confiance_score: aiData.confiance_score || 0,
                 documentHash: aiData.hash_fichier || '',
                 documentType: clean(aiData.type_document) || '',
-                fichierUrl: file.name,
                 medecin: aiData.medecin ? {
                     nom_prenom: clean(aiData.medecin.nom_prenom),
                     specialite: clean(aiData.medecin.specialite),
@@ -251,14 +252,14 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
         e.preventDefault();
         try {
             if (isEdit) {
-                const updated = await updateBulletin(initialData.id, formData, selectedFile);
+                const updated = await updateBulletin(initialData.id, formData, selectedFiles);
                 onSubmit(updated.bulletin);
             } else {
-                const result = await createBulletin(formData, selectedFile);
+                const result = await createBulletin(formData, selectedFiles);
                 onSubmit(result.bulletin);
             }
             setStep(1);
-            setSelectedFile(null);
+            setSelectedFiles([]);
             showToast(isEdit ? "Bulletin mis à jour avec succès !" : "Bulletin enregistré avec succès !", "success");
             onClose();
         } catch (error) {
@@ -278,8 +279,18 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
     };
 
     if (!isOpen) return null;
+    
+    // On définit le fichier actuellement prévisualisé
+    const currentPreviewFile = selectedFiles[previewIndex];
+    const currentExistingFile = !currentPreviewFile && formData.fichiers?.[previewIndex];
+    const showSidePreview = step === 2 && (selectedFiles.length > 0 || (formData.fichiers && formData.fichiers.length > 0));
 
-    const showSidePreview = step === 2 && formData.fichierUrl;
+    const removeFile = (index) => {
+        setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+        if (previewIndex >= selectedFiles.length - 1 && previewIndex > 0) {
+            setPreviewIndex(previewIndex - 1);
+        }
+    };
 
     const modalContent = (
         <AnimatePresence>
@@ -329,14 +340,36 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
                                     <div className="flex-1 bg-slate-50 dark:bg-slate-950 p-6 overflow-hidden flex flex-col min-h-[400px] lg:min-h-0 border-b lg:border-b-0 border-slate-100 dark:border-slate-800">
                                         <div className="flex items-center justify-between mb-4 shrink-0">
                                             <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
-                                                <Eye size={14} className="text-purple-500" /> APERÇU DU JUSTIFICATIF
+                                                <Eye size={14} className="text-purple-500" /> APERÇU DU JUSTIFICATIF { (selectedFiles.length + (formData.fichiers?.length || 0)) > 1 ? `(${previewIndex + 1}/${selectedFiles.length + (formData.fichiers?.length || 0)})` : '' }
                                             </h3>
-                                            <span className="px-3 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-full text-[9px] font-black uppercase">
-                                                {formData.fichierUrl.split('.').pop().toUpperCase()}
-                                            </span>
+                                            <div className="flex items-center gap-2">
+                                                { (selectedFiles.length + (formData.fichiers?.length || 0)) > 1 && (
+                                                    <div className="flex gap-1 mr-2">
+                                                        <button 
+                                                            type="button"
+                                                            onClick={() => setPreviewIndex(prev => Math.max(0, prev - 1))}
+                                                            disabled={previewIndex === 0}
+                                                            className="p-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 disabled:opacity-30"
+                                                        >
+                                                            <ChevronRight className="rotate-180" size={14} />
+                                                        </button>
+                                                        <button 
+                                                            type="button"
+                                                            onClick={() => setPreviewIndex(prev => Math.min(selectedFiles.length + (formData.fichiers?.length || 0) - 1, prev + 1))}
+                                                            disabled={previewIndex === selectedFiles.length + (formData.fichiers?.length || 0) - 1}
+                                                            className="p-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 disabled:opacity-30"
+                                                        >
+                                                            <ChevronRight size={14} />
+                                                        </button>
+                                                    </div>
+                                                ) }
+                                                <span className="px-3 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-full text-[9px] font-black uppercase">
+                                                    { (currentPreviewFile?.name || currentExistingFile?.fichier || '').split('.').pop().toUpperCase() }
+                                                </span>
+                                            </div>
                                         </div>
                                         <div className="flex-1 overflow-hidden">
-                                            <DocumentPreview file={selectedFile} url={formData.fichierUrl} />
+                                            <DocumentPreview file={currentPreviewFile} url={currentExistingFile?.fichier} />
                                         </div>
                                     </div>
                                 )}
@@ -362,6 +395,7 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
                                                         onChange={handleFileUpload}
                                                         disabled={isAnalyzing}
                                                         accept=".pdf,image/*"
+                                                        multiple
                                                     />
                                                     <div className={`p-6 bg-white dark:bg-slate-800 rounded-full shadow-lg group-hover:scale-110 transition-transform ${isAnalyzing ? 'animate-pulse ring-4 ring-purple-500/30' : ''}`}>
                                                         <Upload className={`${isAnalyzing ? 'text-purple-600' : 'text-purple-500'}`} size={32} />
@@ -499,62 +533,84 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
                                             </div>
 
                                             {/* Section pour attacher un document */}
-                                            <div className="col-span-1 md:col-span-2 space-y-1">
-                                                <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Document Justificatif</label>
-                                                <div className="relative">
-                                                    {formData.fichierUrl ? (
-                                                        <div className="space-y-4">
-                                                            <div className="flex items-center justify-between p-3 bg-purple-50 dark:bg-purple-900/10 border border-purple-200 dark:border-purple-800 rounded-xl">
-                                                                <div className="flex items-center gap-3">
-                                                                    <div className="p-2 bg-purple-100 dark:bg-purple-800 rounded-lg text-purple-600 dark:text-purple-300">
-                                                                        <FileText size={18} />
-                                                                    </div>
-                                                                    <div>
-                                                                        <p className="text-sm font-bold text-slate-700 dark:text-slate-200 truncate max-w-[200px] sm:max-w-[300px]">{formData.fichierUrl}</p>
-                                                                        <p className="text-[10px] font-medium text-purple-500 uppercase tracking-tight">Document attaché avec succès</p>
-                                                                    </div>
+                                            <div className="col-span-1 md:col-span-2 space-y-2">
+                                                <label className="text-[10px] font-black uppercase text-slate-400 ml-1 flex justify-between">
+                                                    <span>Documents Justificatifs</span>
+                                                    <span>{selectedFiles.length + (formData.fichiers?.length || 0)} fichier(s)</span>
+                                                </label>
+                                                
+                                                <div className="space-y-2">
+                                                    {/* Liste des fichiers existants (si édition) */}
+                                                    {formData.fichiers?.map((f, i) => (
+                                                        <div key={`exist-${i}`} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/30 border border-slate-200 dark:border-slate-700 rounded-xl group">
+                                                            <div className="flex items-center gap-3">
+                                                                <div className="p-2 bg-slate-200 dark:bg-slate-700 rounded-lg text-slate-500">
+                                                                    <FileText size={16} />
                                                                 </div>
-                                                                <div className="flex items-center gap-2">
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => {
-                                                                            setSelectedFile(null);
-                                                                            setFormData({ ...formData, fichierUrl: '', documentHash: '', showPreview: false });
-                                                                        }}
-                                                                        className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                                                                    >
-                                                                        <X size={16} />
-                                                                    </button>
+                                                                <div>
+                                                                    <p className="text-sm font-bold text-slate-700 dark:text-slate-200 truncate max-w-[200px]">{f.fichier}</p>
+                                                                    <p className="text-[9px] text-slate-400 uppercase font-black tracking-tighter italic">Document déjà enregistré</p>
                                                                 </div>
                                                             </div>
-                                                        </div>
-                                                    ) : (
-                                                        <div className="relative">
-                                                            <input
-                                                                ref={manualFileInputRef}
-                                                                type="file"
-                                                                className="absolute inset-0 opacity-0 cursor-pointer z-10 w-full"
-                                                                onChange={handleManualFileUpload}
-                                                                disabled={isUploadingDoc}
-                                                            />
-                                                            <button
+                                                            <button 
                                                                 type="button"
-                                                                className="w-full flex items-center justify-center gap-2 p-4 bg-slate-50 hover:bg-purple-50 dark:bg-slate-800/50 dark:hover:bg-purple-900/20 border-2 border-dashed border-slate-200 hover:border-purple-300 dark:border-slate-700 dark:hover:border-purple-700 rounded-xl font-bold text-sm text-slate-500 hover:text-purple-600 dark:text-slate-400 dark:hover:text-purple-400 focus:ring-4 focus:ring-purple-500/10 transition-all"
+                                                                onClick={() => setPreviewIndex(selectedFiles.length + i)}
+                                                                className="p-2 text-purple-500 hover:bg-purple-50 rounded-lg opacity-0 group-hover:opacity-100 transition-all"
                                                             >
-                                                                {isUploadingDoc ? (
-                                                                    <>
-                                                                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-purple-500 border-t-transparent"></div>
-                                                                        Importation en cours...
-                                                                    </>
-                                                                ) : (
-                                                                    <>
-                                                                        <Upload size={18} />
-                                                                        Ajouter le document justificatif
-                                                                    </>
-                                                                )}
+                                                                <Eye size={16} />
                                                             </button>
                                                         </div>
-                                                    )}
+                                                    ))}
+
+                                                    {/* Liste des nouveaux fichiers sélectionnés */}
+                                                    {selectedFiles.map((f, i) => (
+                                                        <div key={`new-${i}`} className="flex items-center justify-between p-3 bg-purple-50 dark:bg-purple-900/10 border border-purple-200 dark:border-purple-800 rounded-xl group">
+                                                            <div className="flex items-center gap-3">
+                                                                <div className="p-2 bg-purple-100 dark:bg-purple-800 rounded-lg text-purple-600 dark:text-purple-300">
+                                                                    <FileText size={16} />
+                                                                </div>
+                                                                <div>
+                                                                    <p className="text-sm font-bold text-slate-700 dark:text-slate-200 truncate max-w-[200px]">{f.name}</p>
+                                                                    <p className="text-[9px] text-purple-500 uppercase font-black tracking-tighter">Nouveau document</p>
+                                                                </div>
+                                                            </div>
+                                                            <div className="flex items-center gap-1">
+                                                                <button 
+                                                                    type="button"
+                                                                    onClick={() => setPreviewIndex(i)}
+                                                                    className="p-2 text-purple-500 hover:bg-purple-100 rounded-lg transition-all"
+                                                                >
+                                                                    <Eye size={16} />
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => removeFile(i)}
+                                                                    className="p-2 text-red-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                                                >
+                                                                    <X size={16} />
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+
+                                                    {/* Bouton pour ajouter plus de fichiers */}
+                                                    <div className="relative pt-1">
+                                                        <input
+                                                            ref={manualFileInputRef}
+                                                            type="file"
+                                                            multiple
+                                                            className="absolute inset-0 opacity-0 cursor-pointer z-10 w-full"
+                                                            onChange={handleManualFileUpload}
+                                                            disabled={isUploadingDoc}
+                                                            accept=".pdf,image/*"
+                                                        />
+                                                        <button
+                                                            type="button"
+                                                            className="w-full flex items-center justify-center gap-2 py-3 bg-slate-50 hover:bg-purple-50 dark:bg-slate-800/50 dark:hover:bg-purple-900/20 border border-dashed border-slate-300 hover:border-purple-300 dark:border-slate-700 dark:hover:border-purple-700 rounded-xl font-black text-[10px] uppercase tracking-widest text-slate-400 hover:text-purple-600 transition-all"
+                                                        >
+                                                            <Plus size={14} className="mr-1" /> Ajouter d'autres documents
+                                                        </button>
+                                                    </div>
                                                 </div>
                                             </div>
 
