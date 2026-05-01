@@ -70,7 +70,8 @@ const AdminBulletins = () => {
 
             const updateData = {};
             if (newStatus === 3) {
-                updateData.motif_refus = result;
+                // result est maintenant un objet { subject, reason }
+                updateData.motif_refus = `${result.subject.toUpperCase()} - ${result.reason}`;
             }
 
             await updateBulletinStatus(id, newStatus, updateData);

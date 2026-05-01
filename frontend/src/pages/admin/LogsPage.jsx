@@ -34,38 +34,42 @@ const ACTION_MAP = {
     
     // Profil utilisateur
     'PUT sur /api/profile': { label: 'Modif. Profil', icon: UserIcon, color: 'text-blue-500', bg: 'bg-blue-50' },
-    'GET sur /api/profile': { label: 'Consult. Profil', icon: Eye, color: 'text-indigo-500', bg: 'bg-indigo-50' },
+
     
     // Bulletins
     'POST sur /api/bulletins': { label: 'Création Bulletin', icon: PlusCircle, color: 'text-purple-500', bg: 'bg-purple-50' },
-    'PUT sur /api/bulletins': { label: 'Modif. Bulletin', icon: Edit, color: 'text-cyan-500', bg: 'bg-cyan-50' },
-    'DELETE sur /api/bulletins': { label: 'Suppr. Bulletin', icon: Trash2, color: 'text-red-500', bg: 'bg-red-50' },
-    'PATCH sur /api/bulletins': { label: 'Statut Bulletin', icon: RefreshCw, color: 'text-amber-500', bg: 'bg-amber-50' },
+    'PUT sur /api/bulletins/:id': { label: 'Modif. Bulletin', icon: Edit, color: 'text-cyan-500', bg: 'bg-cyan-50' },
+    'DELETE sur /api/bulletins/:id': { label: 'Suppr. Bulletin', icon: Trash2, color: 'text-red-500', bg: 'bg-red-50' },
+    'PUT sur /api/bulletins/:id/status': { label: 'Statut Bulletin', icon: RefreshCw, color: 'text-amber-500', bg: 'bg-amber-50' },
     
     // Réclamations
     'POST sur /api/reclamations': { label: 'Création Réclamation', icon: AlertCircle, color: 'text-pink-500', bg: 'bg-pink-50' },
-    'PUT sur /api/reclamations': { label: 'Modif. Réclamation', icon: Edit, color: 'text-fuchsia-500', bg: 'bg-fuchsia-50' },
-    'DELETE sur /api/reclamations': { label: 'Suppr. Réclamation', icon: Trash2, color: 'text-red-500', bg: 'bg-red-50' },
+    'PUT sur /api/reclamations/:id': { label: 'Modif. Réclamation', icon: Edit, color: 'text-fuchsia-500', bg: 'bg-fuchsia-50' },
+    'PUT sur /api/reclamations/:id/status': { label: 'Statut Réclamation', icon: RefreshCw, color: 'text-amber-500', bg: 'bg-amber-50' },
+    'DELETE sur /api/reclamations/:id': { label: 'Suppr. Réclamation', icon: Trash2, color: 'text-red-500', bg: 'bg-red-50' },
     
     // Bénéficiaires
     'POST sur /api/beneficiaries': { label: 'Ajout Bénéficiaire', icon: UserIcon, color: 'text-emerald-500', bg: 'bg-emerald-50' },
-    'PUT sur /api/beneficiaries': { label: 'Modif. Bénéficiaire', icon: Edit, color: 'text-teal-500', bg: 'bg-teal-50' },
-    'DELETE sur /api/beneficiaries': { label: 'Suppr. Bénéficiaire', icon: Trash2, color: 'text-red-500', bg: 'bg-red-50' },
+    'PUT sur /api/beneficiaries/:id': { label: 'Modif. Bénéficiaire', icon: Edit, color: 'text-teal-500', bg: 'bg-teal-50' },
+    'DELETE sur /api/beneficiaries/:id': { label: 'Suppr. Bénéficiaire', icon: Trash2, color: 'text-red-500', bg: 'bg-red-50' },
     
     // Notifications
     'PUT sur /api/notifications/read-all': { label: 'Lecture Notifications', icon: Bell, color: 'text-slate-500', bg: 'bg-slate-50' },
-    'PUT sur /api/notifications': { label: 'MAJ Notification', icon: Bell, color: 'text-slate-400', bg: 'bg-slate-50' },
+
     
     // Utilisateurs (Admin)
     'PUT sur /api/users': { label: 'Modif. Utilisateur', icon: Users, color: 'text-sky-500', bg: 'bg-sky-50' },
     'DELETE sur /api/users': { label: 'Suppr. Utilisateur', icon: Trash2, color: 'text-red-600', bg: 'bg-red-50' },
-    'PATCH sur /api/users': { label: 'Statut Utilisateur', icon: RefreshCw, color: 'text-orange-600', bg: 'bg-orange-50' },
+    'PUT sur /api/users/:id/status': { label: 'Statut Utilisateur', icon: RefreshCw, color: 'text-orange-600', bg: 'bg-orange-50' },
+    'PUT sur /api/users/:id/role': { label: 'Rôle Utilisateur', icon: Users, color: 'text-blue-600', bg: 'bg-blue-50' },
+    'PUT sur /api/profile/change-password': { label: 'Changement MDP', icon: RefreshCw, color: 'text-red-500', bg: 'bg-red-50' },
+
     
     // Stats
-    'GET sur /api/stats': { label: 'Consult. Stats', icon: BarChart2, color: 'text-cyan-600', bg: 'bg-cyan-50' },
+
     
     // Logs
-    'GET sur /api/logs': { label: 'Consult. Journal', icon: ClipboardList, color: 'text-gray-500', bg: 'bg-gray-50' },
+
 };
 
 const getToken = () => localStorage.getItem('token');
@@ -329,6 +333,7 @@ export default function LogsPage() {
                             <thead>
                                 <tr className={`border-b ${theme === 'dark' ? 'bg-white/5 border-white/5' : 'bg-slate-50 border-slate-100'}`}>
                                     <th className="px-6 py-5 text-[10px] font-black uppercase tracking-[0.2em] opacity-50">Utilisateur</th>
+                                    <th className="px-6 py-5 text-[10px] font-black uppercase tracking-[0.2em] opacity-50">Rôle</th>
                                     <th className="px-6 py-5 text-[10px] font-black uppercase tracking-[0.2em] opacity-50">Action Effectuée</th>
                                     <th className="px-6 py-5 text-[10px] font-black uppercase tracking-[0.2em] opacity-50">Horodatage</th>
                                 </tr>
@@ -354,11 +359,21 @@ export default function LogsPage() {
                                                         <p className="text-sm font-black truncate max-w-[150px]">
                                                             {log.user ? `${log.user.prenom} ${log.user.nom}` : 'Utilisateur inconnu'}
                                                         </p>
-                                                        <p className="text-[10px] opacity-40 uppercase font-bold tracking-wider">
-                                                            {log.user?.role || 'N/A'}
+                                                        <p className="text-[10px] opacity-40 lowercase font-bold tracking-wider">
+                                                            {log.user?.email || '—'}
                                                         </p>
                                                     </div>
                                                 </div>
+                                            </td>
+
+                                            <td className="px-6 py-4">
+                                                <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                                                    log.user?.role === 'ADMIN' ? 'bg-red-100 text-red-600' : 
+                                                    log.user?.role === 'RESPONSABLE_RH' ? 'bg-blue-100 text-blue-600' :
+                                                    'bg-green-100 text-green-600'
+                                                }`}>
+                                                    {log.user?.role || 'ADHERENT'}
+                                                </span>
                                             </td>
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center gap-2">

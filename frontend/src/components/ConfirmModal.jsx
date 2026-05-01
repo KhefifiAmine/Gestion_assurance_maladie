@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { AlertTriangle, X, Info, AlertCircle, HelpCircle, Check } from 'lucide-react';
+import { AlertTriangle, X, Info, AlertCircle, HelpCircle, Check, EyeOff, FileWarning, Calculator, ClipboardList, Copy, UserX, MessageSquare } from 'lucide-react';
 
 const ConfirmModal = ({
     isOpen,
@@ -20,11 +20,22 @@ const ConfirmModal = ({
 }) => {
 
     const [reason, setReason] = useState('');
+    const [subject, setSubject] = useState('');
     const [selectedRole, setSelectedRole] = useState(currentRole);
+
+    const suggestions = [
+        { label: "Document illisible", icon: "EyeOff", text: "Le document est flou ou illisible, merci d'envoyer une photo plus nette." },
+        { label: "Absence de cachet", icon: "FileWarning", text: "Le cachet médical ou la signature du prestataire est manquant(e)." },
+        { label: "Montant incohérent", icon: "Calculator", text: "Le montant saisi ne correspond pas à la somme des actes indiqués." },
+        { label: "Dossier incomplet", icon: "ClipboardList", text: "Certaines pièces justificatives obligatoires sont manquantes." },
+        { label: "Doublon détecté", icon: "Copy", text: "Ce bulletin a déjà été soumis et traité précédemment." },
+        { label: "Bénéficiaire erroné", icon: "UserX", text: "Le patient mentionné n'est pas rattaché à votre compte." }
+    ];
 
     useEffect(() => {
         if (isOpen) {
             setReason('');
+            setSubject('');
             setSelectedRole(currentRole);
         }
     }, [isOpen, currentRole]);
@@ -76,7 +87,7 @@ const ConfirmModal = ({
 
     const handleConfirm = () => {
         if (requireRoleSelect) onConfirm(selectedRole);
-        else if (requireReason) onConfirm(reason);
+        else if (requireReason) onConfirm({ subject, reason });
         else onConfirm();
     };
 
@@ -123,16 +134,66 @@ const ConfirmModal = ({
                                 </p>
 
                                 {requireReason && (
-                                    <div className="w-full mb-6 text-left animate-in fade-in slide-in-from-top-2 duration-300">
-                                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">
-                                            {reasonLabel}
-                                        </label>
-                                        <textarea
-                                            className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 text-sm font-bold focus:ring-4 focus:ring-purple-500/10 outline-none transition-all min-h-[100px] resize-none dark:text-white"
-                                            placeholder="Saisissez le motif ici..."
-                                            value={reason}
-                                            onChange={(e) => setReason(e.target.value)}
-                                        />
+                                    <div className="w-full space-y-6 text-left animate-in fade-in slide-in-from-top-4 duration-500">
+                                        <div className="relative group">
+                                            <label className="flex items-center gap-2 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-3 ml-1">
+                                                <MessageSquare size={12} className="text-purple-500" />
+                                                Objet du refus
+                                            </label>
+                                            <input
+                                                type="text"
+                                                className="w-full bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/50 rounded-[1.25rem] px-5 py-4 text-sm font-bold focus:ring-4 focus:ring-purple-500/10 focus:border-purple-500/50 outline-none transition-all dark:text-white shadow-sm"
+                                                placeholder="Titre court du motif..."
+                                                value={subject}
+                                                onChange={(e) => setSubject(e.target.value)}
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label className="flex items-center gap-2 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-4 ml-1">
+                                                <AlertCircle size={12} className="text-red-500" />
+                                                Suggestions rapides
+                                            </label>
+                                            
+                                            <div className="grid grid-cols-2 gap-2 mb-6">
+                                                {suggestions.map((s, i) => {
+                                                    const Icon = { EyeOff, FileWarning, Calculator, ClipboardList, Copy, UserX }[s.icon];
+                                                    const isSelected = reason === s.text;
+                                                    return (
+                                                        <button
+                                                            key={i}
+                                                            type="button"
+                                                            onClick={() => {
+                                                                setReason(s.text);
+                                                                setSubject(s.label);
+                                                            }}
+                                                            className={`flex items-center gap-3 p-3 rounded-2xl border transition-all duration-300 text-left group ${
+                                                                isSelected 
+                                                                ? 'bg-purple-600 border-purple-600 text-white shadow-lg shadow-purple-500/20' 
+                                                                : 'bg-white dark:bg-slate-800/40 border-slate-100 dark:border-slate-700/50 hover:border-purple-300 dark:hover:border-purple-700 text-slate-600 dark:text-slate-400'
+                                                            }`}
+                                                        >
+                                                            <div className={`p-2 rounded-xl transition-colors ${isSelected ? 'bg-white/20' : 'bg-slate-50 dark:bg-slate-700 group-hover:bg-purple-50'}`}>
+                                                                <Icon size={14} className={isSelected ? 'text-white' : 'text-slate-500 group-hover:text-purple-600'} />
+                                                            </div>
+                                                            <span className="text-[10px] font-black uppercase tracking-tight leading-tight">{s.label}</span>
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+
+                                            <div className="relative">
+                                                <label className="block text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-3 ml-1">
+                                                    Détails du motif
+                                                </label>
+                                                <textarea
+                                                    className="w-full bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/50 rounded-[1.5rem] p-5 text-sm font-bold focus:ring-4 focus:ring-purple-500/10 focus:border-purple-500/50 outline-none transition-all min-h-[120px] resize-none dark:text-white shadow-sm"
+                                                    placeholder="Expliquez ici les détails pour l'adhérent..."
+                                                    value={reason}
+                                                    onChange={(e) => setReason(e.target.value)}
+                                                />
+                                            </div>
+                                        </div>
                                     </div>
                                 )}
 
@@ -170,7 +231,7 @@ const ConfirmModal = ({
                                     </button>
                                     <button
                                         onClick={handleConfirm}
-                                        disabled={loading || (requireReason && !reason.trim())}
+                                        disabled={loading || (requireReason && (!reason.trim() || !subject.trim()))}
                                         className={`flex-1 px-8 py-4 text-white font-black text-xs uppercase tracking-widest rounded-2xl transition-all active:scale-95 shadow-xl disabled:opacity-50 disabled:scale-100 ${config.btnBg}`}
                                     >
                                         {loading ? (

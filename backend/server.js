@@ -15,6 +15,8 @@ const statsRoutes = require("./src/routes/stats.routes");
 const beneficiaryRoutes = require("./src/routes/beneficiary.routes");
 const notificationRoutes = require("./src/routes/notification.routes");
 const logRoutes = require('./src/routes/logRoutes');
+const journalMiddleware = require('./src/middleware/journal.middleware');
+
 const app = express();
 
 const requiredEnvVars = ["JWT_SECRET"];
@@ -40,6 +42,7 @@ app.use(
   })
 );
 app.use(express.json());
+app.use(journalMiddleware);
 
 // Middleware morgan pour afficher les requêtes
 app.use(morgan(":method :url :status :res[content-length] - :response-time ms"));
