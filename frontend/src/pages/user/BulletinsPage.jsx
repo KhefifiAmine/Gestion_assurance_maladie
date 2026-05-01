@@ -309,6 +309,11 @@ const BulletinsPage = () => {
                                                     {statusConfig.icon}
                                                     {statusConfig.label}
                                                 </span>
+                                                {b.statut === 3 && b.motif_refus && (
+                                                    <span className="text-[10px] text-red-500 font-bold mt-1 text-center max-w-[120px] truncate block mx-auto opacity-80 group-hover:opacity-100 transition-opacity" title={b.motif_refus}>
+                                                        {b.motif_refus}
+                                                    </span>
+                                                )}
                                             </div>
                                         </td>
                                         <td className="px-8 py-6 whitespace-nowrap text-center">

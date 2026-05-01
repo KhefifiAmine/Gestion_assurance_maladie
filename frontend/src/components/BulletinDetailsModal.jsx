@@ -161,7 +161,7 @@ const BulletinDetailsModal = ({ isOpen, onClose, bulletin }) => {
                             <div className={`flex-1 overflow-y-auto custom-scrollbar p-5 md:p-7 space-y-6 ${previewDoc ? 'lg:flex-[3]' : ''}`}>
 
                                 {/* ── MOTIF DE REJET (Si applicable) ── */}
-                                {(currentUser?.role === 'ADMIN' || currentUser?.role === 'RESPONSABLE_RH') && bulletin.statut === 3 && bulletin.motif_refus && (
+                                {bulletin.statut === 3 && bulletin.motif_refus && (
                                     <motion.div
                                         initial={{ opacity: 0, y: -10 }}
                                         animate={{ opacity: 1, y: 0 }}
