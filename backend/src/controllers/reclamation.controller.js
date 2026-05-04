@@ -1,4 +1,4 @@
-const { Reclamation, User, BulletinSoin, ReclamationMessage, Notification, Beneficiary } = require('../../models');
+const { Reclamation, User, BulletinSoin, ReclamationMessage, Notification, Beneficiary, ActeMedical, Pharmacie, DocumentJustificatif } = require('../../models');
 const { sendNotificationEmail } = require('../utils/emailService');
 
 // ==========================================
@@ -41,7 +41,7 @@ const AdherentReclamationController = {
         where: { userId: req.userId },
         include: [
           { model: User, as: 'admin', attributes: ['nom', 'prenom'] },
-          { model: BulletinSoin, as: 'bulletinSoin', attributes: ['numero_bulletin', 'statut', 'montant_total', 'date_depot', 'createdAt'] }
+          { model: BulletinSoin, as: 'bulletinSoin', attributes: ['numero_bulletin', 'statut', 'montant_total', 'date_depot', 'createdAt', 'code_cnam', 'date_soin'] }
         ],
         order: [['createdAt', 'DESC']]
       });
@@ -58,7 +58,16 @@ const AdherentReclamationController = {
         where: { id, userId: req.userId },
         include: [
           { model: User, as: 'admin', attributes: ['nom', 'prenom'] },
-          { model: BulletinSoin, as: 'bulletinSoin', attributes: ['numero_bulletin', 'statut', 'montant_total', 'date_depot', 'createdAt'] },
+          { 
+            model: BulletinSoin, as: 'bulletinSoin', 
+            attributes: ['numero_bulletin', 'statut', 'montant_total', 'date_depot', 'createdAt', 'code_cnam', 'date_soin'],
+            include: [
+              { model: Beneficiary, as: 'beneficiaire', attributes: ['id', 'nom', 'prenom', 'relation', 'ddn', 'statut'] },
+              { model: ActeMedical, as: 'actes' },
+              { model: Pharmacie, as: 'pharmacie' },
+              { model: DocumentJustificatif, as: 'documents' }
+            ]
+          },
           {
             model: ReclamationMessage, as: 'messages',
             include: [{ model: User, as: 'sender', attributes: ['nom', 'prenom', 'role'] }]
@@ -134,8 +143,13 @@ const AdminReclamationController = {
           { model: User, as: 'admin', attributes: ['id', 'nom', 'prenom'] },
           { 
             model: BulletinSoin, as: 'bulletinSoin',
-            attributes: ['id', 'numero_bulletin', 'code_cnam', 'qualite_malade', 'montant_total', 'statut', 'date_depot', 'createdAt', 'bordereauId'],
-            include: [{ model: Beneficiary, as: 'beneficiaire', attributes: ['id', 'nom', 'prenom', 'relation', 'ddn', 'statut'] }]
+            attributes: ['id', 'numero_bulletin', 'code_cnam', 'qualite_malade', 'montant_total', 'statut', 'date_depot', 'createdAt', 'bordereauId', 'date_soin'],
+            include: [
+              { model: Beneficiary, as: 'beneficiaire', attributes: ['id', 'nom', 'prenom', 'relation', 'ddn', 'statut'] },
+              { model: ActeMedical, as: 'actes' },
+              { model: Pharmacie, as: 'pharmacie' },
+              { model: DocumentJustificatif, as: 'documents' }
+            ]
           },
           {
             model: ReclamationMessage, as: 'messages',
