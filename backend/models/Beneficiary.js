@@ -42,6 +42,22 @@ const Beneficiary = sequelize.define('Beneficiary', {
     motifRefus: {
         type: DataTypes.STRING,
         allowNull: true
+    },
+    handicape: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false
+    },
+    etudiant: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false
+    },
+    chomage: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false
+    },
+    celibataire: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false
     }
 }, {
     tableName: 'beneficiaires',

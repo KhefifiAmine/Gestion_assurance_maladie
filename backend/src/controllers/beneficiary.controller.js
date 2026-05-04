@@ -20,7 +20,7 @@ const getMyBeneficiaries = async (req, res) => {
 // Ajouter un bénéficiaire
 const addBeneficiary = async (req, res) => {
     try {
-        const { nom, prenom, relation, ddn, sexe } = req.body;
+        const { id, nom, prenom, relation, ddn, sexe, handicape, etudiant, chomage, celibataire } = req.body;
 
         // Gérer le fichier document
         let documentPath = null;
@@ -50,7 +50,11 @@ const addBeneficiary = async (req, res) => {
             relation,
             ddn,
             sexe,
-            document: documentPath
+            document: documentPath,
+            handicape: handicape === 'true' || handicape === true,
+            etudiant: etudiant === 'true' || etudiant === true,
+            chomage: chomage === 'true' || chomage === true,
+            celibataire: celibataire === 'true' || celibataire === true
         });
 
         // --- Notification pour les Responsables RH ---
@@ -131,7 +135,7 @@ const deleteBeneficiary = async (req, res) => {
 const updateBeneficiary = async (req, res) => {
     try {
         const { id } = req.params;
-        const { nom, prenom, relation, ddn, sexe } = req.body;
+        const { nom, prenom, relation, ddn, sexe, handicape, etudiant, chomage, celibataire } = req.body;
 
         const beneficiary = await Beneficiary.findOne({
             where: { id, userId: req.userId }
@@ -154,7 +158,7 @@ const updateBeneficiary = async (req, res) => {
                 }
             });
 
-            if (existingSpouse) {
+            if (existingSpouse && existingSpouse.id !== Number(id)) {
                 return res.status(400).json({
                     message: 'Vous avez déjà un conjoint enregistré comme bénéficiaire.'
                 });
@@ -168,6 +172,10 @@ const updateBeneficiary = async (req, res) => {
         beneficiary.sexe = sexe || beneficiary.sexe;
         beneficiary.statut = 'En attente'; // Remettre en attente après modif
         beneficiary.motifRefus = null;
+        beneficiary.handicape = handicape === 'true' || handicape === true;
+        beneficiary.etudiant = etudiant === 'true' || etudiant === true;
+        beneficiary.chomage = chomage === 'true' || chomage === true;
+        beneficiary.celibataire = celibataire === 'true' || celibataire === true;
 
         if (req.file) {
             const doc = beneficiary.document;

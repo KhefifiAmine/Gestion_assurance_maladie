@@ -42,6 +42,8 @@ export function getPatientDisplayName(bulletin, currentUser = null) {
 /** Première date de soin déduite des actes / pharmacie (pas de colonne date_soin sur le bulletin). */
 export function getDerivedCareDate(bulletin) {
     if (!bulletin) return null;
+    if (bulletin.date_soin) return new Date(bulletin.date_soin);
+    
     const times = [];
     if (Array.isArray(bulletin.actes)) {
         bulletin.actes.forEach((a) => {

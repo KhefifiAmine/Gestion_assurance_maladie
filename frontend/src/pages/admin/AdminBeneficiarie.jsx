@@ -166,7 +166,17 @@ const AdminBeneficiarie = () => {
                                             <span className="text-sm font-bold text-slate-600">{b.ddn ? new Date(b.ddn).toLocaleDateString() : 'N/A'}</span>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <span className="text-xs font-black uppercase tracking-widest opacity-80 text-slate-900">{b.relation}</span>
+                                            <div className="flex flex-col gap-1">
+                                                <span className="text-xs font-black uppercase tracking-widest opacity-80 text-slate-900">{b.relation}</span>
+                                                {b.relation === 'Enfant' && (
+                                                    <div className="flex flex-wrap gap-1">
+                                                        {b.handicape && <span className="px-1.5 py-0.5 rounded-md bg-purple-100 text-purple-600 text-[8px] border border-purple-200">Handicapé</span>}
+                                                        {b.etudiant && <span className="px-1.5 py-0.5 rounded-md bg-blue-100 text-blue-600 text-[8px] border border-blue-200">Étudiant</span>}
+                                                        {b.chomage && <span className="px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-600 text-[8px] border border-amber-200">Chômage</span>}
+                                                        {b.celibataire && <span className="px-1.5 py-0.5 rounded-md bg-pink-100 text-pink-600 text-[8px] border border-pink-200">Célibataire</span>}
+                                                    </div>
+                                                )}
+                                            </div>
                                         </td>
                                         <td className="px-6 py-4">
                                             <div className="flex flex-col">

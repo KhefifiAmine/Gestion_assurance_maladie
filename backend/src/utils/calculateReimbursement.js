@@ -3,9 +3,12 @@ const rules = require('./reimbursementRules2026');
 /**
  * Calcule le montant de remboursement pour un acte donné selon le barème 2026.
  * @param {Object} acte - L'acte médical à calculer
- * @param {string} acte.type - Le type d'acte (Consultation, Pharmacie, Analyse, Dentaire, etc.)
- * @param {number} acte.montant - Le montant engagé (honoraires ou prix)
+ * @param {string} [acte.type] - Le type d'acte (Consultation, Pharmacie, Analyse, Dentaire, etc.)
+ * @param {string} [acte.type_prestataire_soin] - Le type de prestataire (Soin Dentaire ou Non Dentaire)
+ * @param {number} [acte.montant] - Le montant engagé (honoraires ou prix)
+ * @param {number} [acte.honoraires] - Alias pour montant
  * @param {string} [acte.libelle] - Le libellé spécifique (C1, C2, etc.)
+ * @param {string} [acte.acte] - Alias pour libellé
  * @param {Object} [options] - Options supplémentaires (ex: est_couple_TT)
  * @returns {number} Le montant remboursé
  */
@@ -19,9 +22,18 @@ function calculateReimbursement(acte, options = {}) {
         return montant * taux;
     };
 
-    const type = (acte.type || '').toLowerCase();
-    const libelle = (acte.libelle || '').toUpperCase();
-    const montant = parseFloat(acte.montant) || 0;
+    let type = (acte.type || '').toLowerCase();
+    
+    // Déduction du type si type_prestataire_soin est présent (nouveau schéma)
+    const prestataireSoin = (acte.type_prestataire_soin || '').toLowerCase();
+    if (prestataireSoin.includes('dentaire')) {
+        type = 'dentaire';
+    } else if (prestataireSoin.includes('non dentaire') || !type) {
+        type = 'consultation';
+    }
+
+    const libelle = (acte.libelle || acte.acte || '').toUpperCase();
+    const montant = parseFloat(acte.montant || acte.honoraires || 0);
 
     switch (type) {
         case 'consultation':

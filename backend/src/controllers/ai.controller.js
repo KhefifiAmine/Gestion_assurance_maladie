@@ -94,8 +94,7 @@ const analyzeBulletin = async (req, res) => {
     3. INFORMATIONS BULLETIN :
     - Numéro du bulletin (N°, Référence, etc.)
     - Code CNAM (si présent)
-    - Date de soin principale
-    - Type de dossier : Consultation / Pharmacie / Dentaire / Analyse / Optique
+    - Date de soin principale (C'est la date de la dernière acte figurant sur le bulletin)
     - Soins dans le cadre de :
     - APCI
     - Suivi de la grossesse
@@ -169,7 +168,7 @@ const analyzeBulletin = async (req, res) => {
     "qualite_malade": "", //Lui-même / Conjoint / Enfant
     "date_naissance_malade": "",
 
-    "date_soin": "", //dentaire / normal
+    "date_soin": "", // format YYYY-MM-DD (date du dernier acte)
 
     "est_apci": true/false,
     "suivi_grossesse": true/false,
@@ -195,7 +194,8 @@ const analyzeBulletin = async (req, res) => {
         "identifiant_unique_mf": "",
         "est_cachet": true/false,
         "est_signature": true/false,
-        "date_cachet_signature": ""
+        "date_cachet_signature": "",
+        "type_prestataire_soin": "", //non dentaire ou dentaire
       }
     ],
 

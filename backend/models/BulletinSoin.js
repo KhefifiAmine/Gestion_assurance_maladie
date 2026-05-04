@@ -12,6 +12,11 @@ const BulletinSoin = sequelize.define('BulletinSoin', {
         allowNull: false,
         unique: true
     },
+    date_soin: {
+        type: DataTypes.DATEONLY, // c'est le date de deriniére acte 
+        allowNull: false,
+        defaultValue: DataTypes.NOW
+    },
     code_cnam: {
         type: DataTypes.STRING,
         allowNull: true

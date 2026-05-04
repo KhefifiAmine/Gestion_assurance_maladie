@@ -50,8 +50,8 @@ const ActeMedical = sequelize.define('ActeMedical', {
         type: DataTypes.STRING,
         allowNull: true
     },
-    type_acte: {
-        type: DataTypes.STRING, //soin normal ou dentaire
+    type_prestataire_soin: {
+        type: DataTypes.STRING, //non dentaire ou dentaire
         allowNull: true
     },
     bulletinId: {

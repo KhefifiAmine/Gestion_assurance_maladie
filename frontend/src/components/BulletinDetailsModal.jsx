@@ -409,7 +409,7 @@ const BulletinDetailsModal = ({ isOpen, onClose, bulletin, adherent }) => {
                                                             <p className="text-[9px] text-slate-500 dark:text-slate-400 mt-1 space-x-2">
                                                                 {acte.code_acte && <span>Code {acte.code_acte}</span>}
                                                                 {acte.numero_dent && <span>Dent {acte.numero_dent}</span>}
-                                                                {acte.type_acte && <span className="uppercase">{acte.type_acte}</span>}
+                                                                {acte.type_prestataire_soin && <span className="uppercase">{acte.type_prestataire_soin}</span>}
                                                                 {acte.identifiant_unique_mf && <span>MF {acte.identifiant_unique_mf}</span>}
                                                             </p>
                                                             {acte.cachet_signature_present != null && (

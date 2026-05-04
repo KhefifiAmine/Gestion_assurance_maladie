@@ -31,20 +31,20 @@ const DocumentPreview = ({ file, url }) => {
     const isPdf = fileName?.toLowerCase().endsWith('.pdf');
 
     return <div className="h-full rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-950 flex items-center justify-center relative group min-h-[400px] lg:min-h-0">
-            {isPdf ? (
-                <iframe
-                    src={`${fileUrl}#toolbar=0`}
-                    className="w-full h-full"
-                    title="Aperçu du document"
-                />
-            ) : (
-                <img
-                    src={fileUrl}
-                    alt="Aperçu"
-                    className="max-w-full h-full object-contain"
-                />
-            )}
-        </div>
+        {isPdf ? (
+            <iframe
+                src={`${fileUrl}#toolbar=0`}
+                className="w-full h-full"
+                title="Aperçu du document"
+            />
+        ) : (
+            <img
+                src={fileUrl}
+                alt="Aperçu"
+                className="max-w-full h-full object-contain"
+            />
+        )}
+    </div>
 };
 
 const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => {
@@ -87,18 +87,13 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
         actes: [],
 
         montant_total: 0,
-        
+
         // Champs UI interne
-        type_dossier: 'Consultation',
         notes: '',
-        est_suspect: false,
         zones_modifiees: '',
         confiance_score: null,
-        documentHash: '',
-        documentType: '',
         fichiers: [],
         beneficiaireId: null,
-        alerte_beneficiaire: null,
         showPreview: false
     };
 
@@ -146,13 +141,9 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
                     } : initialFormState.pharmacie,
                     actes: initialData.actes || [],
                     montant_total: initialData.montant_total || 0,
-                    type_dossier: initialData.type_dossier || 'Consultation',
                     notes: initialData.notes || '',
-                    est_suspect: initialData.documents?.[0]?.est_suspect || false,
                     zones_modifiees: initialData.documents?.[0]?.zones_modifiees || '',
                     confiance_score: initialData.documents?.[0]?.score || null,
-                    documentHash: initialData.documents?.[0]?.hash_fichier || '',
-                    documentType: initialData.documents?.[0]?.type_document || '',
                     fichiers: initialData.documents || [],
                     beneficiaireId: initialData.beneficiaireId || null,
                     alerte_beneficiaire: null,
@@ -203,7 +194,7 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
             showToast("Analyse du document principal par l'IA en cours...", "info");
 
             const aiData = await analyzeBulletinIA(fileToAnalyze);
-            
+
             if (aiData.est_document_medical === false) {
                 showToast("ALERTE : Ce document n'est PAS un document médical valide.", "error");
                 setIsAnalyzing(false);
@@ -238,18 +229,18 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
                 nom_prenom_adherent: clean(aiData.nom_prenom_adherent) || prev.nom_prenom_adherent,
                 adresse_adherent: clean(aiData.adresse_adherent) || prev.adresse_adherent,
                 client: clean(aiData.client) || prev.client,
-                
+
                 nom_prenom_malade: clean(aiData.nom_prenom_malade) || prev.nom_prenom_malade,
                 qualite_malade: clean(aiData.qualite_malade) || prev.qualite_malade,
                 date_naissance_malade: formatDateForInput(aiData.date_naissance_malade) || prev.date_naissance_malade,
-                
+
                 date_soin: formatDateForInput(aiData.date_soin) || prev.date_soin,
-                
+
                 est_apci: aiData.est_apci ?? prev.est_apci,
                 suivi_grossesse: aiData.suivi_grossesse ?? prev.suivi_grossesse,
                 date_prevue_accouchement: formatDateForInput(aiData.date_prevue_accouchement) || prev.date_prevue_accouchement,
                 soins_cadre: clean(aiData.soins_cadre) || prev.soins_cadre,
-                
+
                 pharmacie: aiData.pharmacie ? {
                     identifiant_unique_mf: clean(aiData.pharmacie.identifiant_unique_mf) || '',
                     est_cachet: aiData.pharmacie.est_cachet || false,
@@ -257,7 +248,7 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
                     date: formatDateForInput(aiData.pharmacie.date) || '',
                     montant_pharmacie: Number(aiData.pharmacie.montant_pharmacie) || 0
                 } : prev.pharmacie,
-                
+
                 actes: Array.isArray(aiData.actes) ? aiData.actes.map(a => ({
                     date_acte: formatDateForInput(a.date_acte) || '',
                     acte: clean(a.acte) || '',
@@ -268,18 +259,15 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
                     identifiant_unique_mf: clean(a.identifiant_unique_mf) || '',
                     est_cachet: a.est_cachet || false,
                     est_signature: a.est_signature || false,
-                    date_cachet_signature: formatDateForInput(a.date_cachet_signature) || ''
+                    date_cachet_signature: formatDateForInput(a.date_cachet_signature) || '',
+                    type_prestataire_soin: clean(a.type_prestataire_soin) || ''
                 })) : prev.actes,
-                
+
                 montant_total: Number(aiData.montant_total) || prev.montant_total,
-                
+
                 // Champs UI
-                type_dossier: clean(aiData.type_dossier) || prev.type_dossier,
-                est_suspect: aiData.est_suspect || false,
                 zones_modifiees: clean(aiData.zones_modifiees) || '',
                 confiance_score: aiData.confiance_score || 0,
-                documentHash: aiData.hash_fichier || '',
-                documentType: clean(aiData.type_document) || '',
                 beneficiaireId: aiData.beneficiaireId !== undefined ? aiData.beneficiaireId : null,
                 alerte_beneficiaire: aiData.alerte_beneficiaire || null,
                 showPreview: true
@@ -301,7 +289,7 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
         const actesTotal = formData.actes.reduce((sum, a) => sum + (Number(a.honoraires) || 0), 0);
         const pharmacieTotal = Number(formData.pharmacie.montant_pharmacie) || 0;
         const total = (actesTotal + pharmacieTotal).toFixed(3);
-        
+
         if (total !== String(formData.montant_total)) {
             setFormData(prev => ({ ...prev, montant_total: Number(total) }));
         }
@@ -320,7 +308,8 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
                 identifiant_unique_mf: '',
                 est_cachet: false,
                 est_signature: false,
-                date_cachet_signature: ''
+                date_cachet_signature: '',
+                type_prestataire_soin: ''
             }]
         }));
     };
@@ -371,7 +360,7 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
     };
 
     if (!isOpen) return null;
-    
+
     // On définit le fichier actuellement prévisualisé
     const currentPreviewFile = selectedFiles[previewIndex];
     const currentExistingFile = !currentPreviewFile && formData.fichiers?.[previewIndex];
@@ -432,12 +421,12 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
                                     <div className="flex-1 bg-slate-50 dark:bg-slate-950 p-6 overflow-hidden flex flex-col min-h-[400px] lg:min-h-0 border-b lg:border-b-0 border-slate-100 dark:border-slate-800">
                                         <div className="flex items-center justify-between mb-4 shrink-0">
                                             <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
-                                                <Eye size={14} className="text-purple-500" /> APERÇU DU JUSTIFICATIF { (selectedFiles.length + (formData.fichiers?.length || 0)) > 1 ? `(${previewIndex + 1}/${selectedFiles.length + (formData.fichiers?.length || 0)})` : '' }
+                                                <Eye size={14} className="text-purple-500" /> APERÇU DU JUSTIFICATIF {(selectedFiles.length + (formData.fichiers?.length || 0)) > 1 ? `(${previewIndex + 1}/${selectedFiles.length + (formData.fichiers?.length || 0)})` : ''}
                                             </h3>
                                             <div className="flex items-center gap-2">
-                                                { (selectedFiles.length + (formData.fichiers?.length || 0)) > 1 && (
+                                                {(selectedFiles.length + (formData.fichiers?.length || 0)) > 1 && (
                                                     <div className="flex gap-1 mr-2">
-                                                        <button 
+                                                        <button
                                                             type="button"
                                                             onClick={() => setPreviewIndex(prev => Math.max(0, prev - 1))}
                                                             disabled={previewIndex === 0}
@@ -445,7 +434,7 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
                                                         >
                                                             <ChevronRight className="rotate-180" size={14} />
                                                         </button>
-                                                        <button 
+                                                        <button
                                                             type="button"
                                                             onClick={() => setPreviewIndex(prev => Math.min(selectedFiles.length + (formData.fichiers?.length || 0) - 1, prev + 1))}
                                                             disabled={previewIndex === selectedFiles.length + (formData.fichiers?.length || 0) - 1}
@@ -454,9 +443,9 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
                                                             <ChevronRight size={14} />
                                                         </button>
                                                     </div>
-                                                ) }
+                                                )}
                                                 <span className="px-3 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-full text-[9px] font-black uppercase">
-                                                    { (currentPreviewFile?.name || currentExistingFile?.fichier || '').split('.').pop().toUpperCase() }
+                                                    {(currentPreviewFile?.name || currentExistingFile?.fichier || '').split('.').pop().toUpperCase()}
                                                 </span>
                                             </div>
                                         </div>
@@ -625,8 +614,8 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
                                                                 value={formData.soins_cadre}
                                                                 onChange={e => {
                                                                     const val = e.target.value;
-                                                                    setFormData({ 
-                                                                        ...formData, 
+                                                                    setFormData({
+                                                                        ...formData,
                                                                         soins_cadre: val,
                                                                         est_apci: val === 'APCI',
                                                                         suivi_grossesse: val === 'Suivi de la grossesse'
@@ -637,7 +626,7 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
                                                                 <option value="APCI">APCI (Affection Longue Durée)</option>
                                                                 <option value="Suivi de la grossesse">Suivi de la grossesse</option>
                                                             </select>
-                                                            
+
                                                             {formData.soins_cadre === 'Suivi de la grossesse' && (
                                                                 <div className="md:col-span-2">
                                                                     <div className="relative">
@@ -662,87 +651,87 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
                                                         <input required type="number" step="0.100" placeholder="0.000" className="w-full p-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-sm dark:text-white" value={formData.montant_total} onChange={e => setFormData({ ...formData, montant_total: e.target.value })} />
                                                     </div>
 
-                                            {/* Section pour attacher un document */}
-                                            <div className="col-span-1 md:col-span-2 space-y-2">
-                                                <label className="text-[10px] font-black uppercase text-slate-400 ml-1 flex justify-between">
-                                                    <span>Documents Justificatifs</span>
-                                                    <span>{selectedFiles.length + (formData.fichiers?.length || 0)} fichier(s)</span>
-                                                </label>
-                                                
-                                                <div className="space-y-2">
-                                                    {/* Liste des fichiers existants (si édition) */}
-                                                    {formData.fichiers?.map((f, i) => (
-                                                        <div key={`exist-${i}`} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/30 border border-slate-200 dark:border-slate-700 rounded-xl group">
-                                                            <div className="flex items-center gap-3">
-                                                                <div className="p-2 bg-slate-200 dark:bg-slate-700 rounded-lg text-slate-500">
-                                                                    <FileText size={16} />
-                                                                </div>
-                                                                <div>
-                                                                    <p className="text-sm font-bold text-slate-700 dark:text-slate-200 truncate max-w-[200px]">{f.fichier}</p>
-                                                                    <p className="text-[9px] text-slate-400 uppercase font-black tracking-tighter italic">Document déjà enregistré</p>
-                                                                </div>
-                                                            </div>
-                                                            <button 
-                                                                type="button"
-                                                                onClick={() => setPreviewIndex(selectedFiles.length + i)}
-                                                                className="p-2 text-purple-500 hover:bg-purple-50 rounded-lg opacity-0 group-hover:opacity-100 transition-all"
-                                                            >
-                                                                <Eye size={16} />
-                                                            </button>
-                                                        </div>
-                                                    ))}
+                                                    {/* Section pour attacher un document */}
+                                                    <div className="col-span-1 md:col-span-2 space-y-2">
+                                                        <label className="text-[10px] font-black uppercase text-slate-400 ml-1 flex justify-between">
+                                                            <span>Documents Justificatifs</span>
+                                                            <span>{selectedFiles.length + (formData.fichiers?.length || 0)} fichier(s)</span>
+                                                        </label>
 
-                                                    {/* Liste des nouveaux fichiers sélectionnés */}
-                                                    {selectedFiles.map((f, i) => (
-                                                        <div key={`new-${i}`} className="flex items-center justify-between p-3 bg-purple-50 dark:bg-purple-900/10 border border-purple-200 dark:border-purple-800 rounded-xl group">
-                                                            <div className="flex items-center gap-3">
-                                                                <div className="p-2 bg-purple-100 dark:bg-purple-800 rounded-lg text-purple-600 dark:text-purple-300">
-                                                                    <FileText size={16} />
+                                                        <div className="space-y-2">
+                                                            {/* Liste des fichiers existants (si édition) */}
+                                                            {formData.fichiers?.map((f, i) => (
+                                                                <div key={`exist-${i}`} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/30 border border-slate-200 dark:border-slate-700 rounded-xl group">
+                                                                    <div className="flex items-center gap-3">
+                                                                        <div className="p-2 bg-slate-200 dark:bg-slate-700 rounded-lg text-slate-500">
+                                                                            <FileText size={16} />
+                                                                        </div>
+                                                                        <div>
+                                                                            <p className="text-sm font-bold text-slate-700 dark:text-slate-200 truncate max-w-[200px]">{f.fichier}</p>
+                                                                            <p className="text-[9px] text-slate-400 uppercase font-black tracking-tighter italic">Document déjà enregistré</p>
+                                                                        </div>
+                                                                    </div>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => setPreviewIndex(selectedFiles.length + i)}
+                                                                        className="p-2 text-purple-500 hover:bg-purple-50 rounded-lg opacity-0 group-hover:opacity-100 transition-all"
+                                                                    >
+                                                                        <Eye size={16} />
+                                                                    </button>
                                                                 </div>
-                                                                <div>
-                                                                    <p className="text-sm font-bold text-slate-700 dark:text-slate-200 truncate max-w-[200px]">{f.name}</p>
-                                                                    <p className="text-[9px] text-purple-500 uppercase font-black tracking-tighter">Nouveau document</p>
+                                                            ))}
+
+                                                            {/* Liste des nouveaux fichiers sélectionnés */}
+                                                            {selectedFiles.map((f, i) => (
+                                                                <div key={`new-${i}`} className="flex items-center justify-between p-3 bg-purple-50 dark:bg-purple-900/10 border border-purple-200 dark:border-purple-800 rounded-xl group">
+                                                                    <div className="flex items-center gap-3">
+                                                                        <div className="p-2 bg-purple-100 dark:bg-purple-800 rounded-lg text-purple-600 dark:text-purple-300">
+                                                                            <FileText size={16} />
+                                                                        </div>
+                                                                        <div>
+                                                                            <p className="text-sm font-bold text-slate-700 dark:text-slate-200 truncate max-w-[200px]">{f.name}</p>
+                                                                            <p className="text-[9px] text-purple-500 uppercase font-black tracking-tighter">Nouveau document</p>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="flex items-center gap-1">
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => setPreviewIndex(i)}
+                                                                            className="p-2 text-purple-500 hover:bg-purple-100 rounded-lg transition-all"
+                                                                        >
+                                                                            <Eye size={16} />
+                                                                        </button>
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => removeFile(i)}
+                                                                            className="p-2 text-red-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                                                        >
+                                                                            <X size={16} />
+                                                                        </button>
+                                                                    </div>
                                                                 </div>
-                                                            </div>
-                                                            <div className="flex items-center gap-1">
-                                                                <button 
-                                                                    type="button"
-                                                                    onClick={() => setPreviewIndex(i)}
-                                                                    className="p-2 text-purple-500 hover:bg-purple-100 rounded-lg transition-all"
-                                                                >
-                                                                    <Eye size={16} />
-                                                                </button>
+                                                            ))}
+
+                                                            {/* Bouton pour ajouter plus de fichiers */}
+                                                            <div className="relative pt-1">
+                                                                <input
+                                                                    ref={manualFileInputRef}
+                                                                    type="file"
+                                                                    multiple
+                                                                    className="absolute inset-0 opacity-0 cursor-pointer z-10 w-full"
+                                                                    onChange={handleManualFileUpload}
+                                                                    disabled={isUploadingDoc}
+                                                                    accept=".pdf,image/*"
+                                                                />
                                                                 <button
                                                                     type="button"
-                                                                    onClick={() => removeFile(i)}
-                                                                    className="p-2 text-red-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                                                    className="w-full flex items-center justify-center gap-2 py-3 bg-slate-50 hover:bg-purple-50 dark:bg-slate-800/50 dark:hover:bg-purple-900/20 border border-dashed border-slate-300 hover:border-purple-300 dark:border-slate-700 dark:hover:border-purple-700 rounded-xl font-black text-[10px] uppercase tracking-widest text-slate-400 hover:text-purple-600 transition-all"
                                                                 >
-                                                                    <X size={16} />
+                                                                    <Plus size={14} className="mr-1" /> Ajouter d'autres documents
                                                                 </button>
                                                             </div>
                                                         </div>
-                                                    ))}
-
-                                                    {/* Bouton pour ajouter plus de fichiers */}
-                                                    <div className="relative pt-1">
-                                                        <input
-                                                            ref={manualFileInputRef}
-                                                            type="file"
-                                                            multiple
-                                                            className="absolute inset-0 opacity-0 cursor-pointer z-10 w-full"
-                                                            onChange={handleManualFileUpload}
-                                                            disabled={isUploadingDoc}
-                                                            accept=".pdf,image/*"
-                                                        />
-                                                        <button
-                                                            type="button"
-                                                            className="w-full flex items-center justify-center gap-2 py-3 bg-slate-50 hover:bg-purple-50 dark:bg-slate-800/50 dark:hover:bg-purple-900/20 border border-dashed border-slate-300 hover:border-purple-300 dark:border-slate-700 dark:hover:border-purple-700 rounded-xl font-black text-[10px] uppercase tracking-widest text-slate-400 hover:text-purple-600 transition-all"
-                                                        >
-                                                            <Plus size={14} className="mr-1" /> Ajouter d'autres documents
-                                                        </button>
                                                     </div>
-                                                </div>
-                                            </div>
 
                                                 </div>
 
@@ -771,7 +760,7 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
                                                                 >
                                                                     <X size={14} />
                                                                 </button>
-                                                                
+
                                                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
                                                                     <div className="space-y-1">
                                                                         <label className="text-[8px] font-black text-slate-400 uppercase">Nature de l'acte</label>
@@ -789,7 +778,7 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
                                                                         <label className="text-[8px] font-black text-slate-400 uppercase">MF Médecin</label>
                                                                         <input placeholder="MF" className="w-full p-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white" value={acte.identifiant_unique_mf} onChange={e => updateActe(idx, { identifiant_unique_mf: e.target.value })} />
                                                                     </div>
-                                                                    
+
                                                                     {/* Champs optionnels / Dentaire */}
                                                                     <div className="space-y-1">
                                                                         <label className="text-[8px] font-black text-slate-400 uppercase">Code Acte (Dent.)</label>
@@ -798,6 +787,18 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
                                                                     <div className="space-y-1">
                                                                         <label className="text-[8px] font-black text-slate-400 uppercase">N° Dent</label>
                                                                         <input placeholder="Ex: 14" className="w-full p-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white" value={acte.numero_dent} onChange={e => updateActe(idx, { numero_dent: e.target.value })} />
+                                                                    </div>
+                                                                    <div className="space-y-1">
+                                                                        <label className="text-[8px] font-black text-slate-400 uppercase">Type Prestataire</label>
+                                                                        <select
+                                                                            className="w-full p-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white font-bold"
+                                                                            value={acte.type_prestataire_soin || ''}
+                                                                            onChange={e => updateActe(idx, { type_prestataire_soin: e.target.value })}
+                                                                        >
+                                                                            <option value="">Standard (Non Dent.)</option>
+                                                                            <option value="Soin Dentaire">Soin Dentaire</option>
+                                                                            <option value="Autre">Autre</option>
+                                                                        </select>
                                                                     </div>
                                                                     <div className="space-y-1">
                                                                         <label className="text-[8px] font-black text-slate-400 uppercase">Cote</label>
@@ -810,7 +811,7 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
                                                                 </div>
                                                             </div>
                                                         ))}
-                                                        
+
                                                         {formData.actes.length === 0 && (
                                                             <div className="text-center p-8 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl">
                                                                 <p className="text-xs text-slate-400 font-medium">Aucun acte médical saisi. Ajoutez-en un ou utilisez le scan IA.</p>
@@ -819,42 +820,42 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
                                                     </div>
                                                 </div>
 
-                                            <div className="p-4 bg-blue-50 dark:bg-blue-900/10 rounded-2xl border border-blue-100 dark:border-blue-800/50">
-                                                <h4 className="text-[10px] font-black uppercase tracking-widest text-blue-600 dark:text-blue-400 mb-3 flex items-center gap-2"><Activity size={14} /> Détails Pharmacie</h4>
-                                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                                    <div className="space-y-1">
-                                                        <label className="text-[9px] font-bold text-slate-500 uppercase ml-1">MF Pharmacie</label>
-                                                        <input placeholder="Identifiant fiscal" className="w-full p-2.5 text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white" value={formData.pharmacie.identifiant_unique_mf || ''} onChange={e => setFormData({ ...formData, pharmacie: { ...formData.pharmacie, identifiant_unique_mf: e.target.value } })} />
-                                                    </div>
-                                                    <div className="space-y-1">
-                                                        <label className="text-[9px] font-bold text-slate-500 uppercase ml-1">Date Achat</label>
-                                                        <input type="date" className="w-full p-2.5 text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white" value={formData.pharmacie.date || ''} onChange={e => setFormData({ ...formData, pharmacie: { ...formData.pharmacie, date: e.target.value } })} />
-                                                    </div>
-                                                    <div className="space-y-1">
-                                                        <label className="text-[9px] font-bold text-slate-500 uppercase ml-1">Montant Pharmacie (TND)</label>
-                                                        <input type="number" step="0.001" placeholder="0.000" className="w-full p-2.5 text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white font-bold" value={formData.pharmacie.montant_pharmacie || ''} onChange={e => setFormData({ ...formData, pharmacie: { ...formData.pharmacie, montant_pharmacie: Number(e.target.value) } })} />
-                                                    </div>
-                                                    <div className="flex items-center gap-4 col-span-full">
-                                                        <div className="flex items-center gap-2">
-                                                            <input type="checkbox" id="cachet_ph" className="w-4 h-4 rounded text-blue-600" checked={formData.pharmacie.est_cachet} onChange={e => setFormData({ ...formData, pharmacie: { ...formData.pharmacie, est_cachet: e.target.checked } })} />
-                                                            <label htmlFor="cachet_ph" className="text-xs font-bold text-slate-600">Cachet</label>
+                                                <div className="p-4 bg-blue-50 dark:bg-blue-900/10 rounded-2xl border border-blue-100 dark:border-blue-800/50">
+                                                    <h4 className="text-[10px] font-black uppercase tracking-widest text-blue-600 dark:text-blue-400 mb-3 flex items-center gap-2"><Activity size={14} /> Détails Pharmacie</h4>
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                                        <div className="space-y-1">
+                                                            <label className="text-[9px] font-bold text-slate-500 uppercase ml-1">MF Pharmacie</label>
+                                                            <input placeholder="Identifiant fiscal" className="w-full p-2.5 text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white" value={formData.pharmacie.identifiant_unique_mf || ''} onChange={e => setFormData({ ...formData, pharmacie: { ...formData.pharmacie, identifiant_unique_mf: e.target.value } })} />
                                                         </div>
-                                                        <div className="flex items-center gap-2">
-                                                            <input type="checkbox" id="sig_ph" className="w-4 h-4 rounded text-blue-600" checked={formData.pharmacie.est_signature} onChange={e => setFormData({ ...formData, pharmacie: { ...formData.pharmacie, est_signature: e.target.checked } })} />
-                                                            <label htmlFor="sig_ph" className="text-xs font-bold text-slate-600">Signature</label>
+                                                        <div className="space-y-1">
+                                                            <label className="text-[9px] font-bold text-slate-500 uppercase ml-1">Date Achat</label>
+                                                            <input type="date" className="w-full p-2.5 text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white" value={formData.pharmacie.date || ''} onChange={e => setFormData({ ...formData, pharmacie: { ...formData.pharmacie, date: e.target.value } })} />
+                                                        </div>
+                                                        <div className="space-y-1">
+                                                            <label className="text-[9px] font-bold text-slate-500 uppercase ml-1">Montant Pharmacie (TND)</label>
+                                                            <input type="number" step="0.001" placeholder="0.000" className="w-full p-2.5 text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white font-bold" value={formData.pharmacie.montant_pharmacie || ''} onChange={e => setFormData({ ...formData, pharmacie: { ...formData.pharmacie, montant_pharmacie: Number(e.target.value) } })} />
+                                                        </div>
+                                                        <div className="flex items-center gap-4 col-span-full">
+                                                            <div className="flex items-center gap-2">
+                                                                <input type="checkbox" id="cachet_ph" className="w-4 h-4 rounded text-blue-600" checked={formData.pharmacie.est_cachet} onChange={e => setFormData({ ...formData, pharmacie: { ...formData.pharmacie, est_cachet: e.target.checked } })} />
+                                                                <label htmlFor="cachet_ph" className="text-xs font-bold text-slate-600">Cachet</label>
+                                                            </div>
+                                                            <div className="flex items-center gap-2">
+                                                                <input type="checkbox" id="sig_ph" className="w-4 h-4 rounded text-blue-600" checked={formData.pharmacie.est_signature} onChange={e => setFormData({ ...formData, pharmacie: { ...formData.pharmacie, est_signature: e.target.checked } })} />
+                                                                <label htmlFor="sig_ph" className="text-xs font-bold text-slate-600">Signature</label>
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 </div>
-                                            </div>
 
                                                 <div className="pt-4 flex items-center justify-between gap-4">
                                                     <button type="button" onClick={() => setStep(1)} className="px-6 py-3.5 text-slate-500 font-bold hover:text-slate-700 dark:hover:text-slate-300 transition-all">Retour</button>
                                                     <button
                                                         type="submit"
-                                                disabled={!formData.nom_prenom_malade || !formData.montant_total }
-                                                className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 text-white px-8 py-4 rounded-2xl font-black text-xs md:text-sm uppercase tracking-widest flex items-center justify-center gap-3 shadow-xl shadow-green-600/20 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 disabled:scale-100"
+                                                        disabled={!formData.nom_prenom_malade || !formData.montant_total}
+                                                        className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 text-white px-8 py-4 rounded-2xl font-black text-xs md:text-sm uppercase tracking-widest flex items-center justify-center gap-3 shadow-xl shadow-green-600/20 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 disabled:scale-100"
                                                     >
-                                                <CheckCircle2 size={20} /> Valider et Sauvegarder
+                                                        <CheckCircle2 size={20} /> Valider et Sauvegarder
                                                     </button>
                                                 </div>
                                             </div>

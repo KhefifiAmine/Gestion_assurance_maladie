@@ -42,10 +42,9 @@ const createBulletin = async (req, res) => {
             if (actes && Array.isArray(actes)) {
                 rawData.actes = actes.map(acte => {
                     const montantRembourse = calculateReimbursement({
-                        type: rawData.type_dossier || 'consultation',
-                        montant: acte.honoraires,
-                        libelle: acte.acte
+                        ...acte
                     });
+                    acte.montant_remboursement = montantRembourse;
                     totalRemboursement += montantRembourse;
                     return { ...acte, montant_remboursement: montantRembourse };
                 });
@@ -62,7 +61,6 @@ const createBulletin = async (req, res) => {
 
             if (!actes && !pharmacie && montant_total) {
                 totalRemboursement = calculateReimbursement({
-                    type: rawData.type_dossier || 'consultation',
                     montant: montant_total
                 });
             }
@@ -233,6 +231,7 @@ const updateBulletin = async (req, res) => {
             const allowedBulletinFields = [
                 'numero_bulletin',
                 'code_cnam',
+                'date_soin',
                 'montant_total',
                 'montant_total_remboursé',
                 'qualite_malade',
@@ -263,9 +262,7 @@ const updateBulletin = async (req, res) => {
                 let totalRemboursement = 0;
                 const actesWithRemboursement = rawData.actes.map(acte => {
                     const montantRembourse = calculateReimbursement({
-                        type: rawData.type_dossier || bulletin.type_dossier || 'consultation',
-                        montant: acte.honoraires,
-                        libelle: acte.acte
+                        ...acte
                     });
                     totalRemboursement += montantRembourse;
                     return { ...acte, montant_remboursement: montantRembourse };
@@ -297,7 +294,6 @@ const updateBulletin = async (req, res) => {
             // Si pas d'actes ni de pharmacie fournis mais montant_total fourni
             if (!rawData.actes && !rawData.pharmacie && rawData.montant_total !== undefined) {
                 bulletinData.montant_total_remboursé = calculateReimbursement({
-                    type: rawData.type_dossier || bulletin.type_dossier || 'consultation',
                     montant: rawData.montant_total
                 });
             }
