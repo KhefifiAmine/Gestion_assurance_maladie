@@ -1,7 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const AdherentReclamationController = require('../controllers/reclamation.adherent.controller');
-const AdminReclamationController = require('../controllers/reclamation.admin.controller');
+const { AdherentReclamationController, AdminReclamationController } = require('../controllers/reclamation.controller');
 const auth = require('../middleware/auth.middleware');
 
 // TOUTES les routes nécessitent d'être au moins connecté
