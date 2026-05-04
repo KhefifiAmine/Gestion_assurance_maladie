@@ -4,8 +4,9 @@ import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { getAllBeneficiaries, deleteBeneficiary, updateStatus } from '../../services/beneficiaryService';
 import ConfirmModal from '../../components/ConfirmModal';
+import BeneficiaryDetailsModal from '../../components/BeneficiaryDetailsModal';
 import {
-    Users, Trash2, CheckCircle, XCircle, Clock, FileText, Search, LayoutGrid, List, X, Download, Eye
+    Users, Trash2, CheckCircle, XCircle, Clock, FileText, Search, LayoutGrid, List, X, Download, Eye, Info
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -26,6 +27,19 @@ const AdminBeneficiarie = () => {
     const [rejectReason, setRejectReason] = useState('');
 
     const [previewDocument, setPreviewDocument] = useState(null);
+    const [viewingBeneficiary, setViewingBeneficiary] = useState(null);
+
+    const calculateAge = (dateString) => {
+        if (!dateString) return 0;
+        const today = new Date();
+        const birthDate = new Date(dateString);
+        let age = today.getFullYear() - birthDate.getFullYear();
+        const m = today.getMonth() - birthDate.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+            age--;
+        }
+        return age;
+    };
 
     const fetchBeneficiaries = async () => {
         try {
@@ -184,7 +198,7 @@ const AdminBeneficiarie = () => {
                                                 <span className="text-[10px] font-black opacity-70 uppercase">{b.user?.email || ''}</span>
                                             </div>
                                         </td>
-                                        
+
                                         <td className="px-6 py-4">
                                             <span className={`px-3 py-1 text-[9px] font-black uppercase tracking-widest rounded-full border inline-flex items-center gap-1 ${getStatusColor(b.statut)}`}>
                                                 {getStatusIcon(b.statut)} {b.statut}
@@ -195,6 +209,13 @@ const AdminBeneficiarie = () => {
                                         </td>
                                         <td className="px-6 py-4 text-right">
                                             <div className="flex justify-end gap-2">
+                                                <button
+                                                    onClick={() => setViewingBeneficiary(b)}
+                                                    title="Détails"
+                                                    className="p-2.5 rounded-xl bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white transition-all"
+                                                >
+                                                    <Info size={18} />
+                                                </button>
                                                 {b.document && (
                                                     <button onClick={() => setPreviewDocument(b.document)} title="Voir document" className="p-2.5 rounded-xl bg-slate-100 text-slate-600 hover:bg-purple-600 hover:text-white transition-all">
                                                         <Eye size={18} />
@@ -208,7 +229,7 @@ const AdminBeneficiarie = () => {
                                                 )}
                                             </div>
                                         </td>
-                                        
+
                                     </motion.tr>
                                 ))}
                             </tbody>
@@ -232,34 +253,34 @@ const AdminBeneficiarie = () => {
                 <AnimatePresence>
                     <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/40 backdrop-blur-sm">
                         <div className="flex min-h-full items-center justify-center p-4">
-                        <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="bg-white rounded-[2rem] p-8 max-w-md w-full shadow-2xl">
-                            <h2 className="text-2xl font-black mb-2 text-slate-900">Refuser la demande</h2>
-                            <p className="text-xs font-bold text-slate-500 mb-6">Veuillez indiquer le motif du refus pour l'adhérent.</p>
+                            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="bg-white rounded-[2rem] p-8 max-w-md w-full shadow-2xl">
+                                <h2 className="text-2xl font-black mb-2 text-slate-900">Refuser la demande</h2>
+                                <p className="text-xs font-bold text-slate-500 mb-6">Veuillez indiquer le motif du refus pour l'adhérent.</p>
 
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-black opacity-40 uppercase tracking-widest block">Motif du refus (*)</label>
-                                <textarea
-                                    className="w-full bg-slate-50 p-4 rounded-xl font-bold text-sm outline-none min-h-[100px] border border-transparent focus:border-red-400"
-                                    placeholder="Ex: Document illisible, Lien de parenté non justifié..."
-                                    value={rejectReason}
-                                    onChange={(e) => setRejectReason(e.target.value)}
-                                ></textarea>
-                            </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black opacity-40 uppercase tracking-widest block">Motif du refus (*)</label>
+                                    <textarea
+                                        className="w-full bg-slate-50 p-4 rounded-xl font-bold text-sm outline-none min-h-[100px] border border-transparent focus:border-red-400"
+                                        placeholder="Ex: Document illisible, Lien de parenté non justifié..."
+                                        value={rejectReason}
+                                        onChange={(e) => setRejectReason(e.target.value)}
+                                    ></textarea>
+                                </div>
 
-                            <div className="flex justify-end gap-3 pt-4 mt-6 border-t border-slate-100">
-                                <button type="button" onClick={() => { setShowRejectModal(false); setRejectReason(''); setBeneficiaryToReject(null); }} className="px-6 py-3 font-black text-xs uppercase tracking-widest bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors">Annuler</button>
-                                <button
-                                    type="button"
-                                    disabled={!rejectReason.trim()}
-                                    onClick={() => handleStatusUpdate(beneficiaryToReject.id, 'Rejeté', rejectReason)}
-                                    className="px-6 py-3 font-black text-xs uppercase tracking-widest bg-red-600 hover:bg-red-700 text-white rounded-xl transition-colors disabled:opacity-50"
-                                >
-                                    Confirmer le refus
-                                </button>
-                            </div>
-                        </motion.div>
+                                <div className="flex justify-end gap-3 pt-4 mt-6 border-t border-slate-100">
+                                    <button type="button" onClick={() => { setShowRejectModal(false); setRejectReason(''); setBeneficiaryToReject(null); }} className="px-6 py-3 font-black text-xs uppercase tracking-widest bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors">Annuler</button>
+                                    <button
+                                        type="button"
+                                        disabled={!rejectReason.trim()}
+                                        onClick={() => handleStatusUpdate(beneficiaryToReject.id, 'Rejeté', rejectReason)}
+                                        className="px-6 py-3 font-black text-xs uppercase tracking-widest bg-red-600 hover:bg-red-700 text-white rounded-xl transition-colors disabled:opacity-50"
+                                    >
+                                        Confirmer le refus
+                                    </button>
+                                </div>
+                            </motion.div>
+                        </div>
                     </div>
-                </div>
                 </AnimatePresence>,
                 document.body
             )}
@@ -315,6 +336,21 @@ const AdminBeneficiarie = () => {
                             </div>
                         </motion.div>
                     </div>
+                )}
+            </AnimatePresence>
+
+            {/* Beneficiary Details Modal */}
+            <AnimatePresence>
+                {viewingBeneficiary && (
+                    <BeneficiaryDetailsModal
+                        beneficiary={viewingBeneficiary}
+                        onClose={() => setViewingBeneficiary(null)}
+                        onPreviewDocument={(docUrl) => {
+                            setViewingBeneficiary(null);
+                            setTimeout(() => setPreviewDocument(docUrl), 300);
+                        }}
+                        calculateAge={calculateAge}
+                    />
                 )}
             </AnimatePresence>
         </div>

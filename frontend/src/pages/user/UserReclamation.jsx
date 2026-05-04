@@ -15,7 +15,7 @@ import {
 } from '../../services/reclamationService';
 import { getMyBulletins } from '../../services/bulletinService';
 
-import ReclamationDetail from '../../components/ReclamationDetail';
+import AdherentReclamationDetail from './../../components/AdherentReclamationDetail';
 import ConfirmModal from '../../components/ConfirmModal';
 
 /* =========================================================================
@@ -376,7 +376,7 @@ const UserReclamation = () => {
         )}
 
         {activeView === 'detail' && (
-          <ReclamationDetail
+          <AdherentReclamationDetail
             id={selectedId} userRole={user?.role} allBulletins={bulletins}
             onBack={() => setActiveView('list')}
             onEdit={(data) => { setEditData(data); setActiveView('form'); }}
