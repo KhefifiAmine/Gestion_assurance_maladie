@@ -143,7 +143,7 @@ const AdminReclamationController = {
           { model: User, as: 'admin', attributes: ['id', 'nom', 'prenom'] },
           { 
             model: BulletinSoin, as: 'bulletinSoin',
-            attributes: ['id', 'numero_bulletin', 'code_cnam', 'qualite_malade', 'montant_total', 'statut', 'date_depot', 'createdAt', 'bordereauId', 'date_soin'],
+            attributes: ['id', 'numero_bulletin', 'code_cnam', 'qualite_malade', 'montant_total', 'statut', 'date_depot', 'createdAt', 'date_soin'],
             include: [
               { model: Beneficiary, as: 'beneficiaire', attributes: ['id', 'nom', 'prenom', 'relation', 'ddn', 'statut'] },
               { model: ActeMedical, as: 'actes' },
