@@ -56,7 +56,7 @@ const SectionTitle = ({ icon: Icon, label, color }) => (
 );
 
 /* ─── Main Component ─── */
-const BulletinDetailsModal = ({ isOpen, onClose, bulletin }) => {
+const BulletinDetailsModal = ({ isOpen, onClose, bulletin, adherent }) => {
     const { user: currentUser } = useAuth();
     const isAdmin = currentUser?.role === 'ADMIN';
     const [expandedAiDocs, setExpandedAiDocs] = React.useState({});
@@ -85,7 +85,7 @@ const BulletinDetailsModal = ({ isOpen, onClose, bulletin }) => {
     if (!bulletin) return null;
 
     const patientNameContext = isAdmin
-        ? (bulletin.adherent ? { nom: bulletin.adherent.nom, prenom: bulletin.adherent.prenom } : null)
+        ? (adherent || bulletin.adherent || (bulletin.adherent ? { nom: bulletin.adherent.nom, prenom: bulletin.adherent.prenom } : null))
         : currentUser;
     const patientDisplayName = getPatientDisplayName(bulletin, patientNameContext);
     const careDate = getDerivedCareDate(bulletin);
@@ -657,7 +657,7 @@ const BulletinDetailsModal = ({ isOpen, onClose, bulletin }) => {
                         {/* ── FOOTER ── */}
                         <div className="flex-shrink-0 px-6 py-4 md:px-8 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-white/5 flex items-center justify-between">
                             <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 hidden sm:block">
-                                Bulletin #{bulletin.numero_bulletin} · {new Date(bulletin.createdAt).toLocaleDateString('fr-FR')}
+                                Bulletin #{bulletin.numero_bulletin} · {bulletin.createdAt ? formatDateFr(bulletin.createdAt) : formatDateFr(new Date())}
                             </p>
                             <button
                                 onClick={onClose}

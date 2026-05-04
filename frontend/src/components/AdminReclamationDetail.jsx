@@ -276,7 +276,7 @@ const AdminReclamationDetail = ({ id, onBack, onReclamationUpdate, allBulletins 
         </div>
       </div>
 
-      <BulletinDetailsModal isOpen={isBulletinModalOpen} onClose={() => setIsBulletinModalOpen(false)} bulletin={bulletin} />
+      <BulletinDetailsModal isOpen={isBulletinModalOpen} onClose={() => setIsBulletinModalOpen(false)} bulletin={bulletin} adherent={reclamation.adherent} />
       <UserDetailsModal isOpen={isUserModalOpen} onClose={() => setIsUserModalOpen(false)} user={reclamation.adherent} />
       <ConfirmModal isOpen={confirmModal.isOpen} onClose={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))} onConfirm={confirmModal.onConfirm} title={confirmModal.title} message={confirmModal.message} type={confirmModal.type} />
     </div>

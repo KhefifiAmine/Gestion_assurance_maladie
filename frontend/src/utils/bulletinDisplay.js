@@ -18,14 +18,24 @@ export function formatDateFr(value) {
 /** Nom affiché du patient soigné (bénéficiaire ou titulaire). */
 export function getPatientDisplayName(bulletin, currentUser = null) {
     if (!bulletin) return '—';
+    
+    // 1. Si on a un bénéficiaire explicite avec un nom
     const ben = bulletin.beneficiaire;
     if (ben && (ben.nom || ben.prenom)) {
         return `${ben.prenom || ''} ${ben.nom || ''}`.trim() || '—';
     }
+
+    // 2. Sinon, on regarde la qualité du malade (Titulaire / Lui-même)
     const q = (bulletin.qualite_malade || '').toLowerCase();
-    if (currentUser && (q.includes('lui') || q.includes('même') || q.includes('meme') || q.includes('titulaire'))) {
-        return `${currentUser.prenom || ''} ${currentUser.nom || ''}`.trim() || 'Titulaire';
+    
+    // Si la qualité est titulaire OU si c'est vide mais qu'on n'a pas de bénéficiaire
+    const isTitulaire = q.includes('lui') || q.includes('même') || q.includes('meme') || q.includes('titulaire') || (!q && !ben);
+
+    if (currentUser && isTitulaire) {
+        const name = `${currentUser.prenom || ''} ${currentUser.nom || ''}`.trim();
+        return name || 'Titulaire';
     }
+
     return '—';
 }
 

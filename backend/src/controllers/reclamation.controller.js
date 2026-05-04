@@ -41,7 +41,7 @@ const AdherentReclamationController = {
         where: { userId: req.userId },
         include: [
           { model: User, as: 'admin', attributes: ['nom', 'prenom'] },
-          { model: BulletinSoin, as: 'bulletinSoin', attributes: ['numero_bulletin', 'statut', 'montant_total', 'date_depot'] }
+          { model: BulletinSoin, as: 'bulletinSoin', attributes: ['numero_bulletin', 'statut', 'montant_total', 'date_depot', 'createdAt'] }
         ],
         order: [['createdAt', 'DESC']]
       });
@@ -58,7 +58,7 @@ const AdherentReclamationController = {
         where: { id, userId: req.userId },
         include: [
           { model: User, as: 'admin', attributes: ['nom', 'prenom'] },
-          { model: BulletinSoin, as: 'bulletinSoin', attributes: ['numero_bulletin', 'statut', 'montant_total', 'date_depot'] },
+          { model: BulletinSoin, as: 'bulletinSoin', attributes: ['numero_bulletin', 'statut', 'montant_total', 'date_depot', 'createdAt'] },
           {
             model: ReclamationMessage, as: 'messages',
             include: [{ model: User, as: 'sender', attributes: ['nom', 'prenom', 'role'] }]
@@ -134,7 +134,7 @@ const AdminReclamationController = {
           { model: User, as: 'admin', attributes: ['id', 'nom', 'prenom'] },
           { 
             model: BulletinSoin, as: 'bulletinSoin',
-            attributes: ['id', 'numero_bulletin', 'code_cnam', 'qualite_malade', 'montant_total', 'statut', 'date_depot', 'bordereauId'],
+            attributes: ['id', 'numero_bulletin', 'code_cnam', 'qualite_malade', 'montant_total', 'statut', 'date_depot', 'createdAt', 'bordereauId'],
             include: [{ model: Beneficiary, as: 'beneficiaire', attributes: ['id', 'nom', 'prenom', 'relation', 'ddn', 'statut'] }]
           },
           {
