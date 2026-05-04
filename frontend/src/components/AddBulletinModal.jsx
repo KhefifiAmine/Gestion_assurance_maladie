@@ -119,6 +119,7 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
 
     useEffect(() => {
         if (isOpen) {
+            document.body.style.overflow = 'hidden';
             fetchBeneficiaries();
             if (isEdit) {
                 setFormData({
@@ -169,8 +170,12 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
                 setStep(1);
             }
         } else {
+            document.body.style.overflow = 'unset';
             setSelectedFiles([]);
         }
+        return () => {
+            document.body.style.overflow = 'unset';
+        };
     }, [isOpen, user, initialData, isEdit]);
 
 

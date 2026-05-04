@@ -241,19 +241,34 @@ const ReclamationDetail = ({
               </div>
 
             </div>
-            <div className="relative z-10">
-              <h4 className="text-2xl font-black text-purple-600 dark:text-purple-400 tracking-tight mb-6 flex items-center gap-3"><MessageSquare className="w-6 h-6" /> {reclamation.objet}</h4>
-              <div className="bg-slate-50 dark:bg-slate-800 p-8 rounded-[1.5rem] text-slate-700 dark:text-slate-200 whitespace-pre-wrap border border-slate-100 leading-relaxed font-bold tracking-tight shadow-inner">{reclamation.description || "Aucun détail complémentaire fourni."}</div>
-            </div>
-      
+            
             <div className="absolute top-0 left-0 w-1.5 h-full bg-purple-600" />
-            <h3 className="text-[12px] font-black uppercase tracking-[0.2em] text-black-400 mb-8 flex items-center gap-3 mt-8"><FileText size={18} /> Bulletin Associé</h3>
-            {bulletin ? (
-              <div className="space-y-6">
-                <div className="flex justify-between items-center bg-slate-50 p-4 rounded-xl border border-black-100"><span className="text-[10px] font-black tracking-widest text-black-400">Réf. Dossier</span><span className="font-black text-slate-900 dark:text-white">#{bulletin.numero_bulletin || 'N/A'}</span></div>
-                <button onClick={() => setIsBulletinModalOpen(true)} className="w-full py-4 bg-purple-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg"><Eye size={16} /> Consulter</button>
-              </div>
-            ) : <p className="font-bold text-slate-400 text-center">Aucun bulletin lié.</p>}
+            <h3 className="text-[12px] font-black uppercase tracking-[0.2em] text-slate-400 mb-8 flex items-center gap-3 mt-8"><MessageSquare size={18} /> Description de la réclamation</h3>
+            <div className="bg-slate-50 dark:bg-slate-800 p-8 rounded-[1.5rem] text-slate-700 dark:text-slate-200 whitespace-pre-wrap border border-slate-100 leading-relaxed font-bold tracking-tight shadow-inner">
+              {reclamation.description || "Aucun détail complémentaire fourni."}
+            </div>
+
+            {isAdherent && (
+               <div className="mt-10 pt-8 border-t border-slate-100">
+                  <h3 className="text-[12px] font-black uppercase tracking-[0.2em] text-slate-400 mb-6 flex items-center gap-3"><FileText size={18} /> Bulletin Associé</h3>
+                  {bulletin ? (
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-slate-50 dark:bg-slate-800 p-6 rounded-2xl border border-slate-100">
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-xl bg-white dark:bg-slate-900 flex items-center justify-center text-purple-600 shadow-sm">
+                          <FileText size={24} />
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Référence Bulletin</p>
+                          <p className="font-black text-slate-900 dark:text-white">#{bulletin.numero_bulletin || 'N/A'}</p>
+                        </div>
+                      </div>
+                      <button onClick={() => setIsBulletinModalOpen(true)} className="px-6 py-3 bg-purple-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center gap-2 shadow-lg hover:bg-purple-700 transition-all">
+                        <Eye size={16} /> Consulter le dossier
+                      </button>
+                    </div>
+                  ) : <p className="font-bold text-slate-400 text-center">Aucun bulletin lié.</p>}
+               </div>
+            )}
 
           </motion.div>
 
@@ -310,170 +325,257 @@ const ReclamationDetail = ({
             </motion.div>
           )}
 
-        </div>
-
-        <div className="space-y-8">
+          {/* Action Panel (Main Column pour éviter les espaces blancs) */}
           {isAdmin && reclamation.statut !== 'Clôturée' && !reclamation.isRestricted && (
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] shadow-2xl border border-slate-100 dark:border-white/5 relative">
-              <h3 className="text-lg font-black text-slate-900 dark:text-white mb-6 flex items-center gap-3">Traiter la demande</h3>
-              <div className="space-y-6">
-                <textarea 
-                  value={replyText} 
-                  onChange={e => setReplyText(e.target.value)} 
-                  rows={4} 
-                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-white/5 rounded-2xl p-4 outline-none focus:ring-4 focus:ring-purple-500/10 transition-all font-bold text-slate-700 dark:text-slate-200 resize-none text-sm" 
-                  placeholder="Réponse..." 
-                />
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }} 
+              animate={{ opacity: 1, y: 0 }} 
+              transition={{ delay: 0.2 }}
+              className="bg-white dark:bg-slate-900 p-10 rounded-[3rem] shadow-2xl shadow-purple-500/5 border-2 border-purple-50 dark:border-purple-900/20 relative overflow-hidden"
+            >
+              <div className="absolute top-0 right-0 w-64 h-64 bg-purple-600/5 rounded-full blur-3xl -mr-32 -mt-32" />
+              
+              <div className="relative z-10">
+                <div className="flex items-center gap-4 mb-10">
+                  <div className="w-12 h-12 rounded-2xl bg-purple-600 text-white flex items-center justify-center shadow-xl shadow-purple-600/20">
+                    <Send size={22} />
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Traitement du dossier</h3>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Actions administratives prioritaires</p>
+                  </div>
+                </div>
                 
-                <div className="space-y-4">
-                  {/* Priorité */}
-                  <div className="space-y-2">
-                    <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1 flex items-center gap-2">
-                       Priorité de traitement
-                    </label>
-                    <div className="relative">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsPriorityOpen(!isPriorityOpen);
-                          setIsStatusOpen(false);
-                        }}
-                        className="w-full flex items-center justify-between px-5 py-3.5 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-xl outline-none font-black text-[10px] uppercase tracking-widest cursor-pointer transition-all hover:border-purple-300"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className={`w-2 h-2 rounded-full ${
-                            priority === 1 ? 'bg-slate-400' :
-                            priority === 2 ? 'bg-blue-500' :
-                            priority === 3 ? 'bg-orange-500' :
-                            'bg-red-500'
-                          }`} />
-                          <span className="text-slate-700 dark:text-slate-200">
-                            {priority === 1 ? 'Basse' : priority === 2 ? 'Moyenne' : priority === 3 ? 'Haute' : 'Urgente'}
-                          </span>
-                        </div>
-                        <ChevronDown className={`text-slate-400 transition-transform duration-300 ${isPriorityOpen ? 'rotate-180' : ''}`} size={14} />
-                      </button>
-
-                      <AnimatePresence>
-                        {isPriorityOpen && (
-                          <>
-                            <div className="fixed inset-0 z-[1001]" onClick={() => setIsPriorityOpen(false)} />
-                            <motion.div
-                              initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                              animate={{ opacity: 1, y: 5, scale: 1 }}
-                              exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                              className="absolute top-full left-0 right-0 z-[1002] mt-2 p-2 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl shadow-2xl"
-                            >
+                <div className="space-y-8">
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center px-1">
+                      <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Message de réponse officiel</label>
+                      <span className="text-[9px] font-bold text-purple-500 bg-purple-50 px-2 py-0.5 rounded-full">Visible par l'adhérent</span>
+                    </div>
+                    <textarea 
+                      value={replyText} 
+                      onChange={e => setReplyText(e.target.value)} 
+                      rows={5} 
+                      className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-white/5 rounded-[2rem] p-8 outline-none focus:ring-4 focus:ring-purple-500/10 transition-all font-bold text-slate-700 dark:text-slate-200 resize-none text-sm shadow-inner" 
+                      placeholder="Expliquez la décision ou demandez des compléments..." 
+                    />
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-3">
+                      <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Niveau d'Urgence</label>
+                      <div className="relative">
+                        <button
+                          type="button"
+                          onClick={() => { setIsPriorityOpen(!isPriorityOpen); setIsStatusOpen(false); }}
+                          className="w-full flex items-center justify-between px-6 py-5 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-white/5 font-black text-[10px] uppercase tracking-widest shadow-sm"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className={`w-2.5 h-2.5 rounded-full ${priority === 1 ? 'bg-slate-400' : priority === 2 ? 'bg-blue-500' : priority === 3 ? 'bg-orange-500' : 'bg-red-500'}`} />
+                            <span className="text-slate-700 dark:text-slate-200">{priority === 1 ? 'Basse' : priority === 2 ? 'Moyenne' : priority === 3 ? 'Haute' : 'Urgente'}</span>
+                          </div>
+                          <ChevronDown size={14} className={`transition-transform duration-300 ${isPriorityOpen ? 'rotate-180' : ''}`} />
+                        </button>
+                        <AnimatePresence>
+                          {isPriorityOpen && (
+                            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="absolute bottom-full left-0 right-0 mb-3 p-3 bg-white dark:bg-slate-900 border border-slate-100 dark:border-white/5 rounded-[2rem] shadow-2xl z-50">
                               {[
                                 { val: 1, label: 'Basse', color: 'bg-slate-400' },
                                 { val: 2, label: 'Moyenne', color: 'bg-blue-500' },
                                 { val: 3, label: 'Haute', color: 'bg-orange-500' },
                                 { val: 4, label: 'Urgente', color: 'bg-red-500' }
                               ].map((opt) => (
-                                <button
-                                  key={opt.val}
-                                  type="button"
-                                  onClick={() => {
-                                    setPriority(opt.val);
-                                    setIsPriorityOpen(false);
-                                  }}
-                                  className={`w-full text-left px-4 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-3 ${
-                                    priority === opt.val 
-                                    ? 'bg-purple-600 text-white shadow-lg' 
-                                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
-                                  }`}
-                                >
-                                  <div className={`w-1.5 h-1.5 rounded-full ${priority === opt.val ? 'bg-white' : opt.color}`} />
-                                  {opt.label}
-                                </button>
+                                <button key={opt.val} onClick={() => { setPriority(opt.val); setIsPriorityOpen(false); }} className={`w-full text-left px-5 py-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${priority === opt.val ? 'bg-purple-600 text-white shadow-lg' : 'hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600'}`}>{opt.label}</button>
                               ))}
                             </motion.div>
-                          </>
-                        )}
-                      </AnimatePresence>
+                          )}
+                        </AnimatePresence>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Statut du ticket</label>
+                      <div className="relative">
+                        <button
+                          type="button"
+                          onClick={() => { setIsStatusOpen(!isStatusOpen); setIsPriorityOpen(false); }}
+                          className="w-full flex items-center justify-between px-6 py-5 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-white/5 font-black text-[10px] uppercase tracking-widest shadow-sm"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className={`w-2.5 h-2.5 rounded-full ${status === 'Ouverte' ? 'bg-purple-500' : status === 'En cours' ? 'bg-amber-500' : status === 'Traitée' ? 'bg-emerald-500' : 'bg-slate-400'}`} />
+                            <span className="text-slate-700 dark:text-slate-200">{status}</span>
+                          </div>
+                          <ChevronDown size={14} className={`transition-transform duration-300 ${isStatusOpen ? 'rotate-180' : ''}`} />
+                        </button>
+                        <AnimatePresence>
+                          {isStatusOpen && (
+                            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="absolute bottom-full left-0 right-0 mb-3 p-3 bg-white dark:bg-slate-900 border border-slate-100 dark:border-white/5 rounded-[2rem] shadow-2xl z-50">
+                              {['Ouverte', 'En cours', 'Traitée', 'Clôturée'].map((opt) => (
+                                <button key={opt} onClick={() => { setStatus(opt); setIsStatusOpen(false); }} className={`w-full text-left px-5 py-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${status === opt ? 'bg-purple-600 text-white shadow-lg' : 'hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600'}`}>{opt}</button>
+                              ))}
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
                     </div>
                   </div>
 
-                  {/* Statut */}
-                  <div className="space-y-2">
-                    <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1 flex items-center gap-2">
-                       Statut de la résolution
-                    </label>
-                    <div className="relative">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsStatusOpen(!isStatusOpen);
-                          setIsPriorityOpen(false);
-                        }}
-                        className="w-full flex items-center justify-between px-5 py-3.5 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-xl outline-none font-black text-[10px] uppercase tracking-widest cursor-pointer transition-all hover:border-purple-300"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className={`w-2 h-2 rounded-full ${
-                            status === 'Ouverte' ? 'bg-purple-500 shadow-[0_0_10px_rgba(168,85,247,0.5)]' :
-                            status === 'En cours' ? 'bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.5)]' :
-                            status === 'Traitée' ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]' :
-                            'bg-slate-400'
-                          }`} />
-                          <span className="text-slate-700 dark:text-slate-200">{status}</span>
-                        </div>
-                        <ChevronDown className={`text-slate-400 transition-transform duration-300 ${isStatusOpen ? 'rotate-180' : ''}`} size={14} />
-                      </button>
-
-                      <AnimatePresence>
-                        {isStatusOpen && (
-                          <>
-                            <div className="fixed inset-0 z-[1001]" onClick={() => setIsStatusOpen(false)} />
-                            <motion.div
-                              initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                              animate={{ opacity: 1, y: 5, scale: 1 }}
-                              exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                              className="absolute top-full left-0 right-0 z-[1002] mt-2 p-2 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl shadow-2xl"
-                            >
-                              {['Ouverte', 'En cours', 'Traitée', 'Clôturée'].map((opt) => (
-                                <button
-                                  key={opt}
-                                  type="button"
-                                  onClick={() => {
-                                    setStatus(opt);
-                                    setIsStatusOpen(false);
-                                  }}
-                                  className={`w-full text-left px-4 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-3 ${
-                                    status === opt 
-                                    ? 'bg-purple-600 text-white shadow-lg' 
-                                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
-                                  }`}
-                                >
-                                  <div className={`w-1.5 h-1.5 rounded-full ${
-                                    opt === 'Ouverte' ? (status === opt ? 'bg-white' : 'bg-purple-500') :
-                                    opt === 'En cours' ? (status === opt ? 'bg-white' : 'bg-amber-500') :
-                                    opt === 'Traitée' ? (status === opt ? 'bg-white' : 'bg-emerald-500') :
-                                    (status === opt ? 'bg-white' : 'bg-slate-400')
-                                  }`} />
-                                  {opt}
-                                </button>
-                              ))}
-                            </motion.div>
-                          </>
-                        )}
-                      </AnimatePresence>
-                    </div>
+                  <div className="pt-4">
+                    <button 
+                      onClick={handleUpdate} 
+                      disabled={isSubmitting} 
+                      className="w-full py-6 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-[2rem] font-black text-[11px] uppercase tracking-[0.3em] shadow-2xl transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-4 group overflow-hidden relative"
+                    >
+                      <div className="absolute inset-0 bg-purple-600 translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
+                      <div className="relative z-10 flex items-center gap-4">
+                        {isSubmitting ? <RefreshCw className="animate-spin" /> : <ShieldCheck size={22} />}
+                        {isSubmitting ? 'Mise à jour en cours...' : 'Valider & Envoyer la décision'}
+                      </div>
+                    </button>
                   </div>
                 </div>
-
-                <button 
-                  onClick={handleUpdate} 
-                  disabled={isSubmitting} 
-                  className="w-full flex items-center justify-center gap-3 bg-slate-900 dark:bg-white text-white dark:text-slate-900 py-4 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-xl hover:bg-purple-600 group active:scale-95 disabled:opacity-50"
-                >
-                  {isSubmitting ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Send size={18} />}
-                  {isSubmitting ? 'Maj...' : 'Enregistrer'}
-                </button>
               </div>
             </motion.div>
           )}
 
+        </div>
 
+        <div className="space-y-8 lg:sticky lg:top-8">
+          {/* Bloc 1: Profil Adhérent - Design "Member Card" */}
+          {isAdmin && (
+            <motion.div 
+              initial={{ opacity: 0, x: 20 }} 
+              animate={{ opacity: 1, x: 0 }} 
+              className="group bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl shadow-slate-200/50 dark:shadow-none border border-slate-100 dark:border-white/5 overflow-hidden transition-all hover:shadow-purple-500/5"
+            >
+               <div className="bg-gradient-to-r from-slate-900 to-slate-800 p-6 flex items-center justify-between">
+                 <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-purple-400 backdrop-blur-sm">
+                      <ShieldCheck size={20} />
+                    </div>
+                    <h3 className="text-xs font-black uppercase tracking-[0.2em] text-white">Profil Adhérent</h3>
+                 </div>
+                 <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
+               </div>
+               
+               <div className="p-8">
+                  <div className="flex items-center gap-4 mb-8">
+                    <div className="w-16 h-16 rounded-2xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-2xl font-black text-slate-400 border border-slate-100">
+                      {reclamation?.adherent?.nom?.charAt(0) || 'U'}
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-black text-purple-600 uppercase tracking-widest mb-1">Dossier #ID-{reclamation?.adherent?.id}</p>
+                      <h4 className="text-xl font-black text-slate-900 dark:text-white tracking-tight leading-none">
+                        {reclamation?.adherent?.nom} {reclamation?.adherent?.prenom}
+                      </h4>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-white/5 group-hover:bg-white transition-colors">
+                      <p className="text-[8px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Matricule</p>
+                      <p className="font-black text-slate-900 dark:text-white text-xs">{reclamation?.adherent?.matricule || 'N/A'}</p>
+                    </div>
+                    <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-white/5 group-hover:bg-white transition-colors">
+                      <p className="text-[8px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Sexe / Age</p>
+                      <p className="font-black text-slate-900 dark:text-white text-xs">{reclamation?.adherent?.sexe || 'M'} • 34 ans</p>
+                    </div>
+                  </div>
+
+                  <div className="mt-6 space-y-3">
+                    <div className="flex items-center gap-3 text-slate-500 dark:text-slate-400">
+                      <div className="w-8 h-8 rounded-lg bg-slate-50 dark:bg-slate-800 flex items-center justify-center"><MessageSquare size={14} /></div>
+                      <span className="text-[11px] font-bold truncate">{reclamation?.adherent?.email || 'N/A'}</span>
+                    </div>
+                    <div className="flex items-center gap-3 text-slate-500 dark:text-slate-400">
+                      <div className="w-8 h-8 rounded-lg bg-slate-50 dark:bg-slate-800 flex items-center justify-center"><Clock size={14} /></div>
+                      <span className="text-[11px] font-bold">{reclamation?.adherent?.telephone || 'N/A'}</span>
+                    </div>
+                  </div>
+
+                  <button 
+                    onClick={() => setIsUserModalOpen(true)} 
+                    className="w-full mt-8 py-4 bg-slate-50 dark:bg-slate-800 hover:bg-slate-900 hover:text-white dark:hover:bg-white dark:hover:text-slate-900 text-slate-600 dark:text-slate-400 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] transition-all border border-slate-100 dark:border-white/5 active:scale-95 shadow-sm"
+                  >
+                    Fiche Complète
+                  </button>
+               </div>
+            </motion.div>
+          )}
+
+          {/* Bloc 2: Dossier Médical - Design "Attachment Card" */}
+          {isAdmin && (
+            <motion.div 
+              initial={{ opacity: 0, x: 20 }} 
+              animate={{ opacity: 1, x: 0 }} 
+              transition={{ delay: 0.1 }}
+              className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl shadow-slate-200/50 dark:shadow-none border border-slate-100 dark:border-white/5 overflow-hidden"
+            >
+               <div className="bg-purple-600 p-6 flex items-center justify-between">
+                  <div className="flex items-center gap-3 text-white">
+                    <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center backdrop-blur-sm">
+                      <FileText size={20} />
+                    </div>
+                    <h3 className="text-xs font-black uppercase tracking-[0.2em]">Dossier Médical</h3>
+                  </div>
+                  <Eye size={18} className="text-white/40" />
+               </div>
+
+               <div className="p-8">
+                 {bulletin ? (
+                   <div className="space-y-6">
+                      <div className="relative p-6 bg-slate-50 dark:bg-slate-800/50 rounded-3xl border border-slate-100 dark:border-white/5 overflow-hidden">
+                        <div className="absolute top-0 right-0 p-3">
+                           <span className={`px-3 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest ${bulletin.statut === 'Remboursé' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-amber-500/10 text-amber-600'}`}>
+                             {bulletin.statut}
+                           </span>
+                        </div>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Référence Bulletin</p>
+                        <p className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">#{bulletin.numero_bulletin}</p>
+                        
+                        {/* Affichage du bénéficiaire si différent de l'adhérent */}
+                        {bulletin.beneficiaire && (
+                          <div className="mt-4 flex items-center gap-3 p-3 bg-purple-50 dark:bg-purple-900/10 rounded-2xl border border-purple-100 dark:border-purple-800/20">
+                            <div className="w-8 h-8 rounded-lg bg-white dark:bg-slate-800 flex items-center justify-center text-purple-600 shadow-sm">
+                              <ShieldCheck size={16} />
+                            </div>
+                            <div>
+                              <p className="text-[8px] font-black text-purple-400 uppercase tracking-widest leading-none mb-1">Bénéficiaire ({bulletin.beneficiaire.relation})</p>
+                              <p className="text-[11px] font-black text-slate-900 dark:text-white leading-none">
+                                {bulletin.beneficiaire.nom} {bulletin.beneficiaire.prenom}
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                        
+                        <div className="mt-6 flex items-center justify-between pt-6 border-t border-slate-200/50">
+                           <div>
+                             <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Montant Total</p>
+                             <p className="text-lg font-black text-purple-600">{bulletin.montant_total?.toLocaleString()} DT</p>
+                           </div>
+                           <div className="text-right">
+                             <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">CNAM</p>
+                             <p className="font-black text-slate-900 dark:text-white text-sm">{bulletin.code_cnam || 'N/A'}</p>
+                           </div>
+                        </div>
+                      </div>
+                      
+                      <button 
+                        onClick={() => setIsBulletinModalOpen(true)} 
+                        className="w-full py-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-xl hover:bg-purple-600 hover:text-white transition-all active:scale-95"
+                      >
+                        Consulter le dossier
+                      </button>
+                   </div>
+                 ) : (
+                   <div className="py-12 bg-slate-50 dark:bg-slate-800/50 rounded-3xl border border-dashed border-slate-200 dark:border-white/10 text-center">
+                     <ShieldAlert className="mx-auto mb-4 text-slate-200" size={48} />
+                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Aucun bulletin lié</p>
+                   </div>
+                 )}
+               </div>
+            </motion.div>
+          )}
         </div>
       </div>
 

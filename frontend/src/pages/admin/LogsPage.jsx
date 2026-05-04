@@ -136,7 +136,7 @@ export default function LogsPage() {
         limit: 15
     });
 
-    const [showFilters, setShowFilters] = useState(false);
+    const [showFilters, setShowFilters] = useState(true);
 
     const loadLogs = useCallback(async () => {
         setLoading(true);

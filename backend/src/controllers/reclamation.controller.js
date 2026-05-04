@@ -1,4 +1,4 @@
-const { Reclamation, User, BulletinSoin, ReclamationMessage, Notification } = require('../../models');
+const { Reclamation, User, BulletinSoin, ReclamationMessage, Notification, Beneficiary } = require('../../models');
 const { sendNotificationEmail } = require('../utils/emailService');
 
 const create = async (req, res) => {
@@ -127,12 +127,40 @@ const getById = async (req, res) => {
     const { id } = req.params;
     const { userRole: role, userId } = req;
 
+    // Définir les attributs à retourner selon le rôle
+    const adherentAttributes = role === 'ADMIN' 
+      ? ['id', 'nom', 'prenom', 'matricule', 'email', 'telephone', 'ddn', 'adresse', 'ville', 'role', 'statut', 'sexe']
+      : ['id', 'nom', 'prenom', 'matricule', 'email'];
+
+    const bulletinAttributes = role === 'ADMIN'
+      ? ['id', 'numero_bulletin', 'code_cnam', 'qualite_malade', 'montant_total', 'statut', 'date_depot', 'bordereauId']
+      : ['id', 'numero_bulletin', 'statut', 'montant_total', 'date_depot'];
+
     const reclamation = await Reclamation.findOne({
       where: { id },
       include: [
-        { model: User, as: 'adherent', attributes: ['id', 'nom', 'prenom', 'matricule', 'email', 'telephone', 'ddn', 'adresse', 'ville', 'role', 'statut', 'sexe'] },
-        { model: User, as: 'admin', attributes: ['id', 'nom', 'prenom'] },
-        { model: BulletinSoin, as: 'bulletinSoin' },
+        { 
+          model: User, 
+          as: 'adherent', 
+          attributes: adherentAttributes 
+        },
+        { 
+          model: User, 
+          as: 'admin', 
+          attributes: ['id', 'nom', 'prenom'] 
+        },
+        { 
+          model: BulletinSoin, 
+          as: 'bulletinSoin',
+          attributes: bulletinAttributes,
+          include: [
+            {
+              model: Beneficiary,
+              as: 'beneficiaire',
+              attributes: ['id', 'nom', 'prenom', 'relation']
+            }
+          ]
+        },
         {
           model: ReclamationMessage,
           as: 'messages',

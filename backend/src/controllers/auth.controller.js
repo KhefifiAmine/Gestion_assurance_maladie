@@ -1,6 +1,7 @@
 const { hashPassword, comparePassword } = require('../utils/bcrypt');
 const jwt = require('jsonwebtoken');
 const { User, Notification } = require('../../models');
+const { sendLoginNotificationEmail } = require('../utils/emailService');
 const JWT_SECRET = process.env.JWT_SECRET;
 
 const register = async (req, res) => {
@@ -167,6 +168,26 @@ const login = async (req, res) => {
         );
 
 
+        // Record login in Journal explicitly
+        try {
+            const { Journal } = require('../../models');
+            const ipAddress = req.ip || req.connection?.remoteAddress || '127.0.0.1';
+            
+            await Journal.create({
+                action: 'POST sur /api/auth/login',
+                userId: user.id,
+                adresse_ip: ipAddress
+            });
+
+            // Envoyer l'email de notification de connexion
+            sendLoginNotificationEmail(user.email, user.prenom).catch(err => {
+                console.error('Failed to send login notification email:', err);
+            });
+
+        } catch (err) {
+            console.error('Failed to log login action:', err);
+        }
+
         res.status(200).json({
             message: 'Connexion réussie',
             token,
@@ -185,7 +206,27 @@ const login = async (req, res) => {
     }
 };
 
+const logout = async (req, res) => {
+    try {
+        const { Journal } = require('../../models');
+        // Set req.userId so journalMiddleware can also see it, though we do it explicitly
+        req.userId = req.body.userId;
+        
+        await Journal.create({
+            action: 'POST sur /api/auth/logout',
+            userId: req.body.userId,
+            adresse_ip: req.ip || req.connection?.remoteAddress || '127.0.0.1'
+        });
+
+        res.status(200).json({ message: 'Déconnexion réussie' });
+    } catch (error) {
+        console.error('Erreur déconnexion:', error);
+        res.status(500).json({ message: 'Erreur serveur lors de la déconnexion.' });
+    }
+};
+
 module.exports = {
     register,
-    login
+    login,
+    logout
 };

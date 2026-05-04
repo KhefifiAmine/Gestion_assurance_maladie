@@ -329,9 +329,12 @@ const BulletinsPage = () => {
                                                     {statusConfig.icon}
                                                     {statusConfig.label}
                                                 </span>
-                                                {b.statut === 3 && b.motif_refus && (
-                                                    <span className="text-[10px] text-red-500 font-bold mt-1 text-center max-w-[120px] truncate block mx-auto opacity-80 group-hover:opacity-100 transition-opacity" title={b.motif_refus}>
-                                                        {b.motif_refus}
+                                                {b.statut === 3 && (b.motifRejet || b.motif_refus) && (
+                                                    <span
+                                                        className="text-[10px] text-red-500 font-bold mt-1 text-center max-w-[120px] truncate block mx-auto opacity-80 group-hover:opacity-100 transition-opacity"
+                                                        title={b.motifRejet?.libelle || b.motif_refus}
+                                                    >
+                                                        {b.motifRejet?.libelle || b.motif_refus}
                                                     </span>
                                                 )}
                                             </div>

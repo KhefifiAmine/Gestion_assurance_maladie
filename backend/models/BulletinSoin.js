@@ -48,6 +48,10 @@ const BulletinSoin = sequelize.define('BulletinSoin', {
         allowNull: false,
         defaultValue: DataTypes.NOW
     },
+    date_soin: {
+        type: DataTypes.DATEONLY,
+        allowNull: true
+    },
     montant_total_remboursé: {
         type: DataTypes.DOUBLE,
         allowNull: false,
@@ -60,6 +64,19 @@ const BulletinSoin = sequelize.define('BulletinSoin', {
     motif_refus: {
         type: DataTypes.TEXT,
         allowNull: true
+    },
+    motifRejetId: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        references: {
+            model: 'motifs_rejet',
+            key: 'id'
+        }
+    },
+    commentaire_rejet: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+        comment: 'Commentaire libre de l\'admin en plus du motif structuré'
     },
     date_traitement: {
         type: DataTypes.DATE,

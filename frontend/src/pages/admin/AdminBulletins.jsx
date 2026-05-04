@@ -74,9 +74,14 @@ const AdminBulletins = () => {
             setConfirmData(prev => ({ ...prev, isOpen: false }));
 
             const updateData = {};
-            if (newStatus === 3) {
-                // result est maintenant un objet { subject, reason }
-                updateData.motif_refus = `${result.subject.toUpperCase()} - ${result.reason}`;
+            if (newStatus === 3 && result) {
+                // result = { motifId, motifLibelle, commentaire }
+                updateData.motifRejetId = result.motifId || null;
+                updateData.commentaire_rejet = result.commentaire || null;
+                // Keep backward-compat text field
+                updateData.motif_refus = result.motifLibelle
+                    ? `${result.motifLibelle}${result.commentaire ? ' — ' + result.commentaire : ''}`
+                    : result.commentaire || null;
             }
 
             await updateBulletinStatus(id, newStatus, updateData);

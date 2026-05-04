@@ -13,6 +13,7 @@ const DocumentJustificatif = require('./DocumentJustificatif');
 const ReclamationMessage = require('./ReclamationMessage');
 const BulletinComment = require('./BulletinComment');
 const FraudAlert = require('./FraudAlert');
+const MotifRejet = require('./MotifRejet');
 
 // Associations
 User.hasMany(Beneficiary, { foreignKey: 'userId', as: 'beneficiaires' });
@@ -33,6 +34,10 @@ ActeMedical.belongsTo(BulletinSoin, { foreignKey: 'bulletinId' });
 
 BulletinSoin.hasOne(Pharmacie, { foreignKey: 'bulletinId', as: 'pharmacie' });
 Pharmacie.belongsTo(BulletinSoin, { foreignKey: 'bulletinId' });
+
+// MotifRejet <-> BulletinSoin
+MotifRejet.hasMany(BulletinSoin, { foreignKey: 'motifRejetId', as: 'bulletins' });
+BulletinSoin.belongsTo(MotifRejet, { foreignKey: 'motifRejetId', as: 'motifRejet' });
 
 // ====== Notifications & Journal ======
 User.hasMany(Notification, { foreignKey: 'userId', as: 'notifications' });
@@ -81,5 +86,6 @@ module.exports = {
     DocumentJustificatif,
     ReclamationMessage,
     BulletinComment,
-    FraudAlert
+    FraudAlert,
+    MotifRejet
 };

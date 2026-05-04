@@ -40,6 +40,15 @@ export const loginUser = async (email, password, isAdminLogin = false) => {
     return handleResponse(res);
 };
 
+export const logoutUser = async (userId) => {
+    const res = await fetch(`${API_BASE}/auth/logout`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId })
+    });
+    return handleResponse(res);
+};
+
 export const registerUser = async (formData) => {
     const payload = {
         nom: formData.nom,
@@ -132,3 +141,36 @@ export const changePassword = async (ancienMdp, nouveauMdp) => {
 };
 
 
+// ─── MOTIFS REJET ────────────────────────────────────────────────────────────
+export const fetchMotifsRejet = async () => {
+    const res = await fetch(`${API_BASE}/motifs-rejet`, {
+        headers: authHeaders()
+    });
+    return handleResponse(res);
+};
+
+export const createMotifRejet = async (data) => {
+    const res = await fetch(`${API_BASE}/motifs-rejet`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify(data)
+    });
+    return handleResponse(res);
+};
+
+export const updateMotifRejet = async (id, data) => {
+    const res = await fetch(`${API_BASE}/motifs-rejet/${id}`, {
+        method: 'PUT',
+        headers: authHeaders(),
+        body: JSON.stringify(data)
+    });
+    return handleResponse(res);
+};
+
+export const deleteMotifRejet = async (id) => {
+    const res = await fetch(`${API_BASE}/motifs-rejet/${id}`, {
+        method: 'DELETE',
+        headers: authHeaders()
+    });
+    return handleResponse(res);
+};

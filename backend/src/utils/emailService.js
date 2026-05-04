@@ -36,7 +36,7 @@ const sendResetEmail = async (email, code) => {
     return true;
   } catch (error) {
     console.error('Erreur envoi email:', error);
-    return false;
+    throw new Error(`Échec de l'envoi de l'email : ${error.message}`);
   }
 };
 
@@ -168,4 +168,58 @@ const sendNotificationEmail = async (email, titre, description) => {
   }
 };
 
-module.exports = { sendResetEmail, sendApprovalEmail, sendRejectionEmail, sendBlockEmail, sendNotificationEmail };
+/**
+ * Envoie un email d'alerte lors d'une nouvelle connexion.
+ */
+const sendLoginNotificationEmail = async (email, prenom) => {
+  const date = new Date().toLocaleString('fr-FR', { timeZone: 'Africa/Tunis' });
+  const mailOptions = {
+    from: `"CareCover - Sécurité" <${process.env.EMAIL_USER}>`,
+    to: email,
+    subject: '🔔 Nouvelle connexion à votre compte',
+    html: `
+      <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #eee; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+        <div style="background: linear-gradient(135deg, #1e293b 0%, #334155 100%); padding: 30px; text-align: center;">
+          <h2 style="color: #ffffff; margin: 0; font-size: 22px; letter-spacing: 1px;">CareCover Security</h2>
+        </div>
+        <div style="padding: 40px 30px;">
+          <h3 style="color: #0f172a; margin-top: 0; font-size: 18px;">Bonjour ${prenom},</h3>
+          <p style="color: #475569; line-height: 1.6; font-size: 15px;">
+            Une nouvelle connexion à votre compte a été détectée.
+          </p>
+          <div style="background-color: #f8fafc; border-radius: 12px; padding: 20px; margin: 25px 0; border: 1px solid #e2e8f0;">
+            <p style="margin: 0; color: #64748b; font-size: 13px; text-transform: uppercase; font-weight: bold; letter-spacing: 0.5px;">Détails de la connexion</p>
+            <p style="margin: 10px 0 0; color: #1e293b; font-size: 14px;"><strong>Date :</strong> ${date}</p>
+          </div>
+          <p style="color: #475569; line-height: 1.6; font-size: 14px;">
+            Si c'était vous, vous pouvez ignorer cet e-mail. Si vous ne reconnaissez pas cette activité, nous vous recommandons de <strong>changer votre mot de passe immédiatement</strong> depuis votre espace adhérent.
+          </p>
+      
+        </div>
+        <div style="background: #f1f5f9; padding: 20px; text-align: center; border-top: 1px solid #e2e8f0;">
+          <p style="color: #94a3b8; font-size: 11px; margin: 0;">
+            Ceci est un message automatique de sécurité. Ne pas répondre.
+          </p>
+        </div>
+      </div>
+    `
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+    console.log(`Notification de connexion envoyée à: ${email}`);
+    return true;
+  } catch (error) {
+    console.error('Erreur envoi notification connexion:', error);
+    return false;
+  }
+};
+
+module.exports = { 
+  sendResetEmail, 
+  sendApprovalEmail, 
+  sendRejectionEmail, 
+  sendBlockEmail, 
+  sendNotificationEmail,
+  sendLoginNotificationEmail
+};

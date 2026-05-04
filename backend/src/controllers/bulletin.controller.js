@@ -1,7 +1,7 @@
 const path = require('path');
 const fs = require('fs');
 const { Op } = require('sequelize');
-const { BulletinSoin, ActeMedical, Pharmacie, User, DocumentJustificatif, Beneficiary, BulletinComment, Notification, sequelize } = require('../../models');
+const { BulletinSoin, ActeMedical, Pharmacie, User, DocumentJustificatif, Beneficiary, BulletinComment, Notification, MotifRejet, sequelize } = require('../../models');
 const { sendNotificationEmail } = require('../utils/emailService');
 const FraudService = require('../services/fraud.service');
 const { resolvePatientForBulletin } = require('../utils/validationPatientBulletin');
@@ -438,7 +438,8 @@ const getMyBulletins = async (req, res) => {
                 { model: ActeMedical, as: 'actes' },
                 { model: Pharmacie, as: 'pharmacie' },
                 { model: DocumentJustificatif, as: 'documents' },
-                { model: Beneficiary, as: 'beneficiaire', attributes: ['id', 'nom', 'prenom', 'relation', 'ddn', 'statut'], required: false }
+                { model: Beneficiary, as: 'beneficiaire', attributes: ['id', 'nom', 'prenom', 'relation', 'ddn', 'statut'], required: false },
+                { model: MotifRejet, as: 'motifRejet', attributes: ['id', 'libelle', 'description', 'categorie'], required: false }
             ],
             order: [['createdAt', 'DESC']]
         });
@@ -457,7 +458,8 @@ const getAllBulletins = async (req, res) => {
                 { model: ActeMedical, as: 'actes' },
                 { model: Pharmacie, as: 'pharmacie' },
                 { model: DocumentJustificatif, as: 'documents' },
-                { model: Beneficiary, as: 'beneficiaire', attributes: ['id', 'nom', 'prenom', 'relation', 'ddn', 'statut'], required: false }
+                { model: Beneficiary, as: 'beneficiaire', attributes: ['id', 'nom', 'prenom', 'relation', 'ddn', 'statut'], required: false },
+                { model: MotifRejet, as: 'motifRejet', attributes: ['id', 'libelle', 'description', 'categorie'], required: false }
             ],
             order: [['createdAt', 'DESC']]
         });
@@ -470,7 +472,7 @@ const getAllBulletins = async (req, res) => {
 const updateBulletinStatus = async (req, res) => {
     try {
         const { id } = req.params;
-        const { statut, motif_refus } = req.body;
+        const { statut, motif_refus, motifRejetId, commentaire_rejet } = req.body;
         const adminId = req.userId;
 
         const bulletin = await BulletinSoin.findByPk(id, {
@@ -485,9 +487,9 @@ const updateBulletinStatus = async (req, res) => {
         bulletin.adminId = adminId;
         bulletin.date_traitement = new Date();
 
-        if (motif_refus !== undefined) {
-            bulletin.motif_refus = motif_refus;
-        }
+        if (motif_refus !== undefined) bulletin.motif_refus = motif_refus;
+        if (motifRejetId !== undefined) bulletin.motifRejetId = motifRejetId || null;
+        if (commentaire_rejet !== undefined) bulletin.commentaire_rejet = commentaire_rejet || null;
 
         await bulletin.save();
 

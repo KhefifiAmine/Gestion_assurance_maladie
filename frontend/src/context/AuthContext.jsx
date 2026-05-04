@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { fetchProfile } from '../services/api';
+import { fetchProfile, logoutUser } from '../services/api';
 
 const AuthContext = createContext(null);
 
@@ -48,7 +48,14 @@ export const AuthProvider = ({ children }) => {
         setUser(userData);
     };
 
-    const logout = () => {
+    const logout = async () => {
+        if (user && user.id) {
+            try {
+                await logoutUser(user.id);
+            } catch (err) {
+                console.error("Erreur appel API deconnexion:", err);
+            }
+        }
         localStorage.removeItem('token');
         setToken(null);
         setUser(null);

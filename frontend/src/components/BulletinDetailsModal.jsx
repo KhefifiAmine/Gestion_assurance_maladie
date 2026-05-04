@@ -69,6 +69,18 @@ const BulletinDetailsModal = ({ isOpen, onClose, bulletin }) => {
         }
     }, [isOpen, bulletin]);
 
+    // Bloquer le scroll du body quand le modal est ouvert
+    React.useEffect(() => {
+        if (isOpen) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = 'unset';
+        }
+        return () => {
+            document.body.style.overflow = 'unset';
+        };
+    }, [isOpen]);
+
 
     if (!bulletin) return null;
 
@@ -137,30 +149,45 @@ const BulletinDetailsModal = ({ isOpen, onClose, bulletin }) => {
                         className={`relative w-full sm:w-[95vw] h-full flex flex-col bg-slate-50 dark:bg-slate-950 sm:rounded-l-3xl shadow-[-30px_0_80px_-20px_rgba(0,0,0,0.35)] border-l border-slate-100 dark:border-white/5 overflow-hidden ${previewDoc ? 'lg:max-w-7xl' : 'lg:max-w-3xl'}`}
                     >
                         {/* ── HEADER ── */}
-                        <div className="flex-shrink-0 px-6 py-5 md:px-8 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-white/5 flex items-center justify-between">
-                            <div className="flex items-center gap-4">
-                                <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-purple-600 to-indigo-700 flex items-center justify-center text-white shadow-lg shadow-purple-500/30">
-                                    <FileText size={20} />
-                                </div>
-                                <div>
-                                    <h2 className="text-base font-black text-slate-900 dark:text-white leading-tight">Dossier Médical</h2>
-                                    <p className="text-[10px] font-bold text-purple-500 tracking-[0.15em] uppercase">#{bulletin.numero_bulletin}</p>
-                                </div>
-                            </div>
-                            <div className="flex items-center gap-3">
-                                {/* Status badge */}
-                                {(currentUser?.role === 'ADMIN' || currentUser?.role === 'RESPONSABLE_RH') && (
-                                    <div className={`hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl border font-black text-xs uppercase tracking-wider ${status.bg} ${status.text} ${status.border}`}>
-                                        <div className={`w-2 h-2 rounded-full ${status.dot} animate-pulse`} />
-                                        {status.label}
+                        <div className="flex-shrink-0 relative overflow-hidden bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-white/5">
+                            <div className="absolute top-0 right-0 w-64 h-64 bg-purple-600/5 rounded-full blur-3xl -mr-32 -mt-32" />
+                            
+                            <div className="relative z-10 px-6 py-6 md:px-10 flex items-center justify-between">
+                                <div className="flex items-center gap-5">
+                                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-slate-900 to-slate-800 flex items-center justify-center text-white shadow-2xl shadow-slate-900/20">
+                                        <FileText size={24} />
                                     </div>
-                                )}
-                                <button
-                                    onClick={onClose}
-                                    className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 flex items-center justify-center text-slate-500 hover:text-slate-800 dark:hover:text-white transition-all active:scale-95"
-                                >
-                                    <X size={18} />
-                                </button>
+                                    <div>
+                                        <h2 className="text-xl font-black text-slate-900 dark:text-white tracking-tight leading-none mb-1.5">Dossier Médical</h2>
+                                        <div className="flex items-center gap-3">
+                                            <span className="px-3 py-1 rounded-lg bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 text-[10px] font-black uppercase tracking-widest border border-purple-100 dark:border-purple-800/30">
+                                                Bulletin #{bulletin.numero_bulletin}
+                                            </span>
+                                            {bulletin.code_cnam && (
+                                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                                    CNAM: {bulletin.code_cnam}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div className="flex items-center gap-4">
+                                    {/* Status badge */}
+                                    {(currentUser?.role === 'ADMIN' || currentUser?.role === 'RESPONSABLE_RH') && (
+                                        <div className={`hidden md:flex items-center gap-3 px-5 py-2.5 rounded-2xl border font-black text-[10px] uppercase tracking-widest shadow-sm ${status.bg} ${status.text} ${status.border}`}>
+                                            <div className={`w-2 h-2 rounded-full ${status.dot} animate-pulse`} />
+                                            {status.label}
+                                        </div>
+                                    )}
+                                    <button
+                                        onClick={onClose}
+                                        className="group flex items-center gap-2 px-4 py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-900 dark:hover:bg-white text-slate-500 hover:text-white dark:hover:text-slate-900 rounded-xl transition-all active:scale-95 border border-transparent hover:shadow-xl"
+                                    >
+                                        <span className="text-[10px] font-black uppercase tracking-widest hidden sm:block">Fermer</span>
+                                        <X size={18} className="group-hover:rotate-90 transition-transform duration-300" />
+                                    </button>
+                                </div>
                             </div>
                         </div>
 
@@ -171,7 +198,7 @@ const BulletinDetailsModal = ({ isOpen, onClose, bulletin }) => {
                             <div className={`flex-1 overflow-y-auto custom-scrollbar p-5 md:p-7 space-y-6 ${previewDoc ? 'lg:flex-[3]' : ''}`}>
 
                                 {/* ── MOTIF DE REJET (Si applicable) ── */}
-                                {bulletin.statut === 3 && bulletin.motif_refus && (
+                                {bulletin.statut === 3 && (bulletin.motifRejet || bulletin.motif_refus) && (
                                     <motion.div
                                         initial={{ opacity: 0, y: -10 }}
                                         animate={{ opacity: 1, y: 0 }}
@@ -180,47 +207,85 @@ const BulletinDetailsModal = ({ isOpen, onClose, bulletin }) => {
                                         <div className="w-12 h-12 rounded-2xl bg-red-100 dark:bg-red-900/20 text-red-600 flex items-center justify-center flex-shrink-0">
                                             <XCircle size={22} />
                                         </div>
-                                        <div>
-                                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-red-600 mb-1">Motif du refus</p>
-                                            <p className="text-sm font-bold text-red-800 dark:text-red-200 leading-relaxed">
-                                                {bulletin.motif_refus}
-                                            </p>
+                                        <div className="flex-1">
+                                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-red-600 mb-2">Motif du refus</p>
+                                            {bulletin.motifRejet ? (
+                                                <>
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                        <span className="px-2 py-0.5 rounded-lg bg-red-100 dark:bg-red-900/30 text-red-600 text-[10px] font-black uppercase tracking-widest">
+                                                            {bulletin.motifRejet.categorie}
+                                                        </span>
+                                                    </div>
+                                                    <p className="text-sm font-black text-red-800 dark:text-red-200 leading-relaxed">
+                                                        {bulletin.motifRejet.libelle}
+                                                    </p>
+                                                    {bulletin.motifRejet.description && (
+                                                        <p className="text-xs text-red-700 dark:text-red-300 mt-1 leading-relaxed opacity-80">
+                                                            {bulletin.motifRejet.description}
+                                                        </p>
+                                                    )}
+                                                    {bulletin.commentaire_rejet && (
+                                                        <p className="mt-2 pt-2 border-t border-red-200 dark:border-red-900/50 text-xs font-bold text-red-700 dark:text-red-300">
+                                                            💬 {bulletin.commentaire_rejet}
+                                                        </p>
+                                                    )}
+                                                </>
+                                            ) : (
+                                                <p className="text-sm font-bold text-red-800 dark:text-red-200 leading-relaxed">
+                                                    {bulletin.motif_refus}
+                                                </p>
+                                            )}
                                         </div>
                                     </motion.div>
                                 )}
 
                                 {/* ── BLOC 1 : Résumé financier ── */}
-                                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                     {/* Montant total */}
-                                    <div className="col-span-2 sm:col-span-1 p-5 rounded-2xl bg-gradient-to-br from-purple-600 to-indigo-700 text-white shadow-lg shadow-purple-500/25">
-                                        <p className="text-[9px] font-black uppercase tracking-[0.15em] text-purple-200 mb-2">Montant Total</p>
-                                        <p className="text-2xl font-black leading-none">{formatMontantTnd(bulletin.montant_total)}</p>
-                                        <p className="text-[10px] font-bold text-purple-200 mt-1">TND</p>
+                                    <div className="col-span-2 p-6 rounded-[2rem] bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-2xl shadow-slate-900/10 relative overflow-hidden group">
+                                        <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 dark:bg-slate-900/5 rounded-full blur-2xl -mr-16 -mt-16" />
+                                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-3 relative z-10">Total Engagé</p>
+                                        <div className="flex items-baseline gap-2 relative z-10">
+                                            <span className="text-3xl font-black tracking-tight">{formatMontantTnd(bulletin.montant_total)}</span>
+                                            <span className="text-xs font-black opacity-40">TND</span>
+                                        </div>
                                     </div>
 
                                     {/* Montant Remboursé */}
-                                    <div className="col-span-2 sm:col-span-1 p-5 rounded-2xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800/30">
-                                        <p className="text-[9px] font-black uppercase tracking-[0.15em] text-emerald-600 mb-2">Montant Remboursé</p>
-                                        <p className="text-2xl font-black leading-none text-emerald-700 dark:text-emerald-300">{formatMontantTnd(bulletin.montant_total_remboursé)}</p>
-                                        <p className="text-[10px] font-bold text-emerald-500 mt-1">TND</p>
+                                    <div className="col-span-2 p-6 rounded-[2rem] bg-emerald-500 text-white shadow-2xl shadow-emerald-500/20 relative overflow-hidden group">
+                                        <div className="absolute top-0 right-0 w-32 h-32 bg-white/20 rounded-full blur-2xl -mr-16 -mt-16" />
+                                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-100 mb-3 relative z-10">Remboursement</p>
+                                        <div className="flex items-baseline gap-2 relative z-10">
+                                            <span className="text-3xl font-black tracking-tight">{formatMontantTnd(bulletin.montant_total_remboursé)}</span>
+                                            <span className="text-xs font-black opacity-40 uppercase">Payé</span>
+                                        </div>
                                     </div>
+                                </div>
 
+                                <div className="grid grid-cols-2 gap-4">
                                     {/* Date soin (premier acte / pharmacie) */}
-                                    <div className="col-span-1 p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-white/5">
-                                        <p className="text-[9px] font-black uppercase tracking-[0.15em] text-slate-400 mb-2">Date de soin</p>
-                                        <p className="text-sm font-black text-slate-800 dark:text-white">
-                                            {formatDateFr(careDate)}
-                                        </p>
-                                        {!careDate && (
-                                            <p className="text-[8px] font-bold text-slate-400 mt-1">Aucune date sur les actes / pharmacie</p>
-                                        )}
+                                    <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-white/5 flex items-center gap-4">
+                                        <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-400">
+                                            <Calendar size={18} />
+                                        </div>
+                                        <div>
+                                            <p className="text-[9px] font-black uppercase tracking-[0.15em] text-slate-400 mb-0.5">Date de soin</p>
+                                            <p className="text-sm font-black text-slate-800 dark:text-white">
+                                                {careDate ? formatDateFr(careDate) : 'Non précisée'}
+                                            </p>
+                                        </div>
                                     </div>
                                     {/* Date dépôt */}
-                                    <div className="col-span-1 p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-white/5">
-                                        <p className="text-[9px] font-black uppercase tracking-[0.15em] text-slate-400 mb-2">Date de Dépôt</p>
-                                        <p className="text-sm font-black text-slate-800 dark:text-white">
-                                            {formatDateFr(bulletin.date_depot)}
-                                        </p>
+                                    <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-white/5 flex items-center gap-4">
+                                        <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-400">
+                                            <Clock size={18} />
+                                        </div>
+                                        <div>
+                                            <p className="text-[9px] font-black uppercase tracking-[0.15em] text-slate-400 mb-0.5">Dépôt Dossier</p>
+                                            <p className="text-sm font-black text-slate-800 dark:text-white">
+                                                {formatDateFr(bulletin.date_depot)}
+                                            </p>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -259,19 +324,54 @@ const BulletinDetailsModal = ({ isOpen, onClose, bulletin }) => {
                                 )}
 
                                 {/* ── BLOC 2 : Informations Patient ── */}
-                                <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-white/5">
-                                    <SectionTitle icon={User} label="Patient concerné" color="bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400" />
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8">
-                                        <DetailRow icon={User} label="Nom affiché" value={patientDisplayName} />
-                                        <DetailRow icon={Hash} label="Qualité" value={bulletin.qualite_malade} />
-                                        <DetailRow icon={Hash} label="Code CNAM (bulletin)" value={bulletin.code_cnam} />
+                                <div className="group bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-xl border border-slate-100 dark:border-white/5 overflow-hidden transition-all hover:shadow-purple-500/5">
+                                    <div className="bg-gradient-to-r from-slate-900 to-slate-800 p-6 flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-purple-400 backdrop-blur-sm">
+                                                <User size={20} />
+                                            </div>
+                                            <h3 className="text-xs font-black uppercase tracking-[0.2em] text-white">Patient concerné</h3>
+                                        </div>
+                                        <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
+                                    </div>
+                                    
+                                    <div className="p-8">
+                                        <div className="flex items-center gap-5 mb-8 pb-8 border-b border-slate-50 dark:border-white/5">
+                                            <div className="w-20 h-20 rounded-3xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-3xl font-black text-slate-400 border border-slate-100 dark:border-white/10 shadow-inner">
+                                                {patientDisplayName?.charAt(0) || 'P'}
+                                            </div>
+                                            <div>
+                                                <p className="text-[10px] font-black text-purple-600 uppercase tracking-[0.3em] mb-1">Qualité: {bulletin.qualite_malade || 'Lui-même'}</p>
+                                                <h4 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight leading-none mb-2">
+                                                    {patientDisplayName}
+                                                </h4>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500 text-[9px] font-black uppercase tracking-widest">
+                                                        Code CNAM: {bulletin.code_cnam || 'N/A'}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+
                                         {bulletin.beneficiaire && (
-                                            <>
-                                                <DetailRow icon={User} label="Bénéficiaire en base" value={`${bulletin.beneficiaire.prenom} ${bulletin.beneficiaire.nom}`} />
-                                                <DetailRow icon={Stethoscope} label="Lien familial" value={bulletin.beneficiaire.relation} />
-                                                <DetailRow icon={Calendar} label="Date naissance" value={formatDateFr(bulletin.beneficiaire.ddn)} />
-                                                <DetailRow icon={CheckCircle2} label="Statut dossier" value={bulletin.beneficiaire.statut} />
-                                            </>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <div className="p-5 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-white/5 transition-colors">
+                                                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1.5">Bénéficiaire en base</p>
+                                                    <p className="font-black text-slate-900 dark:text-white text-sm">{bulletin.beneficiaire.prenom} {bulletin.beneficiaire.nom}</p>
+                                                </div>
+                                                <div className="p-5 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-white/5 transition-colors">
+                                                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1.5">Lien / Relation</p>
+                                                    <p className="font-black text-slate-900 dark:text-white text-sm uppercase tracking-wider">{bulletin.beneficiaire.relation}</p>
+                                                </div>
+                                                <div className="p-5 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-white/5 transition-colors">
+                                                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1.5">Date Naissance</p>
+                                                    <p className="font-black text-slate-900 dark:text-white text-sm">{formatDateFr(bulletin.beneficiaire.ddn)}</p>
+                                                </div>
+                                                <div className="p-5 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-white/5 transition-colors">
+                                                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1.5">Statut Dossier</p>
+                                                    <p className={`font-black text-sm ${bulletin.beneficiaire.statut === 'Validé' ? 'text-emerald-500' : 'text-amber-500'}`}>{bulletin.beneficiaire.statut}</p>
+                                                </div>
+                                            </div>
                                         )}
                                     </div>
                                 </div>

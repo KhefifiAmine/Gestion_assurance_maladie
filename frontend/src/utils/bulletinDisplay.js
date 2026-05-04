@@ -45,7 +45,13 @@ export function getDerivedCareDate(bulletin) {
         const t = new Date(bulletin.pharmacie.date_achat).getTime();
         if (!Number.isNaN(t)) times.push(t);
     }
-    if (!times.length) return null;
+    if (!times.length) {
+        if (bulletin.date_soin) {
+            const t = new Date(bulletin.date_soin).getTime();
+            if (!Number.isNaN(t)) return new Date(t);
+        }
+        return null;
+    }
     return new Date(Math.min(...times));
 }
 
