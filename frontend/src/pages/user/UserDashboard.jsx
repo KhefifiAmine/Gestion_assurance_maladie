@@ -48,7 +48,7 @@ const UserDashboard = () => {
             approuves:          myBulletins.filter(b => Number(b.statut) === 2).length,
             refuses:            myBulletins.filter(b => Number(b.statut) === 3).length,
             montantTotal:       myBulletins.reduce((s, b) => s + parseFloat(b.montant_total || 0), 0),
-            montantRembours:    myBulletins.reduce((s, b) => s + parseFloat(b.montant_remboursement || 0), 0),
+            montantRembours:    myBulletins.reduce((s, b) => s + parseFloat(b.montant_total_remboursé || 0), 0),
             totalReclamations:  myReclamations.length,
             reclamationsEnCours: myReclamations.filter(r => r.statut === 'Ouverte' || r.statut === 'En cours').length,
         };
@@ -210,7 +210,7 @@ const UserDashboard = () => {
                                 <div className="flex-1 min-w-0">
                                     <p className="font-black text-sm text-slate-900 dark:text-white truncate">#{lastAcceptedBulletin.numero_bulletin}</p>
                                     <p className="text-[10px] font-bold text-emerald-600/70 uppercase">Validé • {new Date(lastAcceptedBulletin.updatedAt).toLocaleDateString('fr-FR')}</p>
-                                    <p className="text-[10px] font-bold text-slate-400 mt-0.5">{lastAcceptedBulletin.montant_remboursement?.toFixed(3) || '0.000'} TND remboursés</p>
+                                    <p className="text-[10px] font-bold text-slate-400 mt-0.5">{lastAcceptedBulletin.montant_total_remboursé?.toFixed(3) || '0.000'} TND remboursés</p>
                                 </div>
                             </div>
                         ) : (

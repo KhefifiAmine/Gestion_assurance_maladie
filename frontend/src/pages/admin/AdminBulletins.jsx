@@ -23,6 +23,11 @@ import { useToast } from '../../context/ToastContext';
 import { useAuth } from '../../context/AuthContext';
 import BulletinDetailsModal from '../../components/BulletinDetailsModal';
 import ConfirmModal from '../../components/ConfirmModal';
+import {
+    getPatientDisplayName,
+    formatMontantTnd,
+    bulletinMatchesSearch,
+} from '../../utils/bulletinDisplay';
 
 const AdminBulletins = () => {
     const { user: currentUser } = useAuth();
@@ -159,9 +164,7 @@ const AdminBulletins = () => {
 
     const filteredData = useMemo(() => {
         return bulletins.filter(b => {
-            const matchesSearch = (b.numero_bulletin || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                (b.nom_prenom_malade || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                (b.adherent?.nom || '').toLowerCase().includes(searchTerm.toLowerCase());
+            const matchesSearch = bulletinMatchesSearch(b, searchTerm, null);
             const matchesStatus = statusFilter === 'All' || b.statut?.toString() === statusFilter;
             return matchesSearch && matchesStatus;
         });
@@ -298,7 +301,7 @@ const AdminBulletins = () => {
                                 <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.25em]">Risque</th>
                                 <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.25em]">Administrateur</th>
                                 <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.25em]">Montant</th>
-                                <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.25em]">Reboursement</th>
+                                <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.25em]">Remboursement</th>
                                 <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.25em]">Statut</th>
                                 <th className="px-10 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] text-center">Gestion</th>
                             </tr>
@@ -318,8 +321,11 @@ const AdminBulletins = () => {
                                         className="hover:bg-slate-50/80 dark:hover:bg-white/5 transition-all duration-300 group"
                                     >
                                         <td className="px-10 py-7 font-black text-purple-600 dark:text-purple-400 tracking-tighter text-lg">
-                                            <div className="flex items-center gap-2">
+                                            <div className="flex flex-col gap-1">
                                                 <span>#{b.numero_bulletin}</span>
+                                                {b.code_cnam && (
+                                                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">CNAM {b.code_cnam}</span>
+                                                )}
                                             </div>
                                         </td>
                                         <td className="px-8 py-7">
@@ -332,14 +338,28 @@ const AdminBulletins = () => {
                                         </td>
                                         <td className="px-8 py-7">
                                             <div className="flex flex-col">
-                                                <span className="font-bold text-slate-700 dark:text-slate-300">{b.nom_prenom_malade}</span>
-                                                <span className="text-[9px] text-slate-400 font-black tracking-widest uppercase">{b.qualite_malade}</span>
+                                                <span className="font-bold text-slate-700 dark:text-slate-300">
+                                                    {getPatientDisplayName(b, b.adherent ? { nom: b.adherent.nom, prenom: b.adherent.prenom } : null)}
+                                                </span>
+                                                <span className="text-[9px] text-slate-400 font-black tracking-widest uppercase">{b.qualite_malade || '—'}</span>
+                                                {b.beneficiaireId && b.beneficiaire && (
+                                                    <span className="text-[8px] text-slate-400 font-bold mt-0.5">
+                                                        Bénéf. #{b.beneficiaire.id} · {b.beneficiaire.relation}
+                                                    </span>
+                                                )}
                                             </div>
                                         </td>
                                         <td className="px-8 py-7">
-                                            <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-[10px] font-black uppercase tracking-widest ${riskColor}`}>
-                                                <Activity size={12} />
-                                                <span>{b.fraud_score || 0}%</span>
+                                            <div className="flex flex-col gap-1">
+                                                <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-[10px] font-black uppercase tracking-widest w-fit ${riskColor}`}>
+                                                    <Activity size={12} />
+                                                    <span>Fraude {b.fraud_score ?? 0}%</span>
+                                                </div>
+                                                {b.niveauRisque && (
+                                                    <span className="text-[8px] font-black uppercase text-slate-500 tracking-tighter">
+                                                        Doc · {b.niveauRisque}
+                                                    </span>
+                                                )}
                                             </div>
                                         </td>
                                         <td className="px-8 py-7">
@@ -354,13 +374,13 @@ const AdminBulletins = () => {
                                         </td>
                                         <td className="px-8 py-7 font-black text-slate-900 dark:text-white">
                                             <div className="flex items-center gap-1">
-                                                <span className="text-lg">{b.montant_total?.toFixed(3)}</span>
+                                                <span className="text-lg">{formatMontantTnd(b.montant_total)}</span>
                                                 <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">TND</span>
                                             </div>
                                         </td>
                                         <td className="px-8 py-7 font-black text-slate-900 dark:text-white">
                                             <div className="flex items-center gap-1">
-                                                <span className="text-lg">{b.montant_remboursement?.toFixed(3)}</span>
+                                                <span className="text-lg">{formatMontantTnd(b.montant_total_remboursé)}</span>
                                                 <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">TND</span>
                                             </div>
                                         </td>

@@ -300,9 +300,9 @@ const AdminLayout = () => {
                             <div className="flex items-start gap-2">
                               {!notif.lu && <span className="mt-1.5 w-2 h-2 rounded-full bg-purple-500 shrink-0" />}
                               <div className={!notif.lu ? '' : 'pl-4'}>
-                                <p className={`text-xs font-bold leading-tight ${theme === 'dark' ? 'text-white' : 'text-slate-800'}`}>{notif.titre}</p>
-                                <p className={`text-[11px] mt-0.5 leading-snug ${theme === 'dark' ? 'text-white/60' : 'text-slate-500'}`}>{notif.description}</p>
-                                <p className="text-[10px] mt-1 opacity-40">
+                                <p className={`text-xs font-bold leading-tight ${theme === 'dark' ? 'text-white' : 'text-dark-800'}`}>{notif.titre}</p>
+                                <p className={`text-[12px] mt-0.5 leading-snug ${theme === 'dark' ? 'text-white/60' : 'text-dark-500'}`}>{notif.description}</p>
+                                <p className="text-[11px] mt-1 opacity-90">
                                   {new Date(notif.createdAt).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
                                 </p>
                               </div>

@@ -22,6 +22,13 @@ import AddBulletinModal from '../../components/AddBulletinModal';
 import BulletinDetailsModal from '../../components/BulletinDetailsModal';
 import ConfirmModal from '../../components/ConfirmModal';
 import { motion, AnimatePresence } from 'framer-motion';
+import {
+    getPatientDisplayName,
+    getDerivedCareDate,
+    formatDateFr,
+    formatMontantTnd,
+    bulletinMatchesSearch,
+} from '../../utils/bulletinDisplay';
 
 const BulletinsPage = () => {
     const { user } = useAuth();
@@ -64,8 +71,7 @@ const BulletinsPage = () => {
 
     const filteredBulletins = useMemo(() => {
         return bulletins.filter(b => {
-            const matchesSearch = (b.numero_bulletin || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                (b.nom_prenom_malade || '').toLowerCase().includes(searchTerm.toLowerCase());
+            const matchesSearch = bulletinMatchesSearch(b, searchTerm, user);
 
             const mapStatus = (s) => {
                 const status = Number(s);
@@ -153,7 +159,7 @@ const BulletinsPage = () => {
                     <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 dark:text-slate-600 group-focus-within:text-purple-600 dark:group-focus-within:text-purple-400 transition-colors" size={20} />
                     <input
                         type="text"
-                        placeholder="Rechercher par numéro de BS, patient..."
+                        placeholder="N° bulletin, patient, code CNAM..."
                         className="w-full pl-14 pr-6 py-4 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-inner focus:outline-none focus:ring-4 focus:ring-purple-500/10 focus:border-purple-500 transition-all text-sm font-bold bg-slate-50 dark:bg-slate-800/50 text-slate-800 dark:text-slate-100 placeholder:text-slate-300 dark:placeholder:text-slate-600"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
@@ -232,7 +238,7 @@ const BulletinsPage = () => {
                             <tr className="bg-gradient-to-r from-[#4B0082] to-[#9B4DCA] text-white">
                                 <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest">N° Bulletin</th>
                                 <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest">Patient</th>
-                                <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest">Date Maladie</th>
+                                <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest">Date soin</th>
                                 <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-center">Date Dépôt</th>
                                 <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-right">Dépensé</th>
                                 <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-right">Remboursé</th>
@@ -277,34 +283,48 @@ const BulletinsPage = () => {
                                         }`}
                                     >
                                         <td className="px-8 py-6 whitespace-nowrap">
-                                            <span className="font-black text-sm text-purple-600 dark:text-purple-400 hover:underline cursor-pointer">
-                                                {b.numero_bulletin}
-                                            </span>
+                                            <div className="flex flex-col gap-0.5">
+                                                <span className="font-black text-sm text-purple-600 dark:text-purple-400">
+                                                    {b.numero_bulletin}
+                                                </span>
+                                                {b.code_cnam && (
+                                                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">CNAM {b.code_cnam}</span>
+                                                )}
+                                            </div>
                                         </td>
                                         <td className="px-8 py-6 whitespace-nowrap">
                                             <div className="flex flex-col">
-                                                <span className="font-bold text-sm text-slate-800 dark:text-slate-100">{b.nom_prenom_malade}</span>
-                                                <span className="text-[10px] font-black uppercase tracking-wide text-slate-400 dark:text-slate-500">{b.qualite_malade}</span>
+                                                <span className="font-bold text-sm text-slate-800 dark:text-slate-100">
+                                                    {getPatientDisplayName(b, user)}
+                                                </span>
+                                                <span className="text-[10px] font-black uppercase tracking-wide text-slate-400 dark:text-slate-500">
+                                                    {b.qualite_malade || '—'}
+                                                </span>
                                             </div>
                                         </td>
                                         <td className="text-[14px] px-8 py-6 whitespace-nowrap font-black text-xs text-slate-900 dark:text-white text-center">
-                                            {/* Date Maladie (on mettra une date par défaut ou un champ s'il existe) */}
-                                            {b.date_soin ? new Date(b.date_soin).toLocaleDateString('fr-FR') : '-'}
+                                            {formatDateFr(getDerivedCareDate(b))}
                                         </td>
                                         <td className="text-[14px] px-8 py-6 whitespace-nowrap font-black text-xs text-slate-900 dark:text-white text-center">
                                             {b.date_depot ? new Date(b.date_depot).toLocaleDateString('fr-FR') : '-'}
                                         </td>
                                         <td className="px-8 py-6 whitespace-nowrap text-right font-black text-sm text-slate-800 dark:text-slate-100">
-                                            {b.montant_total?.toFixed(3)} <span className="text-[10px] text-black-400 dark:text-black-500">TND</span>
+                                            {formatMontantTnd(b.montant_total)} <span className="text-[10px] text-slate-400">TND</span>
                                         </td>
                                         <td className="px-8 py-6 whitespace-nowrap text-right font-black text-sm">
-                                            <span className="text-black-500 dark:text-black-400">
-                                                {b.montant_remboursement?.toFixed(3)}
+                                            <span className="text-slate-600 dark:text-slate-300">
+                                                {formatMontantTnd(b.montant_total_remboursé)}
                                             </span>
-                                            <span className="text-[10px] text-black-400 dark:text-black-500"> TND</span>
+                                            <span className="text-[10px] text-slate-400"> TND</span>
                                         </td>
                                         <td className="px-8 py-6 whitespace-nowrap">
                                             <div className="flex flex-col gap-1">
+                                                {(b.fraud_score > 0 || b.niveauRisque) && (
+                                                    <span className="text-[8px] font-black text-center text-slate-500 dark:text-slate-400 uppercase tracking-tighter">
+                                                        Fraude {b.fraud_score ?? 0}%
+                                                        {b.niveauRisque ? ` · ${b.niveauRisque}` : ''}
+                                                    </span>
+                                                )}
                                                 <span className={`inline-flex justify-center items-center gap-2 px-1 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border ${statusConfig.classes}`}>
                                                     {statusConfig.icon}
                                                     {statusConfig.label}

@@ -44,8 +44,8 @@ const uploadWithDuplicateCheck = async (req, res, next) => {
       // Si aucun fichier n'est fourni, on continue (sauf en POST si requis par la logique métier)
       if (!req.files || req.files.length === 0) {
         // Dans certains cas, on pourrait vouloir forcer au moins un fichier en POST
-        // if (req.method === 'POST') return res.status(400).json({ message: "Aucun fichier fourni" });
-        return next();
+        if (req.method === 'POST') return res.status(400).json({ message: "Aucun fichier fourni. Vous devez fournir au moins un fichier." });
+        else return next();
       }
 
       const filesWithHashes = [];

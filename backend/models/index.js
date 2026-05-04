@@ -4,14 +4,12 @@ const Beneficiary = require('./Beneficiary');
 const BulletinSoin = require('./BulletinSoin');
 const ActeMedical = require('./ActeMedical');
 const Pharmacie = require('./Pharmacie');
-const SoinDentaire = require('./SoinDentaire');
 
 const Reclamation = require('./Reclamation');
 
 const Notification = require('./Notification');
 const Journal = require('./Journal');
 const DocumentJustificatif = require('./DocumentJustificatif');
-const Medecin = require('./Medecin');
 const ReclamationMessage = require('./ReclamationMessage');
 const BulletinComment = require('./BulletinComment');
 const FraudAlert = require('./FraudAlert');
@@ -36,9 +34,6 @@ ActeMedical.belongsTo(BulletinSoin, { foreignKey: 'bulletinId' });
 BulletinSoin.hasOne(Pharmacie, { foreignKey: 'bulletinId', as: 'pharmacie' });
 Pharmacie.belongsTo(BulletinSoin, { foreignKey: 'bulletinId' });
 
-BulletinSoin.hasOne(SoinDentaire, { foreignKey: 'bulletinId', as: 'soinDentaire' });
-SoinDentaire.belongsTo(BulletinSoin, { foreignKey: 'bulletinId' });
-
 // ====== Notifications & Journal ======
 User.hasMany(Notification, { foreignKey: 'userId', as: 'notifications' });
 Notification.belongsTo(User, { foreignKey: 'userId', as: 'user' });
@@ -49,10 +44,6 @@ Journal.belongsTo(User, { foreignKey: 'userId', as: 'user' });
 
 BulletinSoin.hasMany(DocumentJustificatif, { foreignKey: 'bulletinId', as: 'documents' });
 DocumentJustificatif.belongsTo(BulletinSoin, { foreignKey: 'bulletinId' });
-
-// ====== Medecin ======
-Medecin.hasMany(ActeMedical, { foreignKey: 'medecinId', as: 'actesMedicaux' });
-ActeMedical.belongsTo(Medecin, { foreignKey: 'medecinId', as: 'medecin' });
 
 // ====== Associations pour RECLAMATION ======
 User.hasMany(Reclamation, { foreignKey: 'userId', as: 'reclamations' });
@@ -84,12 +75,10 @@ module.exports = {
     BulletinSoin,
     ActeMedical,
     Pharmacie,
-    SoinDentaire,
     Reclamation,
     Notification,
     Journal,
     DocumentJustificatif,
-    Medecin,
     ReclamationMessage,
     BulletinComment,
     FraudAlert

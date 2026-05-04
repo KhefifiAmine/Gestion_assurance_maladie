@@ -1,84 +1,7 @@
-const { BulletinSoin, ActeMedical, Medecin, User, FraudAlert, sequelize } = require('../../models');
+const { BulletinSoin, ActeMedical, User, FraudAlert, sequelize } = require('../../models');
 const { Op } = require('sequelize');
 
 class FraudService {
-    static normalizeName(value, { removeDoctorTitle = false } = {}) {
-        if (!value) return '';
-        let normalized = String(value).trim().toUpperCase().replace(/\s+/g, ' ');
-        if (removeDoctorTitle) {
-            normalized = normalized.replace(/^DR\.?\s+/i, '');
-        }
-        return normalized;
-    }
-
-    static normalizePhone(value) {
-        if (!value) return '';
-        const digits = String(value).replace(/\D/g, '');
-        if (!digits) return '';
-        if (digits.startsWith('216') && digits.length >= 11) return `+${digits}`;
-        if (digits.length === 8) return `+216${digits}`;
-        return digits;
-    }
-
-    static normalizeAmount(value) {
-        if (value === null || value === undefined || value === '') return 0;
-        const amount = Number(String(value).replace(',', '.').replace(/[^\d.-]/g, ''));
-        if (Number.isNaN(amount)) return 0;
-        return Math.max(0, Number(amount.toFixed(3)));
-    }
-
-    static normalizeDate(value) {
-        if (!value) return null;
-        const raw = String(value).trim();
-        const ymd = raw.match(/^(\d{4})[-/](\d{2})[-/](\d{2})$/);
-        if (ymd) return `${ymd[1]}-${ymd[2]}-${ymd[3]}`;
-        const dmy = raw.match(/^(\d{2})[-/](\d{2})[-/](\d{2}|\d{4})$/);
-        if (dmy) {
-            const year = dmy[3].length === 2 ? `20${dmy[3]}` : dmy[3];
-            return `${year}-${dmy[2]}-${dmy[1]}`;
-        }
-        const date = new Date(raw);
-        if (Number.isNaN(date.getTime())) return null;
-        return date.toISOString().slice(0, 10);
-    }
-
-    static normalizeExtractionData(payload = {}) {
-        const normalized = { ...payload };
-        normalized.nom_prenom_malade = this.normalizeName(payload.nom_prenom_malade);
-        normalized.date_soin = this.normalizeDate(payload.date_soin);
-        normalized.montant_total = this.normalizeAmount(payload.montant_total);
-        normalized.matricule_adherent = payload.matricule_adherent ? String(payload.matricule_adherent).trim() : '';
-        normalized.confiance_score = Number.isFinite(Number(payload.confiance_score)) ? Number(payload.confiance_score) : 100;
-        normalized.suspicion_locale = Boolean(payload.suspicion_locale);
-
-        if (payload.medecin) {
-            normalized.medecin = {
-                ...payload.medecin,
-                nom_prenom: this.normalizeName(payload.medecin.nom_prenom, { removeDoctorTitle: true }),
-                specialite: this.normalizeName(payload.medecin.specialite),
-                telephone: this.normalizePhone(payload.medecin.telephone),
-            };
-        }
-
-        if (payload.pharmacie) {
-            normalized.pharmacie = {
-                ...payload.pharmacie,
-                nom: this.normalizeName(payload.pharmacie.nom),
-                telephone: this.normalizePhone(payload.pharmacie.telephone),
-            };
-        }
-
-        if (Array.isArray(payload.actes)) {
-            normalized.actes = payload.actes.map((acte) => ({
-                ...acte,
-                code_acte: acte?.code_acte || acte?.code || null,
-                honoraires: this.normalizeAmount(acte?.honoraires ?? acte?.montant),
-                date_acte: this.normalizeDate(acte?.date_acte || payload.date_soin),
-            }));
-        }
-
-        return normalized;
-    }
 
     static scoreFromThreshold(value, warnThreshold, highThreshold) {
         if (value >= highThreshold) return 100;
@@ -96,19 +19,19 @@ class FraudService {
             frequence_adherent_30j: 0,
         };
 
-        const medecinId = bulletin.actes?.[0]?.medecinId || bulletin.actes?.[0]?.medecin?.id_medecin;
-        const dateSoin = bulletin.date_soin;
+        const depotDay = bulletin.date_depot
+            ? String(bulletin.date_depot).slice(0, 10)
+            : (bulletin.createdAt ? new Date(bulletin.createdAt).toISOString().slice(0, 10) : null);
         const date30DaysAgo = new Date();
         date30DaysAgo.setDate(date30DaysAgo.getDate() - 30);
         const date7DaysAgo = new Date();
         date7DaysAgo.setDate(date7DaysAgo.getDate() - 7);
 
-        if (medecinId && dateSoin) {
+        if (depotDay) {
             const uniquePatients = await BulletinSoin.count({
                 distinct: true,
                 col: 'userId',
-                where: { date_soin: dateSoin },
-                include: [{ model: ActeMedical, as: 'actes', attributes: [], where: { medecinId } }],
+                where: { date_depot: depotDay }
             });
             metrics.nb_patients_jour = uniquePatients;
             const doctorFrequencyScore = this.scoreFromThreshold(uniquePatients, 20, 35);
@@ -120,9 +43,8 @@ class FraudService {
             const repeatedAmount = await BulletinSoin.count({
                 where: {
                     montant_total: bulletin.montant_total,
-                    createdAt: { [Op.gte]: date30DaysAgo },
-                },
-                include: [{ model: ActeMedical, as: 'actes', attributes: [], where: { medecinId } }],
+                    createdAt: { [Op.gte]: date30DaysAgo }
+                }
             });
             metrics.repetition_montant = repeatedAmount;
             const repetitionScore = this.scoreFromThreshold(repeatedAmount, 3, 6);
@@ -151,23 +73,18 @@ class FraudService {
             score: Math.min(100, Math.round(sqlRulesScore / 3)),
             reasons,
             metrics,
-            medecinId,
         };
     }
 
     static async analyzeGlobalAnomaly(bulletin) {
-        const medecinId = bulletin.actes?.[0]?.medecinId || bulletin.actes?.[0]?.medecin?.id_medecin;
-        if (!medecinId) {
-            return { score: 0, reasons: [], features: {} };
-        }
+        const refDate = bulletin.date_depot
+            ? new Date(bulletin.date_depot)
+            : (bulletin.createdAt ? new Date(bulletin.createdAt) : new Date());
+        const depotDayStr = bulletin.date_depot
+            ? String(bulletin.date_depot).slice(0, 10)
+            : refDate.toISOString().slice(0, 10);
 
-        const dateSoin = bulletin.date_soin ? new Date(bulletin.date_soin) : new Date();
-        const startDay = new Date(dateSoin);
-        startDay.setHours(0, 0, 0, 0);
-        const endDay = new Date(dateSoin);
-        endDay.setHours(23, 59, 59, 999);
-
-        const startMonth = new Date(dateSoin.getFullYear(), dateSoin.getMonth(), 1);
+        const startMonth = new Date(refDate.getFullYear(), refDate.getMonth(), 1);
 
         const dayStats = await BulletinSoin.findOne({
             attributes: [
@@ -176,22 +93,24 @@ class FraudService {
                 [sequelize.fn('AVG', sequelize.col('BulletinSoin.montant_total')), 'montant_moyen'],
                 [sequelize.fn('COUNT', sequelize.fn('DISTINCT', sequelize.col('BulletinSoin.userId'))), 'nb_patients_jour'],
             ],
-            where: { date_soin: bulletin.date_soin },
-            include: [{ model: ActeMedical, as: 'actes', attributes: [], where: { medecinId } }],
+            where: { date_depot: depotDayStr },
             raw: true,
         });
 
         const monthlyFrequency = await BulletinSoin.count({
-            where: { createdAt: { [Op.gte]: startMonth } },
-            include: [{ model: ActeMedical, as: 'actes', attributes: [], where: { medecinId } }],
+            where: { createdAt: { [Op.gte]: startMonth } }
         });
+
+        const baselineWhere = bulletin.soins_cadre != null && bulletin.soins_cadre !== ''
+            ? { soins_cadre: bulletin.soins_cadre }
+            : {};
 
         const globalBaseline = await BulletinSoin.findOne({
             attributes: [
                 [sequelize.fn('AVG', sequelize.col('montant_total')), 'avgMontant'],
                 [sequelize.fn('STDDEV_POP', sequelize.col('montant_total')), 'stdMontant'],
             ],
-            where: { type_dossier: bulletin.type_dossier },
+            where: baselineWhere,
             raw: true,
         });
 
@@ -228,7 +147,7 @@ class FraudService {
     static async calculateFraudScore(bulletinId) {
         const bulletin = await BulletinSoin.findByPk(bulletinId, {
             include: [
-                { model: ActeMedical, as: 'actes', include: [{ model: Medecin, as: 'medecin' }] }
+                { model: ActeMedical, as: 'actes' }
             ]
         });
 
@@ -258,14 +177,6 @@ class FraudService {
                 finalScore,
                 reasons.join(' | ') || 'Suspicion de fraude detectee par le moteur.'
             );
-            if (sqlResult.medecinId) {
-                await this.createAlert(
-                    'medecin',
-                    sqlResult.medecinId,
-                    Math.max(50, Math.round((sqlResult.score + anomalyResult.score) / 2)),
-                    reasons.join(' | ') || 'Comportement medical anormal detecte.'
-                );
-            }
         }
 
         return {

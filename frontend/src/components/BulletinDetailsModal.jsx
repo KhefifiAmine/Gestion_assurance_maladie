@@ -13,21 +13,24 @@ import {
     AlertTriangle,
     Eye,
     Send,
-    MessageCircle,
     ExternalLink,
     Hash,
     ShieldCheck,
     ShieldAlert,
     Stethoscope,
     Pill,
-    MapPin,
-    Phone,
     ChevronRight,
     TrendingUp,
-    Hourglass,
     XCircle,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import {
+    getPatientDisplayName,
+    getDerivedCareDate,
+    formatDateFr,
+    formatMontantTnd,
+} from '../utils/bulletinDisplay';
+import { UPLOADS_BASE } from '../services/api';
 
 /* ─── Petit composant : ligne de détail ─── */
 const DetailRow = ({ icon: Icon, label, value, accent }) => (
@@ -68,6 +71,13 @@ const BulletinDetailsModal = ({ isOpen, onClose, bulletin }) => {
 
 
     if (!bulletin) return null;
+
+    const patientNameContext = isAdmin
+        ? (bulletin.adherent ? { nom: bulletin.adherent.nom, prenom: bulletin.adherent.prenom } : null)
+        : currentUser;
+    const patientDisplayName = getPatientDisplayName(bulletin, patientNameContext);
+    const careDate = getDerivedCareDate(bulletin);
+    const uploadBase = UPLOADS_BASE || 'http://localhost:5000';
 
     const statusMap = {
         0: {
@@ -184,41 +194,100 @@ const BulletinDetailsModal = ({ isOpen, onClose, bulletin }) => {
                                     {/* Montant total */}
                                     <div className="col-span-2 sm:col-span-1 p-5 rounded-2xl bg-gradient-to-br from-purple-600 to-indigo-700 text-white shadow-lg shadow-purple-500/25">
                                         <p className="text-[9px] font-black uppercase tracking-[0.15em] text-purple-200 mb-2">Montant Total</p>
-                                        <p className="text-2xl font-black leading-none">{bulletin.montant_total?.toFixed(3)}</p>
+                                        <p className="text-2xl font-black leading-none">{formatMontantTnd(bulletin.montant_total)}</p>
                                         <p className="text-[10px] font-bold text-purple-200 mt-1">TND</p>
                                     </div>
 
                                     {/* Montant Remboursé */}
                                     <div className="col-span-2 sm:col-span-1 p-5 rounded-2xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800/30">
                                         <p className="text-[9px] font-black uppercase tracking-[0.15em] text-emerald-600 mb-2">Montant Remboursé</p>
-                                        <p className="text-2xl font-black leading-none text-emerald-700 dark:text-emerald-300">{bulletin.montant_remboursement?.toFixed(3) || '0.000'}</p>
+                                        <p className="text-2xl font-black leading-none text-emerald-700 dark:text-emerald-300">{formatMontantTnd(bulletin.montant_total_remboursé)}</p>
                                         <p className="text-[10px] font-bold text-emerald-500 mt-1">TND</p>
                                     </div>
 
-                                    {/* Date soin */}
+                                    {/* Date soin (premier acte / pharmacie) */}
                                     <div className="col-span-1 p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-white/5">
-                                        <p className="text-[9px] font-black uppercase tracking-[0.15em] text-slate-400 mb-2">Date de Soin</p>
+                                        <p className="text-[9px] font-black uppercase tracking-[0.15em] text-slate-400 mb-2">Date de soin</p>
                                         <p className="text-sm font-black text-slate-800 dark:text-white">
-                                            {new Date(bulletin.date_soin).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                            {formatDateFr(careDate)}
                                         </p>
+                                        {!careDate && (
+                                            <p className="text-[8px] font-bold text-slate-400 mt-1">Aucune date sur les actes / pharmacie</p>
+                                        )}
                                     </div>
                                     {/* Date dépôt */}
                                     <div className="col-span-1 p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-white/5">
                                         <p className="text-[9px] font-black uppercase tracking-[0.15em] text-slate-400 mb-2">Date de Dépôt</p>
                                         <p className="text-sm font-black text-slate-800 dark:text-white">
-                                            {bulletin.date_depot ? new Date(bulletin.date_depot).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
+                                            {formatDateFr(bulletin.date_depot)}
                                         </p>
                                     </div>
                                 </div>
 
+                                {/* ── Risque & confiance (bulletin) ── */}
+                                {(isAdmin || bulletin.fraud_score > 0 || bulletin.niveauRisque || bulletin.suspicion_locale) && (
+                                    <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-white/5">
+                                        <SectionTitle icon={Activity} label="Analyse & risque" color="bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400" />
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8">
+                                            {isAdmin && (
+                                                <DetailRow icon={TrendingUp} label="Score fraude" value={`${bulletin.fraud_score ?? 0} %`} />
+                                            )}
+                                            <DetailRow icon={ShieldAlert} label="Niveau risque (document)" value={bulletin.niveauRisque || '—'} />
+                                            <DetailRow icon={ShieldCheck} label="Confiance IA" value={bulletin.confiance_score != null ? `${bulletin.confiance_score} %` : '—'} />
+                                            <DetailRow icon={AlertTriangle} label="Suspicion locale" value={bulletin.suspicion_locale ? 'Oui' : 'Non'} />
+                                        </div>
+                                        {bulletin.resultat_analyse && isAdmin && (
+                                            <p className="mt-3 text-xs text-slate-600 dark:text-slate-300 leading-relaxed border-t border-slate-100 dark:border-white/5 pt-3">
+                                                {bulletin.resultat_analyse}
+                                            </p>
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* ── Adhérent (admin) ── */}
+                                {isAdmin && bulletin.adherent && (
+                                    <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-white/5">
+                                        <SectionTitle icon={User} label="Adhérent (titulaire)" color="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300" />
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8">
+                                            <DetailRow icon={User} label="Nom" value={`${bulletin.adherent.prenom} ${bulletin.adherent.nom}`} />
+                                            <DetailRow icon={Hash} label="Matricule" value={bulletin.adherent.matricule} />
+                                            {bulletin.adherent.email && (
+                                                <DetailRow icon={Send} label="Email" value={bulletin.adherent.email} />
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+
                                 {/* ── BLOC 2 : Informations Patient ── */}
                                 <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-white/5">
-                                    <SectionTitle icon={User} label="Informations Patient" color="bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400" />
+                                    <SectionTitle icon={User} label="Patient concerné" color="bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400" />
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8">
-                                        <DetailRow icon={User} label="Nom complet" value={bulletin.nom_prenom_malade} />
+                                        <DetailRow icon={User} label="Nom affiché" value={patientDisplayName} />
                                         <DetailRow icon={Hash} label="Qualité" value={bulletin.qualite_malade} />
+                                        <DetailRow icon={Hash} label="Code CNAM (bulletin)" value={bulletin.code_cnam} />
+                                        {bulletin.beneficiaire && (
+                                            <>
+                                                <DetailRow icon={User} label="Bénéficiaire en base" value={`${bulletin.beneficiaire.prenom} ${bulletin.beneficiaire.nom}`} />
+                                                <DetailRow icon={Stethoscope} label="Lien familial" value={bulletin.beneficiaire.relation} />
+                                                <DetailRow icon={Calendar} label="Date naissance" value={formatDateFr(bulletin.beneficiaire.ddn)} />
+                                                <DetailRow icon={CheckCircle2} label="Statut dossier" value={bulletin.beneficiaire.statut} />
+                                            </>
+                                        )}
                                     </div>
                                 </div>
+
+                                {/* ── Cadre APCI / grossesse ── */}
+                                {(bulletin.est_apci || bulletin.suivi_grossesse || bulletin.soins_cadre || bulletin.date_prevue_accouchement) && (
+                                    <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-white/5">
+                                        <SectionTitle icon={FileText} label="Cadre des soins" color="bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400" />
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8">
+                                            <DetailRow icon={CheckCircle2} label="APCI" value={bulletin.est_apci ? 'Oui' : 'Non'} />
+                                            <DetailRow icon={CheckCircle2} label="Suivi grossesse" value={bulletin.suivi_grossesse ? 'Oui' : 'Non'} />
+                                            <DetailRow icon={Calendar} label="Date prévue accouchement" value={formatDateFr(bulletin.date_prevue_accouchement)} />
+                                            <DetailRow icon={Hash} label="Soins dans le cadre" value={bulletin.soins_cadre} />
+                                        </div>
+                                    </div>
+                                )}
 
                                 {/* ── BLOC 3 : Actes Médicaux ── */}
                                 {bulletin.actes && bulletin.actes.length > 0 && (
@@ -226,7 +295,7 @@ const BulletinDetailsModal = ({ isOpen, onClose, bulletin }) => {
                                         <SectionTitle icon={Stethoscope} label={`Actes Médicaux (${bulletin.actes.length})`} color="bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400" />
                                         <div className="space-y-2">
                                             {bulletin.actes.map((acte, idx) => (
-                                                <div key={idx} className="flex items-center justify-between px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors group">
+                                                <div key={acte.id || idx} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors group border border-transparent hover:border-indigo-100 dark:hover:border-indigo-900/30">
                                                     <div className="flex items-center gap-3 min-w-0">
                                                         <div className="w-7 h-7 rounded-lg bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 flex items-center justify-center flex-shrink-0 text-[10px] font-black">
                                                             {idx + 1}
@@ -235,13 +304,28 @@ const BulletinDetailsModal = ({ isOpen, onClose, bulletin }) => {
                                                             <p className="text-sm font-bold text-slate-800 dark:text-white truncate">{acte.acte}</p>
                                                             <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">
                                                                 <Calendar size={8} className="inline mr-1" />
-                                                                {new Date(acte.date_acte).toLocaleDateString('fr-FR')}
+                                                                {formatDateFr(acte.date_acte)}
                                                             </p>
+                                                            <p className="text-[9px] text-slate-500 dark:text-slate-400 mt-1 space-x-2">
+                                                                {acte.code_acte && <span>Code {acte.code_acte}</span>}
+                                                                {acte.numero_dent && <span>Dent {acte.numero_dent}</span>}
+                                                                {acte.type_acte && <span className="uppercase">{acte.type_acte}</span>}
+                                                                {acte.identifiant_unique_mf && <span>MF {acte.identifiant_unique_mf}</span>}
+                                                            </p>
+                                                            {acte.cachet_signature_present != null && (
+                                                                <p className="text-[8px] font-bold text-slate-400 mt-0.5">
+                                                                    Cachet / signature : {acte.cachet_signature_present ? 'Oui' : 'Non'}
+                                                                    {acte.date_cachet_signature ? ` · ${formatDateFr(acte.date_cachet_signature)}` : ''}
+                                                                </p>
+                                                            )}
                                                         </div>
                                                     </div>
-                                                    <div className="flex-shrink-0 ml-4 text-right">
-                                                        <p className="text-sm font-black text-indigo-600 dark:text-indigo-400">{acte.honoraires?.toFixed(3)}</p>
-                                                        <p className="text-[8px] font-bold text-slate-400">TND</p>
+                                                    <div className="flex-shrink-0 sm:text-right">
+                                                        <p className="text-sm font-black text-slate-800 dark:text-white">{formatMontantTnd(acte.honoraires)}</p>
+                                                        {acte.montant_remboursement > 0 && (
+                                                            <p className="text-[10px] font-black text-emerald-600 dark:text-emerald-400">Remb: {formatMontantTnd(acte.montant_remboursement)}</p>
+                                                        )}
+                                                        <p className="text-[8px] font-bold text-slate-400 uppercase">TND</p>
                                                     </div>
                                                 </div>
                                             ))}
@@ -250,20 +334,28 @@ const BulletinDetailsModal = ({ isOpen, onClose, bulletin }) => {
                                 )}
 
                                 {/* ── BLOC 4 : Pharmacie ── */}
-                                {bulletin.pharmacie && (bulletin.pharmacie.nom || bulletin.pharmacie.montant_pharmacie > 0) && (
+                                {bulletin.pharmacie && (
                                     <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-white/5">
                                         <SectionTitle icon={Pill} label="Pharmacie" color="bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400" />
                                         <div className="flex items-start justify-between gap-4">
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 flex-1">
-                                                {bulletin.pharmacie.nom && <DetailRow icon={Pill} label="Nom de la Pharmacie" value={bulletin.pharmacie.nom} />}
-                                                {bulletin.pharmacie.adresse && <DetailRow icon={MapPin} label="Adresse" value={bulletin.pharmacie.adresse} />}
-                                                {bulletin.pharmacie.telephone && <DetailRow icon={Phone} label="Téléphone" value={bulletin.pharmacie.telephone} />}
-                                                {bulletin.pharmacie.date_achat && <DetailRow icon={Calendar} label="Date d'achat" value={new Date(bulletin.pharmacie.date_achat).toLocaleDateString('fr-FR')} />}
+                                                <DetailRow icon={Hash} label="Identifiant MF" value={bulletin.pharmacie.identifiant_unique_mf} />
+                                                <DetailRow icon={Calendar} label="Date d'achat" value={formatDateFr(bulletin.pharmacie.date_achat)} />
+                                                <DetailRow icon={Calendar} label="Cachet / signature (date)" value={formatDateFr(bulletin.pharmacie.date_cachet_signature)} />
+                                                <DetailRow icon={CheckCircle2} label="Cachet" value={bulletin.pharmacie.est_cachet != null ? (bulletin.pharmacie.est_cachet ? 'Oui' : 'Non') : '—'} />
+                                                <DetailRow icon={CheckCircle2} label="Signature" value={bulletin.pharmacie.est_signature != null ? (bulletin.pharmacie.est_signature ? 'Oui' : 'Non') : '—'} />
                                             </div>
-                                            <div className="flex-shrink-0 p-4 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 text-center min-w-[90px]">
-                                                <p className="text-[9px] font-black uppercase tracking-wider text-emerald-500 mb-1">Montant</p>
-                                                <p className="text-xl font-black text-emerald-700 dark:text-emerald-300">{bulletin.pharmacie.montant_pharmacie?.toFixed(3)}</p>
-                                                <p className="text-[9px] font-bold text-emerald-500">TND</p>
+                                            <div className="flex-shrink-0 p-4 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 text-center min-w-[100px]">
+                                                <p className="text-[9px] font-black uppercase tracking-wider text-slate-500 mb-1">Dépense</p>
+                                                <p className="text-lg font-black text-slate-700 dark:text-slate-300">{formatMontantTnd(bulletin.pharmacie.montant || bulletin.pharmacie.montant_pharmacie)}</p>
+                                                {bulletin.pharmacie.montant_remboursement > 0 && (
+                                                    <>
+                                                        <div className="h-px bg-emerald-100 dark:bg-emerald-800/50 my-1" />
+                                                        <p className="text-[9px] font-black uppercase tracking-wider text-emerald-600 mb-1">Remboursement</p>
+                                                        <p className="text-xl font-black text-emerald-600 dark:text-emerald-400">{formatMontantTnd(bulletin.pharmacie.montant_remboursement)}</p>
+                                                    </>
+                                                )}
+                                                <p className="text-[9px] font-bold text-slate-400">TND</p>
                                             </div>
                                         </div>
                                     </div>
@@ -276,7 +368,7 @@ const BulletinDetailsModal = ({ isOpen, onClose, bulletin }) => {
                                         <SectionTitle icon={FileText} label={`Documents (${bulletin.documents.length})`} color="bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400" />
                                         <div className="space-y-2">
                                             {bulletin.documents.map((doc, idx) => {
-                                                const fileUrl = `http://localhost:5000/uploads/${doc.fichier}`;
+                                                const fileUrl = `${uploadBase}/uploads/${doc.fichier}`;
                                                 const isPdf = doc.fichier?.toLowerCase().endsWith('.pdf');
                                                 const isActive = previewDoc?.fichier === doc.fichier;
                                                 return (
@@ -287,7 +379,7 @@ const BulletinDetailsModal = ({ isOpen, onClose, bulletin }) => {
                                                                     <FileText size={15} />
                                                                 </div>
                                                                 <div>
-                                                                    <p className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-tight">{doc.type_document || 'Document'}</p>
+                                                                    <p className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-tight">{doc.type_document || doc.fichier || 'Document'}</p>
                                                                     {isAdmin && (<p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1 mt-0.5">
                                                                         <span className={`w-1.5 h-1.5 rounded-full inline-block ${doc.est_suspect ? 'bg-red-500' : 'bg-emerald-400'}`} />
                                                                         {isPdf ? 'PDF' : 'Image'} · {doc.est_suspect ? <span className="text-red-500">Suspect</span> : 'Officiel'}
@@ -432,14 +524,14 @@ const BulletinDetailsModal = ({ isOpen, onClose, bulletin }) => {
                                         <div className="flex-1 bg-slate-100 dark:bg-slate-950 p-2 overflow-hidden">
                                             {previewDoc.fichier?.toLowerCase().endsWith('.pdf') ? (
                                                 <iframe
-                                                    src={`http://localhost:5000/uploads/${previewDoc.fichier}#toolbar=0`}
+                                                    src={`${uploadBase}/uploads/${previewDoc.fichier}#toolbar=0`}
                                                     className="w-full h-full border-0 rounded-lg"
                                                     title="Aperçu PDF"
                                                 />
                                             ) : (
                                                 <div className="w-full h-full flex items-center justify-center overflow-auto p-4">
                                                     <img
-                                                        src={`http://localhost:5000/uploads/${previewDoc.fichier}`}
+                                                        src={`${uploadBase}/uploads/${previewDoc.fichier}`}
                                                         alt="Aperçu"
                                                         className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
                                                     />
@@ -448,7 +540,7 @@ const BulletinDetailsModal = ({ isOpen, onClose, bulletin }) => {
                                         </div>
                                         <div className="p-4 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-white/5 flex justify-center">
                                             <a
-                                                href={`http://localhost:5000/uploads/${previewDoc.fichier}`}
+                                                href={`${uploadBase}/uploads/${previewDoc.fichier}`}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
                                                 className="flex items-center gap-2 px-4 py-2 bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-purple-600 hover:text-white transition-all shadow-sm"

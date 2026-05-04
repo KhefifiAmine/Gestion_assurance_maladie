@@ -69,7 +69,7 @@ const getAll = async (req, res) => {
         {
           model: BulletinSoin,
           as: 'bulletinSoin',
-          attributes: ['id', 'numero_bulletin', 'type_dossier', 'montant_total', 'statut', 'date_soin']
+          attributes: ['id', 'numero_bulletin', 'code_cnam', 'qualite_malade', 'montant_total', 'statut', 'date_depot']
         }
       ],
       order: [['createdAt', 'DESC']]
@@ -108,7 +108,7 @@ const getMyReclamation = async (req, res) => {
         {
           model: BulletinSoin,
           as: 'bulletinSoin',
-          attributes: ['id', 'numero_bulletin', 'type_dossier', 'montant_total', 'statut', 'date_soin']
+          attributes: ['id', 'numero_bulletin', 'code_cnam', 'qualite_malade', 'montant_total', 'statut', 'date_depot']
         }
       ],
       order: [['createdAt', 'DESC']]

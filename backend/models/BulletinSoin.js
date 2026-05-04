@@ -16,16 +16,26 @@ const BulletinSoin = sequelize.define('BulletinSoin', {
         type: DataTypes.STRING,
         allowNull: true
     },
-    nom_prenom_malade: {
-        type: DataTypes.STRING,
-        allowNull: true
-    },
-    matricule_adherent: {
-        type: DataTypes.STRING,
-        allowNull: true
-    },
     qualite_malade: {
         type: DataTypes.STRING,
+        allowNull: true
+    },
+    est_apci: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false
+    },
+    suivi_grossesse: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false
+    },
+    date_prevue_accouchement: {
+        type: DataTypes.DATEONLY,
+        allowNull: true
+    },
+    soins_cadre: {
+        type: DataTypes.STRING, // APCI, Suivi de la grossesse, Autres
         allowNull: true
     },
     montant_total: {
@@ -33,20 +43,12 @@ const BulletinSoin = sequelize.define('BulletinSoin', {
         allowNull: false,
         defaultValue: 0.0
     },
-    type_dossier: {
-        type: DataTypes.STRING,
-        allowNull: false
-    },
     date_depot: {
         type: DataTypes.DATEONLY,
         allowNull: false,
         defaultValue: DataTypes.NOW
     },
-    date_soin: {
-        type: DataTypes.DATEONLY,
-        allowNull: true
-    },
-    montant_remboursement: {
+    montant_total_remboursé: {
         type: DataTypes.DOUBLE,
         allowNull: false,
         defaultValue: 0.0
@@ -60,6 +62,10 @@ const BulletinSoin = sequelize.define('BulletinSoin', {
         allowNull: true
     },
     date_traitement: {
+        type: DataTypes.DATE,
+        allowNull: true
+    },
+    date_fermeture: {
         type: DataTypes.DATE,
         allowNull: true
     },
@@ -96,7 +102,15 @@ const BulletinSoin = sequelize.define('BulletinSoin', {
         type: DataTypes.INTEGER,
         allowNull: true,
         defaultValue: 0
-    }
+    },
+    niveauRisque: {
+        type: DataTypes.STRING,
+        allowNull: false
+    },
+    resultat_analyse: {
+        type: DataTypes.TEXT,
+        allowNull: true
+    },
 }, {
     tableName: 'bulletin_soins',
     timestamps: true,

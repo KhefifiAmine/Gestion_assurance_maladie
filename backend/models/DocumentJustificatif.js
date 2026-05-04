@@ -7,29 +7,9 @@ const DocumentJustificatif = sequelize.define('DocumentJustificatif', {
         autoIncrement: true,
         primaryKey: true
     },
-    type_document: {
-        type: DataTypes.STRING,
-        allowNull: false
-    },
     fichier: {
         type: DataTypes.STRING,
         allowNull: false
-    },
-    est_suspect: {
-        type: DataTypes.BOOLEAN,
-        allowNull: true
-    },
-    score: {
-        type: DataTypes.INTEGER,
-        allowNull: false
-    },
-    niveauRisque: {
-        type: DataTypes.STRING,
-        allowNull: false
-    },
-    resultat_analyse: {
-        type: DataTypes.TEXT,
-        allowNull: true
     },
     hash_fichier: {
         type: DataTypes.STRING,

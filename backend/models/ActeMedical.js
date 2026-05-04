@@ -11,11 +11,6 @@ const ActeMedical = sequelize.define('ActeMedical', {
         type: DataTypes.DATEONLY,
         allowNull: false
     },
-    honoraires: {
-        type: DataTypes.DOUBLE,
-        allowNull: false,
-        defaultValue: 0.0
-    },
     cote: {
         type: DataTypes.INTEGER,
         allowNull: true
@@ -24,21 +19,40 @@ const ActeMedical = sequelize.define('ActeMedical', {
         type: DataTypes.STRING,
         allowNull: false
     },
+    identifiant_unique_mf: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    cachet_signature_present: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false
+    },
+    date_cachet_signature: {
+        type: DataTypes.DATEONLY,
+        allowNull: true
+    },
     code_acte: {
+        type: DataTypes.STRING, //pour le dentaire
+        allowNull: true
+    },
+    honoraires: {
+        type: DataTypes.DOUBLE,
+        allowNull: false,
+        defaultValue: 0.0
+    },
+    montant_remboursement: {
+        type: DataTypes.DOUBLE,
+        allowNull: false,
+        defaultValue: 0.0
+    },
+    numero_dent: {
         type: DataTypes.STRING,
         allowNull: true
     },
-    type: {
-        type: DataTypes.STRING,
+    type_acte: {
+        type: DataTypes.STRING, //soin normal ou dentaire
         allowNull: true
-    },
-    medecinId: {
-        type: DataTypes.INTEGER,
-        allowNull: true,
-        references: {
-            model: 'medecins',
-            key: 'id_medecin'
-        }
     },
     bulletinId: {
         type: DataTypes.INTEGER,

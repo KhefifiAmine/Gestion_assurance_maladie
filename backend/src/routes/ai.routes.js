@@ -3,7 +3,11 @@ const router = express.Router();
 const { verifyToken } = require('../middleware/auth.middleware');
 const { upload, analyzeBulletin } = require('../controllers/ai.controller');
 
-// Route pour analyser un bulletin de soins par IA
-router.post('/analyze-bulletin', verifyToken, upload.single('file'), analyzeBulletin);
+router.post(
+    '/analyze-bulletin',
+    verifyToken,
+    upload.array('file', 5), // max 5 fichiers
+    analyzeBulletin
+  );
 
 module.exports = router;

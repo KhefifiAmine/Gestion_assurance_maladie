@@ -7,7 +7,33 @@ const Pharmacie = sequelize.define('Pharmacie', {
         autoIncrement: true,
         primaryKey: true
     },
+    bulletinId: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        references: {
+            model: 'bulletin_soins',
+            key: 'id'
+        }
+    },
+    identifiant_unique_mf: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    est_cachet: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false
+    },
+    est_signature: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false
+    },
     date_achat: {
+        type: DataTypes.DATEONLY,
+        allowNull: true
+    },
+    date_cachet_signature: {
         type: DataTypes.DATEONLY,
         allowNull: true
     },
@@ -16,25 +42,10 @@ const Pharmacie = sequelize.define('Pharmacie', {
         allowNull: false,
         defaultValue: 0.0
     },
-    nom: {
-        type: DataTypes.STRING,
-        allowNull: true
-    },
-    adresse: {
-        type: DataTypes.STRING,
-        allowNull: true
-    },
-    telephone: {
-        type: DataTypes.STRING,
-        allowNull: true
-    },
-    bulletinId: {
-        type: DataTypes.INTEGER,
+    montant_remboursement: {
+        type: DataTypes.DOUBLE,
         allowNull: false,
-        references: {
-            model: 'bulletin_soins',
-            key: 'id'
-        }
+        defaultValue: 0.0
     }
 }, {
     tableName: 'pharmacies',

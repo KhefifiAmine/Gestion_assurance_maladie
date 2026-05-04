@@ -1,8 +1,7 @@
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const multer = require("multer");
 const crypto = require("crypto");
-const { DocumentJustificatif, User, Beneficiary } = require("../../models");
-const FraudService = require("../services/fraud.service");
+const { DocumentJustificatif } = require("../../models");
 
 // Configuration de multer pour le stockage en mémoire vive (RAM)
 const storage = multer.memoryStorage();
@@ -30,23 +29,30 @@ function calculateFileHash(buffer) {
 
 const analyzeBulletin = async (req, res) => {
   try {
-    if (!req.file) {
+    // ❌ aucun fichier
+    if (!req.files || req.files.length === 0) {
       return res.status(400).json({ message: "Aucun fichier fourni" });
     }
 
-    // 1. Calculer le hash (depuis le buffer) et vérifier les doublons
-    const fileHash = calculateFileHash(req.file.buffer);
-    const existingDoc = await DocumentJustificatif.findOne({
-      where: { hash_fichier: fileHash },
-    });
+    const filesExist = [];
+    for (const file of req.files) {
+      // 1. Calculer le hash (depuis le buffer) et vérifier les doublons
+      const fileHash = calculateFileHash(file.buffer);
+      const existingDoc = await DocumentJustificatif.findOne({
+        where: { hash_fichier: fileHash },
+      });
 
-    if (existingDoc) {
+      filesExist.push(existingDoc);
+    }
+
+    if (filesExist.length === 0) {
       return res.status(400).json({
         message: "Ce document a déjà été soumis dans le système.",
         isDuplicate: true,
+        data : file.originalname
       });
     }
-
+    
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
       console.error("Erreur: GEMINI_API_KEY non trouvée dans .env");
@@ -57,60 +63,158 @@ const analyzeBulletin = async (req, res) => {
     const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
 
     const prompt = `
-      Tu agis en tant qu'expert en analyse de documents médicaux (Tunisie). 
-      Analyse ce document (image ou PDF) très attentivement. Il peut s'agir d'un bulletin de soins (BS), d'une ordonnance, d'une facture de pharmacie, ou d'un acte médical.
-      
-      Instructions d'extraction :
-      1. Extraie le MONTANT TOTAL : Cherche "Total", "Net à payer", "Total TTC", "Somme de", ou le montant le plus élevé en bas du document. 
-      2. Extraie le NUMÉRO : Cherche "N°", "Fiche n°", "Référence", ou le numéro de bulletin de soins.
-      3. Extraie le PATIENT : Nom et prénom figurant après "Patient", "Bénéficiaire" ou "Nom".
-      4. Extraie les DÉTAILS MÉDECIN & PHARMACIE & ACTE : Nom, spécialité, adresse, téléphone ET SURTOUT le Matricule Fiscal (MF).
-      5. DÉTECTION DE FRAUDE LOCALE : Vérifie si des chiffres ont été surchargés, si la police de caractère change brutalement sur les montants, ou si des éléments sont mal alignés.
-      6. VÉRIFICATION MÉDICALE : Analyse si le document contient des termes médicaux (noms de médicaments, diagnostics, actes médicaux, cachet de médecin). 
+    Tu agis en tant qu'expert en analyse de bulletins de soins en Tunisie.
 
-      Extraie les informations au format JSON uniquement. Si une information est absente, mets une chaîne vide ou null.
-      
-      Format attendu :
+    Analyse ce document (image ou PDF) avec une grande précision. 
+    Il s'agit principalement d’un bulletin de soins tunisien contenant des informations sur le patient, les actes médicaux et le professionnel de santé.
+
+    ========================
+    📌 INSTRUCTIONS GÉNÉRALES
+    ========================
+
+    - Extraire uniquement les données visibles dans le document.
+    - Ne pas inventer d'informations.
+    - Si une donnée est absente → mettre null ou "".
+    - Respecter les formats demandés.
+    - Un bulletin peut contenir plusieurs actes → utiliser un tableau.
+
+    ========================
+    📌 EXTRACTION DES DONNÉES
+    ========================
+
+    1. IDENTIFICATION DU DOCUMENT :
+    - Déterminer si c’est un bulletin de soins tunisien.
+    - Détecter s’il contient des termes médicaux (acte, médecin, cachet, ordonnance, etc.).
+
+    2. INFORMATIONS ADHÉRENT / PATIENT :
+    - Nom et prénom (en MAJUSCULES)
+    - Matricule (ex: TT-12345)
+    - Qualité : Lui-même / Conjoint / Enfant
+
+    3. INFORMATIONS BULLETIN :
+    - Numéro du bulletin (N°, Référence, etc.)
+    - Code CNAM (si présent)
+    - Date de soin principale
+    - Type de dossier : Consultation / Pharmacie / Dentaire / Analyse / Optique
+    - Soins dans le cadre de :
+    - APCI
+    - Suivi de la grossesse
+    - Autres
+    - Date prévue d’accouchement (si mentionnée)
+
+    4. PROFESSIONNEL DE SANTÉ (IMPORTANT) :
+    - Identifiant unique (MF)
+    - Nom (si présent dans le cachet)
+    - Présence de cachet (true/false)
+    - Présence de signature (true/false)
+
+    5. ACTES MÉDICAUX (TRÈS IMPORTANT) :
+    Pour chaque ligne d’acte extraire :
+
+    - date_acte
+    - code_acte
+    - description_acte
+    - cote
+    - numero_dent (si dentaire)
+    - montant (honoraires)
+    - identifiant_unique_mf
+    - cachet_signature_present (true/false)
+    - date_cachet_signature (si visible)
+
+    ⚠️ Un bulletin peut contenir plusieurs actes → retourner un tableau "actes"
+
+    6. MONTANT :
+    - Extraire le montant total (le plus grand montant ou total du document)
+
+    ========================
+    🚨 DÉTECTION DE FRAUDE LOCALE
+    ========================
+
+    Analyser le document pour détecter :
+
+    - surcharge ou modification de chiffres
+    - incohérence d’alignement
+    - différences de police
+    - montants incohérents entre actes
+    - absence de cachet/signature
+
+    Retourner :
+    - suspicion_locale (true/false)
+    - zones_modifiees (description technique)
+
+    ========================
+    📊 NORMALISATION
+    ========================
+
+    - Dates → format YYYY-MM-DD
+    - Montants → float
+    - Noms → MAJUSCULES
+    - Supprimer espaces inutiles
+
+    ========================
+    📦 FORMAT JSON OBLIGATOIRE
+    ========================
+
+    {
+    "est_document_medical": true/false,
+
+    "numero_bulletin": "",
+    "code_cnam": "",
+    "matricule_adherent": "",
+    "nom_prenom_adherent": "",
+    "adresse_adherent": "",
+    "client": "",
+
+    "nom_prenom_malade": "",
+    "qualite_malade": "", //Lui-même / Conjoint / Enfant
+    "date_naissance_malade": "",
+
+    "date_soin": "", //dentaire / normal
+
+    "est_apci": true/false,
+    "suivi_grossesse": true/false,
+    "date_prevue_accouchement": "",
+    "soins_cadre": "", //APCI / Suivi de la grossesse / Autres
+
+    "pharmacie" {
+      "identifiant_unique_mf": "",
+      "est_cachet": true/false,
+      "est_signature": true/false,
+      "date": "",
+      "montant_pharmacie": 0
+    }
+
+    "actes": [
       {
-        "est_document_medical": booléen,
-        "type_document": "Bulletin de soin, Ordonnance, Facture Pharmacie ou Autre",
-        "numero_bulletin": "le numéro du document",
-        "code_cnam": "le code CNAM si présent",
-        "nom_prenom_malade": "NOM PRENOM (en majuscules)",
-        "qualite_malade": "Lui-même, Conjoint ou Enfant",
-        "montant_total": montant numérique (ex: 45.600),
-        "matricule_adherent": "matricule",
-        "date_soin": "YYYY-MM-DD",
-        "type_dossier": "Consultation, Pharmacie, Optique, Dentaire ou Analyse",
-        
-        "medecin": {
-          "nom_prenom": "NOM PRENOM",
-          "specialite": "SPECIALITE",
-          "telephone": "TELEPHONE",
-          "matricule_fiscal": "MF"
-        },
-        
-        "pharmacie": {
-          "nom": "NOM",
-          "matricule_fiscal": "MF",
-          "telephone": "TELEPHONE"
-        },
-        
-        "acte": {
-          "code": "code",
-          "description": "description",
-          "montant": "montant"
-        },
-
-        "confiance_score": score de 0 à 100,
-        "suspicion_locale": booléen (fraude suspectée sur le document physique),
-        "zones_modifiees": "description de l'anomalie"
+        "date_acte": "",
+        "acte": "",
+        "cote": null,
+        "code_acte": "", //pour le dentaire
+        "numero_dent": "", //pour le dentaire
+        "honoraires": 0,
+        "identifiant_unique_mf": "",
+        "est_cachet": true/false,
+        "est_signature": true/false,
+        "date_cachet_signature": ""
       }
+    ],
+
+    "montant_total": 0, //montant total du bulletin
+
+    "confiance_score": 0, //score de confiance de l'IA
+    "suspicion_locale": true/false, //suspicion locale de l'IA
+    "zones_modifiees": "" //zones modifiées par l'utilisateur
+    "champs_manquants": [] //champs manquants par l'IA
+
+    }
     `;
 
-    const filePart = fileToGenerativePart(req.file.buffer, req.file.mimetype);
+    const parts = [prompt];
 
-    const result = await model.generateContent([prompt, filePart]);
+    req.files.forEach(file => {
+      parts.push(fileToGenerativePart(file.buffer, file.mimetype));
+    });
+    const result = await model.generateContent(parts);
     const response = await result.response;
     const text = response.text();
 
@@ -120,49 +224,10 @@ const analyzeBulletin = async (req, res) => {
       const jsonStr = jsonMatch ? jsonMatch[0] : text;
       data = JSON.parse(jsonStr);
 
-      // --- ETAPE 3: NORMALISATION ---
-      data = FraudService.normalizeExtractionData(data);
+      console.log(data);
 
-      const hasPatient = data.nom_prenom_malade && data.nom_prenom_malade.length > 2;
-
-      if (data.est_document_medical && hasPatient && req.userId) {
-        try {
-          const adherent = await User.findByPk(req.userId);
-          const beneficiaries = await Beneficiary.findAll({ where: { userId: req.userId } });
-
-          const patientName = data.nom_prenom_malade.toLowerCase().trim();
-          let isFamily = false;
-          let matchedBeneficiaryId = null;
-
-          if (adherent) {
-            let adherentNames = [
-              `${adherent.nom} ${adherent.prenom}`.toLowerCase(),
-              `${adherent.prenom} ${adherent.nom}`.toLowerCase()
-            ];
-            isFamily = adherentNames.some(name => patientName.includes(name) || name.includes(patientName));
-          }
-
-          if (!isFamily) {
-            for (let b of beneficiaries) {
-              let bNames = [`${b.nom} ${b.prenom}`.toLowerCase(), `${b.prenom} ${b.nom}`.toLowerCase()];
-              if (bNames.some(name => patientName.includes(name) || name.includes(patientName))) {
-                isFamily = true;
-                matchedBeneficiaryId = b.id;
-                break;
-              }
-            }
-          }
-
-          if (!isFamily) {
-            data.alerte_beneficiaire = `Attention : Le patient "${data.nom_prenom_malade}" ne semble pas faire partie de vos bénéficiaires.`;
-            data.suspicion_locale = true;
-            data.zones_modifiees = (data.zones_modifiees || "") + "\nPatient non reconnu.";
-          } else {
-            data.beneficiaireId = matchedBeneficiaryId;
-          }
-        } catch (dbError) {
-          console.error("Erreur vérification bénéficiaire:", dbError);
-        }
+      if (!data.est_document_medical) {
+        return res.status(400).json({ message: "Ce document n'est pas un document médical valide." });
       }
     } catch (parseError) {
       console.error("Erreur parsing JSON de l'IA:", text);

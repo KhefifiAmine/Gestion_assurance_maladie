@@ -13,7 +13,7 @@ const journalMiddleware = async (req, res, next) => {
         // On écoute la fin de la réponse pour s'assurer que l'action a réussi
         res.on('finish', async () => {
             // On n'enregistre que si la requête a réussi (codes 2xx)
-            if (res.statusCode >= 200 && res.statusCode < 300) {
+            if (res.statusCode >= 200 && res.statusCode < 305) {
                 try {
                     // L'ID de l'utilisateur est injecté par le middleware d'authentification (verifyToken)
                     const userId = req.userId;
