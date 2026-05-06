@@ -83,6 +83,11 @@ const BulletinSoin = sequelize.define('BulletinSoin', {
         allowNull: true,
         comment: 'Commentaire libre de l\'admin en plus du motif structuré'
     },
+    est_signe_adherent: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false
+    },
     date_traitement: {
         type: DataTypes.DATE,
         allowNull: true

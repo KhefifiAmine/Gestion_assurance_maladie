@@ -202,8 +202,7 @@ const getAllBeneficiaries = async (req, res) => {
         const beneficiaries = await Beneficiary.findAll({
             include: [{
                 model: User,
-                as: 'user',
-                attributes: ['nom', 'prenom', 'email']
+                as: 'user'
             }],
             order: [['createdAt', 'DESC']]
         });

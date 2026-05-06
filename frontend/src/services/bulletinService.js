@@ -95,10 +95,17 @@ export const updateBulletinStatus = async (id, statut, data = {}) => {
     return handleResponse(response);
 };
 
-export const analyzeBulletinIA = async (file) => {
+export const analyzeBulletinIA = async (files) => {
     const token = localStorage.getItem('token');
     const formData = new FormData();
-    formData.append('file', file);
+    
+    if (Array.isArray(files)) {
+        files.forEach(file => {
+            formData.append('file', file);
+        });
+    } else {
+        formData.append('file', files);
+    }
 
     const response = await fetch(`${API_BASE}/ai/analyze-bulletin`, {
         method: 'POST',
@@ -110,6 +117,31 @@ export const analyzeBulletinIA = async (file) => {
 
     return handleResponse(response);
 };
+
+export const downloadPreFilledBulletin = async () => {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/pre-filled-pdf`, {
+        method: 'GET',
+        headers: {
+            'Authorization': `Bearer ${token}`
+        },
+    });
+
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Erreur lors du téléchargement');
+    }
+
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `bulletin_soin_${Date.now()}.pdf`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+};
+
 
 /*
 export const getBulletinComments = async (id) => {

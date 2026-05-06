@@ -3,9 +3,9 @@ import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     X, FileText, User, Activity, Upload, ChevronRight, ChevronDown,
-    Hash, Users, CheckCircle2, Lock, Eye, ExternalLink, Plus
+    Hash, Users, CheckCircle2, Lock, Eye, ExternalLink, Plus, Download
 } from 'lucide-react';
-import { createBulletin, updateBulletin, analyzeBulletinIA } from '../services/bulletinService';
+import { createBulletin, updateBulletin, analyzeBulletinIA, downloadPreFilledBulletin } from '../services/bulletinService';
 import { getMyBeneficiaries } from '../services/beneficiaryService';
 import { UPLOADS_BASE } from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -51,6 +51,7 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
     const { user } = useAuth();
     const { showToast } = useToast();
     const [step, setStep] = useState(1);
+    const [subStep, setSubStep] = useState('choice'); // 'choice', 'upload'
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [isUploadingDoc, setIsUploadingDoc] = useState(false);
     const [selectedFiles, setSelectedFiles] = useState([]); // Changé de selectedFile (unique) à selectedFiles (tableau)
@@ -75,6 +76,7 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
         suivi_grossesse: false,
         date_prevue_accouchement: '',
         soins_cadre: 'Autres',
+        est_signe_adherent: false,
 
         pharmacie: {
             identifiant_unique_mf: '',
@@ -139,6 +141,7 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
                         date: initialData.pharmacie.date || initialData.pharmacie.date_achat || '',
                         montant_pharmacie: initialData.pharmacie.montant_pharmacie || 0
                     } : initialFormState.pharmacie,
+                    est_signe_adherent: initialData.est_signe_adherent || false,
                     actes: initialData.actes || [],
                     montant_total: initialData.montant_total || 0,
                     notes: initialData.notes || '',
@@ -191,9 +194,10 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
 
         try {
             setIsAnalyzing(true);
-            showToast("Analyse du document principal par l'IA en cours...", "info");
+            showToast("Analyse des documents par l'IA en cours...", "info");
 
-            const aiData = await analyzeBulletinIA(fileToAnalyze);
+            const aiData = await analyzeBulletinIA(files);
+
 
             if (aiData.est_document_medical === false) {
                 showToast("ALERTE : Ce document n'est PAS un document médical valide.", "error");
@@ -268,6 +272,7 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
                 // Champs UI
                 zones_modifiees: clean(aiData.zones_modifiees) || '',
                 confiance_score: aiData.confiance_score || 0,
+                est_signe_adherent: aiData.est_signe_adherent ?? false,
                 beneficiaireId: aiData.beneficiaireId !== undefined ? aiData.beneficiaireId : null,
                 alerte_beneficiaire: aiData.alerte_beneficiaire || null,
                 showPreview: true
@@ -460,53 +465,118 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
                                     <form onSubmit={handleSubmit} className="p-8">
                                         {step === 1 ? (
                                             <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
-                                                <div className="text-center mb-8 mt-4">
-                                                    <div className="inline-flex items-center justify-center p-4 bg-purple-100 dark:bg-purple-900/30 rounded-full mb-4">
-                                                        <Upload size={32} className="text-purple-600 dark:text-purple-400" />
-                                                    </div>
-                                                    <h3 className="text-2xl font-black text-slate-800 dark:text-white mb-2">Déposez votre justificatif</h3>
-                                                    <p className="text-slate-500 dark:text-slate-400 text-sm max-w-sm mx-auto">Notre Intelligence Artificielle va scanner et extraire automatiquement toutes les informations.</p>
-                                                </div>
-
-                                                <div className="border-2 border-dashed border-purple-200 dark:border-purple-800 rounded-3xl p-12 flex flex-col items-center justify-center gap-6 bg-purple-50/50 dark:bg-purple-900/10 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-all cursor-pointer group relative">
-                                                    <input
-                                                        ref={fileInputRef}
-                                                        type="file"
-                                                        className="absolute inset-0 opacity-0 cursor-pointer z-10"
-                                                        onChange={handleFileUpload}
-                                                        disabled={isAnalyzing}
-                                                        accept=".pdf,image/*"
-                                                        multiple
-                                                    />
-                                                    <div className={`p-6 bg-white dark:bg-slate-800 rounded-full shadow-lg group-hover:scale-110 transition-transform ${isAnalyzing ? 'animate-pulse ring-4 ring-purple-500/30' : ''}`}>
-                                                        <Upload className={`${isAnalyzing ? 'text-purple-600' : 'text-purple-500'}`} size={32} />
-                                                    </div>
-                                                    <div className="text-center space-y-1">
-                                                        <p className="text-lg font-black text-slate-700 dark:text-slate-200">
-                                                            {isAnalyzing ? "Analyse IA en cours..." : "Cliquez ou Glissez un fichier ici"}
-                                                        </p>
-                                                        <p className="text-xs font-medium text-slate-400">PDF, JPG, PNG acceptés</p>
-                                                    </div>
-                                                </div>
-
-                                                <div className="flex justify-center mt-8">
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => setStep(2)}
-                                                        className="group relative flex items-center gap-4 px-8 py-4 bg-gradient-to-r from-purple-50 to-fuchsia-50 dark:from-purple-900/20 dark:to-fuchsia-900/20 hover:from-purple-100 hover:to-fuchsia-100 dark:hover:from-purple-900/40 dark:hover:to-fuchsia-900/40 border border-purple-200/50 dark:border-purple-700/50 rounded-2xl text-sm font-black transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-purple-500/20 active:scale-95 overflow-hidden"
-                                                    >
-                                                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/60 dark:via-white/10 to-transparent -translate-x-[150%] group-hover:translate-x-[150%] transition-transform duration-1000 ease-in-out"></div>
-                                                        <div className="relative p-2.5 bg-white dark:bg-slate-800 shadow-sm rounded-xl text-purple-600 dark:text-purple-400 group-hover:scale-110 group-hover:text-fuchsia-600 dark:group-hover:text-fuchsia-400 transition-all duration-300">
-                                                            <FileText size={18} />
+                                                {subStep === 'choice' ? (
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-4">
+                                                        {/* Option 1: Tirer le bulletin */}
+                                                        <div 
+                                                            onClick={async () => {
+                                                                try {
+                                                                    await downloadPreFilledBulletin();
+                                                                    showToast("Le bulletin pré-rempli a été téléchargé avec succès.", "success");
+                                                                } catch (err) {
+                                                                    showToast(err.message, "error");
+                                                                }
+                                                            }}
+                                                            className="group relative flex flex-col items-center justify-center p-8 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-2 border-blue-100 dark:border-blue-800 rounded-3xl cursor-pointer hover:border-blue-400 dark:hover:border-blue-600 transition-all duration-300 hover:shadow-2xl hover:shadow-blue-500/10 hover:-translate-y-2"
+                                                        >
+                                                            <div className="p-6 bg-white dark:bg-slate-800 rounded-2xl shadow-lg mb-6 group-hover:scale-110 transition-transform group-hover:rotate-3">
+                                                                <Download className="text-blue-500" size={40} />
+                                                            </div>
+                                                            <h4 className="text-xl font-black text-slate-800 dark:text-white mb-2">Tirer le bulletin</h4>
+                                                            <p className="text-slate-500 dark:text-slate-400 text-sm text-center">
+                                                                Téléchargez un bulletin de soin déjà rempli avec vos informations personnelles.
+                                                            </p>
+                                                            <div className="mt-6 flex items-center gap-2 text-blue-600 dark:text-blue-400 font-bold text-sm">
+                                                                <span>Télécharger le PDF</span>
+                                                                <ChevronRight size={16} />
+                                                            </div>
                                                         </div>
-                                                        <span className="relative z-10 bg-gradient-to-r from-purple-700 to-fuchsia-600 dark:from-purple-300 dark:to-fuchsia-300 bg-clip-text text-transparent group-hover:from-fuchsia-700 group-hover:to-purple-700 transition-all duration-500">
-                                                            Saisir les informations manuellement
-                                                        </span>
-                                                        <div className="relative p-1.5 bg-purple-200 dark:bg-purple-800/80 rounded-lg text-purple-700 dark:text-purple-300 transform group-hover:translate-x-1 transition-all duration-300">
-                                                            <ChevronRight size={14} strokeWidth={3} />
+
+                                                        {/* Option 2: Déposer un justificatif */}
+                                                        <div 
+                                                            onClick={() => setSubStep('upload')}
+                                                            className="group relative flex flex-col items-center justify-center p-8 bg-gradient-to-br from-purple-50 to-fuchsia-50 dark:from-purple-900/20 dark:to-fuchsia-900/20 border-2 border-purple-100 dark:border-purple-800 rounded-3xl cursor-pointer hover:border-purple-400 dark:hover:border-purple-600 transition-all duration-300 hover:shadow-2xl hover:shadow-purple-500/10 hover:-translate-y-2"
+                                                        >
+                                                            <div className="p-6 bg-white dark:bg-slate-800 rounded-2xl shadow-lg mb-6 group-hover:scale-110 transition-transform group-hover:-rotate-3">
+                                                                <Upload className="text-purple-500" size={40} />
+                                                            </div>
+                                                            <h4 className="text-xl font-black text-slate-800 dark:text-white mb-2">Déposer le bulletin</h4>
+                                                            <p className="text-slate-500 dark:text-slate-400 text-sm text-center">
+                                                                Utilisez l'IA pour extraire les informations de vos bulletins déjà remplis ou scannés.
+                                                            </p>
+                                                            <div className="mt-6 flex items-center gap-2 text-purple-600 dark:text-purple-400 font-bold text-sm">
+                                                                <span>Scanner un document</span>
+                                                                <ChevronRight size={16} />
+                                                            </div>
                                                         </div>
-                                                    </button>
-                                                </div>
+
+                                                        <div className="md:col-span-2 flex justify-center mt-4">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setStep(2)}
+                                                                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-sm font-medium transition-colors"
+                                                            >
+                                                                Sauter et remplir manuellement
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <>
+                                                        <div className="text-center mb-8 mt-4 relative">
+                                                            <button 
+                                                                onClick={() => setSubStep('choice')}
+                                                                className="absolute left-0 top-1/2 -translate-y-1/2 p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors text-slate-500"
+                                                            >
+                                                                <ChevronDown className="rotate-90" size={20} />
+                                                            </button>
+                                                            <div className="inline-flex items-center justify-center p-4 bg-purple-100 dark:bg-purple-900/30 rounded-full mb-4">
+                                                                <Upload size={32} className="text-purple-600 dark:text-purple-400" />
+                                                            </div>
+                                                            <h3 className="text-2xl font-black text-slate-800 dark:text-white mb-2">Déposez votre justificatif</h3>
+                                                            <p className="text-slate-500 dark:text-slate-400 text-sm max-w-sm mx-auto">Notre Intelligence Artificielle va scanner et extraire automatiquement toutes les informations.</p>
+                                                        </div>
+
+                                                        <div className="border-2 border-dashed border-purple-200 dark:border-purple-800 rounded-3xl p-12 flex flex-col items-center justify-center gap-6 bg-purple-50/50 dark:bg-purple-900/10 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-all cursor-pointer group relative">
+                                                            <input
+                                                                ref={fileInputRef}
+                                                                type="file"
+                                                                className="absolute inset-0 opacity-0 cursor-pointer z-10"
+                                                                onChange={handleFileUpload}
+                                                                disabled={isAnalyzing}
+                                                                accept=".pdf,image/*"
+                                                                multiple
+                                                            />
+                                                            <div className={`p-6 bg-white dark:bg-slate-800 rounded-full shadow-lg group-hover:scale-110 transition-transform ${isAnalyzing ? 'animate-pulse ring-4 ring-purple-500/30' : ''}`}>
+                                                                <Upload className={`${isAnalyzing ? 'text-purple-600' : 'text-purple-500'}`} size={32} />
+                                                            </div>
+                                                            <div className="text-center space-y-1">
+                                                                <p className="text-lg font-black text-slate-700 dark:text-slate-200">
+                                                                    {isAnalyzing ? "Analyse IA en cours..." : "Cliquez ou Glissez un fichier ici"}
+                                                                </p>
+                                                                <p className="text-xs font-medium text-slate-400">PDF, JPG, PNG acceptés</p>
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="flex justify-center mt-8">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setStep(2)}
+                                                                className="group relative flex items-center gap-4 px-8 py-4 bg-gradient-to-r from-purple-50 to-fuchsia-50 dark:from-purple-900/20 dark:to-fuchsia-900/20 hover:from-purple-100 hover:to-fuchsia-100 dark:hover:from-purple-900/40 dark:hover:to-fuchsia-900/40 border border-purple-200/50 dark:border-purple-700/50 rounded-2xl text-sm font-black transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-purple-500/20 active:scale-95 overflow-hidden"
+                                                            >
+                                                                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/60 dark:via-white/10 to-transparent -translate-x-[150%] group-hover:translate-x-[150%] transition-transform duration-1000 ease-in-out"></div>
+                                                                <div className="relative p-2.5 bg-white dark:bg-slate-800 shadow-sm rounded-xl text-purple-600 dark:text-purple-400 group-hover:scale-110 group-hover:text-fuchsia-600 dark:group-hover:text-fuchsia-400 transition-all duration-300">
+                                                                    <FileText size={18} />
+                                                                </div>
+                                                                <span className="relative z-10 bg-gradient-to-r from-purple-700 to-fuchsia-600 dark:from-purple-300 dark:to-fuchsia-300 bg-clip-text text-transparent group-hover:from-fuchsia-700 group-hover:to-purple-700 transition-all duration-500">
+                                                                    Saisir les informations manuellement
+                                                                </span>
+                                                                <div className="relative p-1.5 bg-purple-200 dark:bg-purple-800/80 rounded-lg text-purple-700 dark:text-purple-300 transform group-hover:translate-x-1 transition-all duration-300">
+                                                                    <ChevronRight size={14} strokeWidth={3} />
+                                                                </div>
+                                                            </button>
+                                                        </div>
+                                                    </>
+                                                )}
                                             </div>
                                         ) : (
                                             <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
@@ -518,6 +588,17 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
                                                 </div>
 
                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                    <div className="space-y-1 col-span-1 md:col-span-2">
+                                                        <label className="text-[10px] font-black uppercase text-slate-400 ml-1 flex items-center gap-2">
+                                                            <Hash size={12} className="text-purple-500" /> Numéro du Bulletin
+                                                        </label>
+                                                        <input
+                                                            className="w-full p-3 bg-purple-50/30 dark:bg-purple-900/10 border border-purple-100 dark:border-purple-800 rounded-xl font-black text-sm text-purple-700 dark:text-purple-300 focus:ring-4 focus:ring-purple-500/20 outline-none"
+                                                            value={formData.numero_bulletin}
+                                                            onChange={e => setFormData({ ...formData, numero_bulletin: e.target.value })}
+                                                            placeholder="Ex: BS-12345678"
+                                                        />
+                                                    </div>
                                                     <div className="space-y-1">
                                                         <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Matricule Adhérent</label>
                                                         <input
@@ -649,6 +730,24 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
                                                     <div className="space-y-1">
                                                         <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Montant Total (TND)</label>
                                                         <input required type="number" step="0.100" placeholder="0.000" className="w-full p-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-sm dark:text-white" value={formData.montant_total} onChange={e => setFormData({ ...formData, montant_total: e.target.value })} />
+                                                    </div>
+                                                    
+                                                    <div className="col-span-1 md:col-span-2 py-2">
+                                                        <label className="flex items-center gap-3 p-4 bg-purple-50/50 dark:bg-purple-900/10 border border-purple-100 dark:border-purple-800 rounded-2xl cursor-pointer hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-all group">
+                                                            <div className="relative flex items-center justify-center">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    className="peer h-6 w-6 cursor-pointer appearance-none rounded-lg border-2 border-purple-300 dark:border-purple-700 checked:bg-purple-600 checked:border-purple-600 transition-all"
+                                                                    checked={formData.est_signe_adherent}
+                                                                    onChange={e => setFormData({ ...formData, est_signe_adherent: e.target.checked })}
+                                                                />
+                                                                <CheckCircle2 size={16} className="absolute text-white scale-0 peer-checked:scale-100 transition-transform" />
+                                                            </div>
+                                                            <div className="flex flex-col">
+                                                                <span className="text-sm font-black text-slate-700 dark:text-slate-200 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">Signature de l'adhérent présente</span>
+                                                                <span className="text-[10px] font-medium text-slate-400">Cochez si le bulletin est bien signé par l'assuré</span>
+                                                            </div>
+                                                        </label>
                                                     </div>
 
                                                     {/* Section pour attacher un document */}

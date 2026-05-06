@@ -2,7 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { X, User, FileText, Eye } from 'lucide-react';
 
-const BeneficiaryDetailsModal = ({ beneficiary, onClose, onPreviewDocument, calculateAge }) => {
+const BeneficiaryDetailsModal = ({ beneficiary, onClose, onViewAdherent, onPreviewDocument, calculateAge }) => {
     return (
         <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
             <motion.div
@@ -116,6 +116,42 @@ const BeneficiaryDetailsModal = ({ beneficiary, onClose, onPreviewDocument, calc
                                     <div className="font-bold text-rose-700 text-sm">{beneficiary.motifRefus}</div>
                                 </div>
                             )}
+
+                            {/* Section Adhérent Associé */}
+                            {beneficiary.user && (
+                                <div className="space-y-4">
+                                    <div className="flex items-center gap-2">
+                                        <div className="h-px flex-1 bg-slate-100 dark:bg-slate-800" />
+                                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Adhérent Associé</span>
+                                        <button 
+                                            onClick={() => onViewAdherent(beneficiary.user)}
+                                            className="text-[10px] font-black uppercase tracking-widest text-indigo-600 hover:text-indigo-800 transition-colors flex items-center gap-1"
+                                        >
+                                            (Voir plus)
+                                        </button>
+                                        <div className="h-px flex-1 bg-slate-100 dark:bg-slate-800" />
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="p-4 rounded-2xl bg-indigo-50/50 dark:bg-indigo-900/10 border border-indigo-100/50 dark:border-indigo-800/30 space-y-1">
+                                            <div className="text-[10px] font-black uppercase tracking-widest text-indigo-400">Nom de l'adhérent</div>
+                                            <div className="font-bold text-slate-800 dark:text-slate-100 uppercase">{beneficiary.user.prenom} {beneficiary.user.nom}</div>
+                                        </div>
+                                        <div className="p-4 rounded-2xl bg-indigo-50/50 dark:bg-indigo-900/10 border border-indigo-100/50 dark:border-indigo-800/30 space-y-1">
+                                            <div className="text-[10px] font-black uppercase tracking-widest text-indigo-400">Matricule</div>
+                                            <div className="font-bold text-slate-800 dark:text-slate-100 uppercase">{beneficiary.user.matricule || 'N/A'}</div>
+                                        </div>
+                                        <div className="p-4 rounded-2xl bg-indigo-50/50 dark:bg-indigo-900/10 border border-indigo-100/50 dark:border-indigo-800/30 space-y-1">
+                                            <div className="text-[10px] font-black uppercase tracking-widest text-indigo-400">Email</div>
+                                            <div className="font-bold text-slate-800 dark:text-slate-100 text-xs truncate">{beneficiary.user.email}</div>
+                                        </div>
+                                        <div className="p-4 rounded-2xl bg-indigo-50/50 dark:bg-indigo-900/10 border border-indigo-100/50 dark:border-indigo-800/30 space-y-1">
+                                            <div className="text-[10px] font-black uppercase tracking-widest text-indigo-400">Téléphone</div>
+                                            <div className="font-bold text-slate-800 dark:text-slate-100">{beneficiary.user.telephone || 'N/A'}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
 
                             {beneficiary.document && (
                                 <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50 flex justify-between items-center lg:hidden">

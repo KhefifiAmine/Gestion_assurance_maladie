@@ -6,8 +6,9 @@ import { getAllBeneficiaries, deleteBeneficiary, updateStatus } from '../../serv
 import ConfirmModal from '../../components/ConfirmModal';
 import BeneficiaryDetailsModal from '../../components/BeneficiaryDetailsModal';
 import {
-    Users, Trash2, CheckCircle, XCircle, Clock, FileText, Search, LayoutGrid, List, X, Download, Eye, Info
+    Users, Trash2, CheckCircle, XCircle, Clock, FileText, Search, LayoutGrid, List, X, Download, Eye, Info, ExternalLink
 } from 'lucide-react';
+import UserDetailsModal from '../../components/UserDetailsModal';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const AdminBeneficiarie = () => {
@@ -28,6 +29,7 @@ const AdminBeneficiarie = () => {
 
     const [previewDocument, setPreviewDocument] = useState(null);
     const [viewingBeneficiary, setViewingBeneficiary] = useState(null);
+    const [selectedUserForDetails, setSelectedUserForDetails] = useState(null);
 
     const calculateAge = (dateString) => {
         if (!dateString) return 0;
@@ -146,11 +148,11 @@ const AdminBeneficiarie = () => {
                         <table className="w-full text-left border-collapse">
                             <thead>
                                 <tr className="bg-slate-50 border-b border-slate-100">
+                                    <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-900">Adhérent</th>
                                     <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-900">Bénéficiaire</th>
                                     <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-900">Sexe</th>
                                     <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-900">Naissance</th>
                                     <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-900">Relation</th>
-                                    <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-900">Adhérent</th>
                                     <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-900">Statut</th>
                                     <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-900">Motif De Rejet</th>
                                     <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-900 text-right">Actions</th>
@@ -166,10 +168,27 @@ const AdminBeneficiarie = () => {
                                         className="hover:bg-slate-50/50 transition-colors"
                                     >
                                         <td className="px-6 py-4">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center text-purple-600 shrink-0">
-                                                    <Users size={20} />
+                                            <div className="flex flex-col">
+                                                <button 
+                                                    onClick={() => b.user && setSelectedUserForDetails(b.user)}
+                                                    className="text-sm font-bold text-slate-700 uppercase hover:text-purple-600 transition-colors text-left"
+                                                >
+                                                    {b.user ? `${b.user.prenom} ${b.user.nom}` : b.userId}
+                                                </button>
+                                                <div className="flex items-center gap-2">
+                                                    <span 
+                                                        onClick={() => b.user && setSelectedUserForDetails(b.user)}
+                                                        className="text-[10px] font-black opacity-70 uppercase cursor-pointer hover:text-purple-600 transition-colors"
+                                                    >
+                                                        {b.user?.matricule}
+                                                    </span>
+                                                    <span className="text-[10px] opacity-30">|</span>
+                                                    <span className="text-[10px] font-medium opacity-70">{b.user?.email || ''}</span>
                                                 </div>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div className="flex items-center gap-3">
                                                 <span className="font-bold text-slate-900 dark:text-white uppercase">{b.prenom} {b.nom}</span>
                                             </div>
                                         </td>
@@ -192,12 +211,7 @@ const AdminBeneficiarie = () => {
                                                 )}
                                             </div>
                                         </td>
-                                        <td className="px-6 py-4">
-                                            <div className="flex flex-col">
-                                                <span className="text-sm font-bold text-slate-700">{b.user ? `${b.user.prenom} ${b.user.nom}` : b.userId}</span>
-                                                <span className="text-[10px] font-black opacity-70 uppercase">{b.user?.email || ''}</span>
-                                            </div>
-                                        </td>
+
 
                                         <td className="px-6 py-4">
                                             <span className={`px-3 py-1 text-[9px] font-black uppercase tracking-widest rounded-full border inline-flex items-center gap-1 ${getStatusColor(b.statut)}`}>
@@ -345,6 +359,10 @@ const AdminBeneficiarie = () => {
                     <BeneficiaryDetailsModal
                         beneficiary={viewingBeneficiary}
                         onClose={() => setViewingBeneficiary(null)}
+                        onViewAdherent={(u) => {
+                            setViewingBeneficiary(null);
+                            setTimeout(() => setSelectedUserForDetails(u), 300);
+                        }}
                         onPreviewDocument={(docUrl) => {
                             setViewingBeneficiary(null);
                             setTimeout(() => setPreviewDocument(docUrl), 300);
@@ -353,6 +371,13 @@ const AdminBeneficiarie = () => {
                     />
                 )}
             </AnimatePresence>
+
+            <UserDetailsModal
+                isOpen={selectedUserForDetails !== null}
+                onClose={() => setSelectedUserForDetails(null)}
+                user={selectedUserForDetails}
+            />
+
         </div>
     );
 };

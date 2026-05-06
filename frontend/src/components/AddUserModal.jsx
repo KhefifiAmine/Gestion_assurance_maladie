@@ -23,7 +23,6 @@ const AddUserModal = ({ isOpen, onClose, onSubmit }) => {
         prenom: '',
         email: '',
         role: 'ADHERENT',
-        matricule: '',
         telephone: '',
         ddn: '',
         adresse: '',
@@ -45,7 +44,6 @@ const AddUserModal = ({ isOpen, onClose, onSubmit }) => {
                 prenom: '',
                 email: '',
                 role: 'ADHERENT',
-                matricule: '',
                 telephone: '',
                 ddn: '',
                 adresse: '',
@@ -178,20 +176,34 @@ const AddUserModal = ({ isOpen, onClose, onSubmit }) => {
                                             <Mail size={14} className="text-purple-500" /> Compte & Sécurité
                                         </h3>
 
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                            <div className="space-y-2">
-                                                <label className="text-xs font-black text-slate-600 dark:text-slate-400 ml-1">Email *</label>
+                                        <div className="space-y-6">
+                                            <div className="space-y-4">
+                                                <label className="text-xs font-black text-slate-600 dark:text-slate-400 ml-1">
+                                                Email *
+                                                </label>
+
                                                 <div className="relative">
-                                                    <Mail size={18} className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" />
-                                                    <input 
-                                                        type="email" required
-                                                        className="w-full pl-12 pr-5 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl text-sm font-bold focus:ring-4 focus:ring-purple-500/10 transition-all outline-none dark:text-white"
-                                                        value={formData.email}
-                                                        onChange={(e) => setFormData({...formData, email: e.target.value})}
-                                                        placeholder="email@exemple.com"
-                                                    />
+                                                <Mail
+                                                    size={18}
+                                                    className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400"
+                                                />
+
+                                                <input
+                                                    type="email"
+                                                    required
+                                                    className="w-full pl-12 pr-5 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl text-sm font-bold focus:ring-4 focus:ring-purple-500/10 transition-all outline-none dark:text-white"
+                                                    value={formData.email}
+                                                    onChange={(e) =>
+                                                    setFormData({ ...formData, email: e.target.value })
+                                                    }
+                                                    placeholder="email@exemple.com"
+                                                />
                                                 </div>
                                             </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        
                                             <div className="space-y-2">
                                                 <label className="text-xs font-black text-slate-600 dark:text-slate-400 ml-1">Rôle *</label>
                                                 <div className="relative">
@@ -205,22 +217,6 @@ const AddUserModal = ({ isOpen, onClose, onSubmit }) => {
                                                         <option value="ADMIN">Administrateur</option>
                                                         <option value="RESPONSABLE_RH">Responsable RH</option>
                                                     </select>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                            <div className="space-y-2">
-                                                <label className="text-xs font-black text-slate-600 dark:text-slate-400 ml-1">Matricule (Optionnel)</label>
-                                                <div className="relative">
-                                                    <Hash size={18} className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" />
-                                                    <input 
-                                                        type="text"
-                                                        className="w-full pl-12 pr-5 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl text-sm font-bold focus:ring-4 focus:ring-purple-500/10 transition-all outline-none dark:text-white"
-                                                        value={formData.matricule}
-                                                        onChange={(e) => setFormData({...formData, matricule: e.target.value})}
-                                                        placeholder="ex: M12345"
-                                                    />
                                                 </div>
                                             </div>
                                             <div className="space-y-2">

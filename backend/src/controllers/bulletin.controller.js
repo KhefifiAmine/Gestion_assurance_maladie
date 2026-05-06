@@ -1,6 +1,7 @@
 const path = require('path');
 const fs = require('fs');
 const { Op } = require('sequelize');
+const { PDFDocument, rgb } = require('pdf-lib');
 const { BulletinSoin, ActeMedical, Pharmacie, User, DocumentJustificatif, Beneficiary, BulletinComment, Notification, MotifRejet, sequelize } = require('../../models');
 const { sendNotificationEmail } = require('../utils/emailService');
 const FraudService = require('../services/fraud.service');
@@ -23,7 +24,8 @@ const createBulletin = async (req, res) => {
             actes,
             pharmacie,
             suspicion_locale,
-            confiance_score
+            confiance_score,
+            est_signe_adherent,
         } = rawData;
 
         // Des valeurs arrivent depuis middlewares
@@ -90,7 +92,8 @@ const createBulletin = async (req, res) => {
                 niveauRisque,
                 beneficiaireId: resolvedBeneficiaireId,
                 confiance_score: confiance_score || 100,
-                suspicion_locale: !!suspicion_locale
+                suspicion_locale: !!suspicion_locale,
+                est_signe_adherent: !!est_signe_adherent
             }, { transaction: t });
 
 
@@ -243,7 +246,8 @@ const updateBulletin = async (req, res) => {
                 'suspicion_locale',
                 'beneficiaireId',
                 'motif_refus',
-                'statut'
+                'statut',
+                'est_signe_adherent'
             ];
             const bulletinData = Object.fromEntries(
                 Object.entries(rawData).filter(([key, value]) =>
@@ -616,11 +620,62 @@ const getBulletinComments = async (req, res) => {
 */
 
 
+const generatePreFilledPDF = async (req, res) => {
+    try {
+        const userId = req.userId;
+        const user = await User.findByPk(userId);
+
+        if (!user) {
+            return res.status(404).json({ message: 'Utilisateur non trouvé' });
+        }
+
+        const pdfPath = path.join(__dirname, '../assets/Pdf Assurance.pdf');
+        if (!fs.existsSync(pdfPath)) {
+            return res.status(404).json({ message: 'Modèle PDF non trouvé' });
+        }
+
+        const existingPdfBytes = fs.readFileSync(pdfPath);
+        const pdfDoc = await PDFDocument.load(existingPdfBytes);
+        const pages = pdfDoc.getPages();
+        const firstPage = pages[0];
+
+        const draw = (text, x, y, size = 10) => {
+            if (!text) return;
+            firstPage.drawText(String(text).toUpperCase(), {
+                x,
+                y,
+                size,
+                color: rgb(0, 0, 0),
+            });
+        };
+
+        // Remplissage des champs identifiés par le grid
+        const bulletinNumber = `BS-${Date.now().toString().slice(-8)}`;
+
+        draw(bulletinNumber, 390, 770); // Bulletin n°
+        draw(`${user.prenom} ${user.nom}`, 100, 730); // Nom et Prénom
+        draw(user.adresse, 100, 695); //adresse
+        draw(user.matricule, 450, 730); // Matricule
+        draw("TUNISIE TELECOM", 360, 695); // Client
+
+        const pdfBytes = await pdfDoc.save();
+
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename=bulletin_${bulletinNumber}.pdf`);
+        res.send(Buffer.from(pdfBytes));
+
+    } catch (error) {
+        console.error('Erreur génération PDF:', error);
+        res.status(500).json({ message: 'Erreur lors de la génération du PDF', error: error.message });
+    }
+};
+
 module.exports = {
     createBulletin,
     getMyBulletins,
     getAllBulletins,
     updateBulletinStatus,
     updateBulletin,
-    deleteBulletin
+    deleteBulletin,
+    generatePreFilledPDF
 };

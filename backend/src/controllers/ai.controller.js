@@ -42,14 +42,17 @@ const analyzeBulletin = async (req, res) => {
         where: { hash_fichier: fileHash },
       });
 
-      filesExist.push(existingDoc);
+      if (existingDoc) {
+        filesExist.push({ name: file.originalname, hash: fileHash, path: file.path });
+      }
     }
 
-    if (filesExist.length === 0) {
+    if (filesExist.length > 0) {
+      const fileNames = filesExist.map(f => f.name).join(', ');
       return res.status(400).json({
-        message: "Ce document a déjà été soumis dans le système.",
+        message: `Doublon détecté pour les fichiers suivants : ${fileNames}`,
         isDuplicate: true,
-        data : file.originalname
+        duplicateFiles: filesExist.map(f => f.name)
       });
     }
     
@@ -65,8 +68,9 @@ const analyzeBulletin = async (req, res) => {
     const prompt = `
     Tu agis en tant qu'expert en analyse de bulletins de soins en Tunisie.
 
-    Analyse ce document (image ou PDF) avec une grande précision. 
+    Analyse ces documents (image ou PDF) avec une grande précision. 
     Il s'agit principalement d’un bulletin de soins tunisien contenant des informations sur le patient, les actes médicaux et le professionnel de santé.
+    Tu responsables d'analyser un jusqu'a 5 documents.
 
     ========================
     📌 INSTRUCTIONS GÉNÉRALES
@@ -107,7 +111,7 @@ const analyzeBulletin = async (req, res) => {
     - Présence de cachet (true/false)
     - Présence de signature (true/false)
 
-    5. ACTES MÉDICAUX (TRÈS IMPORTANT) :
+    5. ACTES MÉDICAUX (TRÈS IMPORTANT) : // c'est le meme prestataires de soins
     Pour chaque ligne d’acte extraire :
 
     - date_acte
@@ -155,18 +159,19 @@ const analyzeBulletin = async (req, res) => {
     ========================
 
     {
+    "Numero_de_fichier_analyser" : 0
     "est_document_medical": true/false,
 
-    "numero_bulletin": "",
-    "code_cnam": "",
-    "matricule_adherent": "",
-    "nom_prenom_adherent": "",
-    "adresse_adherent": "",
-    "client": "",
+    "numero_bulletin": "", //Numéro du bulletin initial (N°, Référence, etc.)
+    "code_cnam": "", //Code CNAM (si présent)
+    "matricule_adherent": "", //Matricule (ex: TT-12345)
+    "nom_prenom_adherent": "", //Nom et prénom  de l'adherent(en MAJUSCULES)
+    "adresse_adherent": "", //Adresse (si présent)
+    "client": "", //Client(en MAJUSCULES)
 
-    "nom_prenom_malade": "",
-    "qualite_malade": "", //Lui-même / Conjoint / Enfant
-    "date_naissance_malade": "",
+    "nom_prenom_malade": "", //Nom et prénom  du malade(en MAJUSCULES)
+    "qualite_malade": "", //soit un des ces champs marquets Lui-même / Conjoint / Enfant
+    "date_naissance_malade": "", //data de naissance
 
     "date_soin": "", // format YYYY-MM-DD (date du dernier acte)
 
@@ -175,7 +180,7 @@ const analyzeBulletin = async (req, res) => {
     "date_prevue_accouchement": "",
     "soins_cadre": "", //APCI / Suivi de la grossesse / Autres
 
-    "pharmacie" {
+    "pharmacie": {
       "identifiant_unique_mf": "",
       "est_cachet": true/false,
       "est_signature": true/false,
@@ -183,11 +188,11 @@ const analyzeBulletin = async (req, res) => {
       "montant_pharmacie": 0
     }
 
-    "actes": [
+    "actes": [ //c'est le meme prestataires de soins
       {
         "date_acte": "",
         "acte": "",
-        "cote": null,
+        "cote": "",
         "code_acte": "", //pour le dentaire
         "numero_dent": "", //pour le dentaire
         "honoraires": 0,
@@ -198,8 +203,10 @@ const analyzeBulletin = async (req, res) => {
         "type_prestataire_soin": "", //non dentaire ou dentaire
       }
     ],
-
-    "montant_total": 0, //montant total du bulletin
+    
+    "est_signe_adherent": true/false, //signature adherent
+    
+    "montant_total": 0, //calculer montant total du bulletin
 
     "confiance_score": 0, //score de confiance de l'IA
     "suspicion_locale": true/false, //suspicion locale de l'IA
@@ -209,12 +216,27 @@ const analyzeBulletin = async (req, res) => {
     }
     `;
 
-    const parts = [prompt];
+    const parts = [
+      { text: prompt }
+    ];
 
-    req.files.forEach(file => {
+    req.files.forEach((file, index) => {
+      parts.push({
+        text: `Document ${index + 1}` // 👈 important pour forcer séparation
+      });
+
       parts.push(fileToGenerativePart(file.buffer, file.mimetype));
     });
-    const result = await model.generateContent(parts);
+
+    const result = await model.generateContent({
+      contents: [
+        {
+          role: "user",
+          parts: parts,
+        },
+      ],
+    });
+
     const response = await result.response;
     const text = response.text();
 
