@@ -240,10 +240,11 @@ const BeneficiaryDetailsModal = ({ beneficiary, onClose, onViewAdherent, onPrevi
                             </div>
                         </div>
                     )}
-                </div>
-            </motion.div>
-        </div>
-    );
+                </div> {/* Close Left Column (line 23) */}
+            </div> {/* Close Flex (line 21) */}
+        </motion.div>
+    </div>
+);
 };
 
 export default BeneficiaryDetailsModal;
