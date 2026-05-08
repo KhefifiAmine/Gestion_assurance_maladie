@@ -5,7 +5,10 @@ const {
     createBulletin,
     getMyBulletins,
     getAllBulletins,
+    getBulletinById,
     updateBulletinStatus,
+    updateStatutActeMedical,
+    updateStatutPharmacie,
     //addBulletinComment,
     //getBulletinComments,
     updateBulletin,
@@ -22,10 +25,15 @@ router.put('/:id', verifyToken, uploadWithDuplicateCheck, updateBulletin);
 router.delete('/:id', verifyToken, deleteBulletin);
 router.get('/pre-filled-pdf', verifyToken, generatePreFilledPDF);
 
+
 // Routes réservées aux administrateurs ou RH
 router.get('/all', verifyToken, isAdminOrRH, getAllBulletins);
-// Route réservée uniquement à l'Admin
+router.get('/:id', verifyToken, getBulletinById);
+
+// Routes réservées uniquement à l'Admin
 router.put('/:id/status', verifyToken, isAdmin, updateBulletinStatus);
+router.put('/acte/:id/status', verifyToken, isAdmin, updateStatutActeMedical);
+router.put('/pharmacie/:id/status', verifyToken, isAdmin, updateStatutPharmacie);
 
 // Routes pour les commentaires (accessibles aux deux rôles)
 //router.get('/:id/comments', verifyToken, getBulletinComments);

@@ -121,19 +121,19 @@ const AddBeneficiaryModal = ({
 
                                             {newBeneficiary.ddn && (
                                                 <div className={`p-5 rounded-[28px] flex gap-4 transition-colors duration-500 ${calculateAge(newBeneficiary.ddn) < 20 ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-100 dark:border-emerald-800' :
-                                                        calculateAge(newBeneficiary.ddn) < 26 ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-100 dark:border-amber-800' :
-                                                            'bg-rose-50 dark:bg-rose-900/20 border-rose-100 dark:border-rose-800'
+                                                    calculateAge(newBeneficiary.ddn) < 26 ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-100 dark:border-amber-800' :
+                                                        'bg-rose-50 dark:bg-rose-900/20 border-rose-100 dark:border-rose-800'
                                                     } border`}>
                                                     <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 ${calculateAge(newBeneficiary.ddn) < 20 ? 'bg-emerald-100 dark:bg-emerald-800 text-emerald-600' :
-                                                            calculateAge(newBeneficiary.ddn) < 26 ? 'bg-amber-100 dark:bg-amber-800 text-amber-600' :
-                                                                'bg-rose-100 dark:bg-rose-800 text-rose-600'
+                                                        calculateAge(newBeneficiary.ddn) < 26 ? 'bg-amber-100 dark:bg-amber-800 text-amber-600' :
+                                                            'bg-rose-100 dark:bg-rose-800 text-rose-600'
                                                         }`}>
                                                         {calculateAge(newBeneficiary.ddn) < 26 ? <CheckCircle size={20} /> : <XCircle size={20} />}
                                                     </div>
                                                     <div className="space-y-1">
                                                         <h4 className={`text-xs font-black uppercase tracking-widest ${calculateAge(newBeneficiary.ddn) < 20 ? 'text-emerald-700' :
-                                                                calculateAge(newBeneficiary.ddn) < 26 ? 'text-amber-700' :
-                                                                    'text-rose-700'
+                                                            calculateAge(newBeneficiary.ddn) < 26 ? 'text-amber-700' :
+                                                                'text-rose-700'
                                                             }`}>Âge calculé : {calculateAge(newBeneficiary.ddn)} ans</h4>
                                                         <p className="text-[11px] font-medium opacity-80 leading-relaxed">
                                                             {calculateAge(newBeneficiary.ddn) < 20 ? "Éligibilité validée par l'âge." :
@@ -192,8 +192,8 @@ const AddBeneficiaryModal = ({
                                                             disabled={isLocked}
                                                             onClick={() => !isLocked && setNewBeneficiary({ ...newBeneficiary, sexe: s })}
                                                             className={`flex-1 py-3 px-4 rounded-[18px] text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${active
-                                                                    ? 'bg-white dark:bg-slate-700 text-purple-600 shadow-sm border border-slate-200 dark:border-slate-600 scale-[1.02]'
-                                                                    : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
+                                                                ? 'bg-white dark:bg-slate-700 text-purple-600 shadow-sm border border-slate-200 dark:border-slate-600 scale-[1.02]'
+                                                                : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
                                                                 } ${isLocked ? 'opacity-50 cursor-not-allowed grayscale' : ''}`}
                                                         >
                                                             <div className={`w-2 h-2 rounded-full ${active ? 'bg-purple-500' : 'bg-slate-300'}`} />
@@ -316,8 +316,8 @@ const AddBeneficiaryModal = ({
                                                             key={item.key}
                                                             onClick={() => setNewBeneficiary({ ...newBeneficiary, [item.key]: !newBeneficiary[item.key] })}
                                                             className={`p-5 rounded-[24px] border-2 flex items-center gap-4 transition-all ${newBeneficiary[item.key]
-                                                                    ? 'bg-purple-600 border-purple-600 text-white shadow-[0_10px_20px_-5px_rgba(124,58,237,0.3)]'
-                                                                    : 'bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-purple-200'
+                                                                ? 'bg-purple-600 border-purple-600 text-white shadow-[0_10px_20px_-5px_rgba(124,58,237,0.3)]'
+                                                                : 'bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-purple-200'
                                                                 }`}
                                                         >
                                                             <div className={`w-10 h-10 rounded-2xl flex items-center justify-center text-xl shrink-0 ${newBeneficiary[item.key] ? 'bg-white/20' : 'bg-slate-100 dark:bg-slate-700'

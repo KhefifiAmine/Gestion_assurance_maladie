@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     FileText,
@@ -21,7 +22,6 @@ import {
 import { getAllBulletins, updateBulletinStatus } from '../../services/bulletinService';
 import { useToast } from '../../context/ToastContext';
 import { useAuth } from '../../context/AuthContext';
-import BulletinDetailsModal from '../../components/BulletinDetailsModal';
 import ConfirmModal from '../../components/ConfirmModal';
 import {
     getPatientDisplayName,
@@ -32,12 +32,11 @@ import {
 const AdminBulletins = () => {
     const { user: currentUser } = useAuth();
     const { showToast } = useToast();
+    const navigate = useNavigate();
     const [bulletins, setBulletins] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('All');
-    const [selectedBulletin, setSelectedBulletin] = useState(null);
-    const [showDetailsModal, setShowDetailsModal] = useState(false);
 
     // Confirmation Modal State
     const [confirmData, setConfirmData] = useState({
@@ -74,22 +73,11 @@ const AdminBulletins = () => {
             setConfirmData(prev => ({ ...prev, isOpen: false }));
 
             const updateData = {};
-            if (newStatus === 3 && result) {
-                // result = { motifId, motifLibelle, commentaire }
-                updateData.motifRejetId = result.motifId || null;
-                updateData.commentaire_rejet = result.commentaire || null;
-                // Keep backward-compat text field
-                updateData.motif_refus = result.motifLibelle
-                    ? `${result.motifLibelle}${result.commentaire ? ' — ' + result.commentaire : ''}`
-                    : result.commentaire || null;
-            }
+            await updateBulletinStatus(id, newStatus, updateData);
 
             await updateBulletinStatus(id, newStatus, updateData);
             showToast("Statut mis à jour avec succès !", "success");
             fetchBulletins();
-            if (selectedBulletin && selectedBulletin.id === id) {
-                setSelectedBulletin(null);
-            }
         } catch (error) {
             showToast("Erreur lors de la mise à jour du statut", "error");
         }
@@ -107,14 +95,9 @@ const AdminBulletins = () => {
                 type = "info";
                 break;
             case 2:
-                title = "Approuver le bulletin";
-                message = `Êtes-vous sûr de vouloir APPROUVER le bulletin #${bulletin.numero_bulletin} ? Cette action est irréversible.`;
+                title = "Marquer comme traité";
+                message = `Êtes-vous sûr de vouloir marquer le bulletin #${bulletin.numero_bulletin} comme TRAITÉ ?`;
                 type = "info";
-                break;
-            case 3:
-                title = "Refuser le bulletin";
-                message = `Êtes-vous sûr de vouloir REFUSER le bulletin #${bulletin.numero_bulletin} ? Cette action est irréversible.`;
-                type = "danger";
                 break;
             default: break;
         }
@@ -126,19 +109,19 @@ const AdminBulletins = () => {
             title,
             message,
             type,
-            requireReason: targetStatus === 3,
+            requireReason: false,
         });
     };
 
     const getStatusStyles = (status) => {
         switch (status) {
-            case 2: // Approuvée
+            case 2: // Traité
                 return {
                     bg: 'bg-emerald-50 dark:bg-emerald-900/10',
                     text: 'text-emerald-600 dark:text-emerald-400',
                     border: 'border-emerald-100 dark:border-emerald-800/30',
                     icon: <CheckCircle2 size={12} className="mr-1.5" />,
-                    label: 'Approuvée'
+                    label: 'Traité'
                 };
             case 1: // En cours
                 return {
@@ -147,14 +130,6 @@ const AdminBulletins = () => {
                     border: 'border-amber-100 dark:border-amber-800/30',
                     icon: <Clock size={12} className="mr-1.5" />,
                     label: 'En cours'
-                };
-            case 3: // Refusée
-                return {
-                    bg: 'bg-red-50 dark:bg-red-900/10',
-                    text: 'text-red-600 dark:text-red-400',
-                    border: 'border-red-100 dark:border-red-800/30',
-                    icon: <X size={12} className="mr-1.5" />,
-                    label: 'Refusée'
                 };
             default: // 0: En attente
                 return {
@@ -230,8 +205,7 @@ const AdminBulletins = () => {
                 {[
                     { label: 'Attente', count: bulletins.filter(b => b.statut === 0).length, color: 'slate' },
                     { label: 'Traitement', count: bulletins.filter(b => b.statut === 1).length, color: 'amber' },
-                    { label: 'Acceptés', count: bulletins.filter(b => b.statut === 2).length, color: 'emerald' },
-                    { label: 'Refusés', count: bulletins.filter(b => b.statut === 3).length, color: 'red' },
+                    { label: 'Traités', count: bulletins.filter(b => b.statut === 2).length, color: 'emerald' },
                 ].map((stat, idx) => (
                     <motion.div
                         key={stat.label}
@@ -284,8 +258,7 @@ const AdminBulletins = () => {
                         <option value="All">Tous les statuts</option>
                         <option value="0">En attente</option>
                         <option value="1">En traitement</option>
-                        <option value="2">Approuvés</option>
-                        <option value="3">Refusés</option>
+                        <option value="2">Traités</option>
                     </select>
                 </div>
             </motion.div>
@@ -397,41 +370,38 @@ const AdminBulletins = () => {
                                         </td>
 
                                         {/* Colonne Actions */}
-                                        <td className="bg-white dark:bg-slate-900 last:rounded-r-[2rem] border-y border-r border-slate-100 dark:border-white/5 px-6 py-5 group-hover:bg-slate-50/50 dark:group-hover:bg-white/[0.02] transition-colors text-center">
-                                            <div className="flex items-center justify-center gap-2">
-                                                {currentUser?.role === 'ADMIN' && b.statut === 0 && (
-                                                    <button
-                                                        onClick={() => initiateStatusUpdate(b, 1)}
-                                                        className="p-2.5 bg-amber-500/10 text-amber-600 rounded-xl hover:bg-amber-500 hover:text-white transition-all"
-                                                        title="Mettre en traitement"
-                                                    >
-                                                        <Clock size={16} />
-                                                    </button>
-                                                )}
-                                                
-                                                {currentUser?.role === 'ADMIN' && (b.statut === 0 || b.statut === 1) && (
-                                                    <>
-                                                        <button
-                                                            onClick={() => initiateStatusUpdate(b, 2)}
-                                                            className="p-2.5 bg-emerald-500/10 text-emerald-600 rounded-xl hover:bg-emerald-500 hover:text-white transition-all"
-                                                            title="Approuver"
-                                                        >
-                                                            <Check size={16} />
-                                                        </button>
-                                                        <button
-                                                            onClick={() => initiateStatusUpdate(b, 3)}
-                                                            className="p-2.5 bg-red-500/10 text-red-600 rounded-xl hover:bg-red-500 hover:text-white transition-all"
-                                                            title="Refuser"
-                                                        >
-                                                            <X size={16} />
-                                                        </button>
-                                                    </>
-                                                )}
-
+                                        <td className="px-10 py-7">
+                                            <div className="flex items-center justify-center gap-3">
+                                                {/* Logic for assignment conflict avoidance */}
+                                                {currentUser?.role === 'ADMIN' && (() => {
+                                                    const isAssignedToOther = b.adminId && b.adminId !== currentUser?.id && b.statut === 1;
+ 
+                                                    return (
+                                                        <>
+                                                            <button
+                                                                onClick={() => initiateStatusUpdate(b, 1)}
+                                                                disabled={b.statut === 1 || b.statut === 2 || isAssignedToOther}
+                                                                className="p-3 bg-white dark:bg-slate-800 text-amber-500 rounded-2xl border border-slate-100 dark:border-white/5 shadow-sm hover:bg-amber-500 hover:text-white hover:border-amber-500 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                                                                title={isAssignedToOther ? `Assigné à ${b.admin?.nom}` : "Mettre en traitement"}
+                                                                >
+                                                                <Clock size={16} />
+                                                            </button>
+                                                            <button
+                                                                onClick={() => initiateStatusUpdate(b, 2)}
+                                                                disabled={b.statut === 2 || isAssignedToOther}
+                                                                className="p-3 bg-white dark:bg-slate-800 text-emerald-500 rounded-2xl border border-slate-100 dark:border-white/5 shadow-sm hover:bg-emerald-500 hover:text-white hover:border-emerald-500 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                                                                title={isAssignedToOther ? `Assigné à ${b.admin?.nom}` : "Marquer comme traité"}
+                                                            >
+                                                                <Check size={16} />
+                                                            </button>
+                                                        </>
+                                                    );
+                                                })()}
+                                                <div className="w-px h-6 bg-slate-100 dark:bg-white/5" />
                                                 <button
-                                                    onClick={() => { setSelectedBulletin(b); setShowDetailsModal(true); }}
-                                                    className="p-2.5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-xl hover:bg-purple-600 dark:hover:bg-purple-500 hover:text-white transition-all"
-                                                    title="Détails"
+                                                    onClick={() => navigate(`/admin/bulletins/${b.id}`)}
+                                                    className="p-3 bg-slate-900 text-white rounded-2xl shadow-lg shadow-slate-900/10 hover:bg-purple-600 hover:shadow-purple-500/20 transition-all active:scale-95"
+                                                    title="Voir Détails"
                                                 >
                                                     <Eye size={16} />
                                                 </button>
@@ -456,13 +426,6 @@ const AdminBulletins = () => {
                     </motion.div>
                 )}
             </motion.div>
-
-            {/* Details Modal */}
-            <BulletinDetailsModal
-                isOpen={showDetailsModal}
-                onClose={() => setShowDetailsModal(false)}
-                bulletin={selectedBulletin}
-            />
 
             {/* Confirmation Modal */}
             <ConfirmModal

@@ -23,6 +23,7 @@ import UserReclamation from '../pages/user/UserReclamation';
 import AdminReclamation from '../pages/admin/AdminReclamation';
 import GATVitrine from '../pages/GATVitrine';
 import LogsPage from '../pages/admin/LogsPage'; // ← AJOUTER CET IMPORT
+import BulletinDetailsPage from '../pages/BulletinDetailsPage';
 
 const AppRoutes = () => {
     return (
@@ -52,6 +53,7 @@ const AppRoutes = () => {
                 <Route path="/reclamations" element={<UserReclamation />} />
 
                 <Route path="/bulletins" element={<BulletinsPage />} />
+                <Route path="/bulletins/:id" element={<BulletinDetailsPage />} />
                 <Route path="/beneficiaires" element={<UserBeneficiarie />} />
                 <Route path="/a-propos-nous" element={<GATVitrine />} />
             </Route>
@@ -66,6 +68,7 @@ const AppRoutes = () => {
                 <Route path="dashboard" element={<AdminDashboard mode="all" />} />
                 <Route path="users" element={<ProtectedRoute allowedRoles={['RESPONSABLE_RH']}><AdminDashboard mode="all" /></ProtectedRoute>} />
                 <Route path="bulletins" element={<ProtectedRoute allowedRoles={['ADMIN']}><AdminBulletins /></ProtectedRoute>} />
+                <Route path="bulletins/:id" element={<ProtectedRoute allowedRoles={['ADMIN', 'RESPONSABLE_RH']}><BulletinDetailsPage /></ProtectedRoute>} />
                 <Route path="reclamations" element={<ProtectedRoute allowedRoles={['ADMIN']}><AdminReclamation /></ProtectedRoute>} />
                 <Route path="statistiques" element={<ProtectedRoute allowedRoles={['ADMIN', 'RESPONSABLE_RH']}><AdminStats /></ProtectedRoute>} />
                 <Route path="beneficiaires" element={<ProtectedRoute allowedRoles={['RESPONSABLE_RH']}><AdminBeneficiarie /></ProtectedRoute>} />

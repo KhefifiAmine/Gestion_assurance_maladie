@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
     FileText,
     Plus,
@@ -19,7 +19,6 @@ import { getMyBulletins, deleteBulletin } from '../../services/bulletinService';
 import { useToast } from '../../context/ToastContext';
 import { useAuth } from '../../context/AuthContext';
 import AddBulletinModal from '../../components/AddBulletinModal';
-import BulletinDetailsModal from '../../components/BulletinDetailsModal';
 import ConfirmModal from '../../components/ConfirmModal';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -34,6 +33,7 @@ const BulletinsPage = () => {
     const { user } = useAuth();
     const { showToast } = useToast();
     const location = useLocation();
+    const navigate = useNavigate();
     const [bulletins, setBulletins] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -41,8 +41,6 @@ const BulletinsPage = () => {
     const [statusFilter, setStatusFilter] = useState('Tous les statuts');
     const [dateFilter, setDateFilter] = useState('');
     const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
-    const [selectedBulletin, setSelectedBulletin] = useState(null);
-    const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
     const [bulletinToEdit, setBulletinToEdit] = useState(null);
     const [confirmModal, setConfirmModal] = useState({ isOpen: false, id: null });
 
@@ -76,9 +74,8 @@ const BulletinsPage = () => {
             const mapStatus = (s) => {
                 const status = Number(s);
                 if (status === 0) return 'En attente';
-                if (status === 1) return 'En cours';
-                if (status === 2) return 'Approuvée';
-                if (status === 3) return 'Refusée';
+                if (status === 1) return 'En cours de traitement';
+                if (status === 2) return 'Traité';
                 return 'Tous les statuts';
             };
 
@@ -114,8 +111,7 @@ const BulletinsPage = () => {
 
     const getStatusConfig = (statut) => {
         const s = Number(statut);
-        if (s === 2) return { label: 'Approuvée', icon: <CheckCircle2 size={12} />, classes: 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 border-emerald-100 dark:border-emerald-800/30' };
-        if (s === 3) return { label: 'Refusée', icon: <X size={12} />, classes: 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border-red-100 dark:border-red-800/30' };
+        if (s === 2) return { label: 'Traité', icon: <CheckCircle2 size={12} />, classes: 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 border-emerald-100 dark:border-emerald-800/30' };
         if (s === 1) return { label: 'En cours', icon: <Clock size={12} />, classes: 'bg-amber-50 dark:bg-amber-900/10 text-amber-600 dark:text-amber-400 border-amber-100 dark:border-amber-800/30' };
         return { label: 'En attente', icon: <Clock size={12} />, classes: 'bg-slate-50 dark:bg-slate-800/50 text-slate-600 dark:text-slate-400 border-slate-100 dark:border-slate-700/30' };
     };
@@ -195,7 +191,7 @@ const BulletinsPage = () => {
                                         exit={{ opacity: 0, y: 10, scale: 0.95 }}
                                         className="absolute top-full left-0 right-0 z-20 mt-2 p-2 bg-white dark:bg-slate-900 border border-slate-100 dark:border-white/10 rounded-2xl shadow-2xl backdrop-blur-xl"
                                     >
-                                        {['Tous les statuts', 'En attente', 'En cours', 'Approuvée', 'Refusée'].map((option) => (
+                                        {['Tous les statuts', 'En attente', 'En cours de traitement', 'Traité'].map((option) => (
                                             <button
                                                 key={option}
                                                 className={`w-full text-left px-5 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all ${statusFilter === option
@@ -272,8 +268,12 @@ const BulletinsPage = () => {
                                         key={b.id}
                                         initial={{ opacity: 0, y: 10 }}
                                         animate={{ opacity: 1, y: 0 }}
-                                        transition={{ delay: 0.1 + (idx * 0.05) }}
-                                        className="group"
+                                        transition={{ delay: idx * 0.04 }}
+                                        className={`transition-all duration-300 group border-l-[6px] ${
+                                            b.statut === 2 ? 'bg-emerald-50/50 dark:bg-emerald-900/5 border-emerald-500 hover:bg-emerald-100/50 dark:hover:bg-emerald-900/10' :
+                                            b.statut === 1 ? 'bg-amber-50/50 dark:bg-amber-900/5 border-amber-500 hover:bg-amber-100/50 dark:hover:bg-amber-900/10' :
+                                            'bg-slate-50/50 dark:bg-slate-800/20 border-slate-400 hover:bg-slate-100/50 dark:hover:bg-slate-800/30'
+                                        }`}
                                     >
                                         {/* Colonne Dossier */}
                                         <td className="bg-white dark:bg-slate-900 first:rounded-l-[2rem] border-y border-l border-slate-100 dark:border-white/5 px-6 py-5 group-hover:bg-slate-50/50 dark:group-hover:bg-white/[0.02] transition-colors">
@@ -310,6 +310,7 @@ const BulletinsPage = () => {
                                                 <span className="text-[11px] font-black text-slate-900 dark:text-white uppercase tracking-tight">
                                                     {formatDateFr(getDerivedCareDate(b))}
                                                 </span>
+
                                                 <div className="flex items-center gap-1 mt-1">
                                                     <Clock size={10} className="text-slate-400" />
                                                     <span className="text-[9px] font-bold text-slate-400 uppercase">
@@ -355,13 +356,13 @@ const BulletinsPage = () => {
                                         <td className="bg-white dark:bg-slate-900 last:rounded-r-[2rem] border-y border-r border-slate-100 dark:border-white/5 px-6 py-5 group-hover:bg-slate-50/50 dark:group-hover:bg-white/[0.02] transition-colors text-center">
                                             <div className="flex items-center justify-center gap-2">
                                                 <button
-                                                    onClick={() => { setSelectedBulletin(b); setIsDetailsModalOpen(true); }}
-                                                    className="p-2.5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-xl hover:bg-purple-600 dark:hover:bg-purple-500 hover:text-white transition-all shadow-sm"
+                                                    onClick={() => navigate(`/bulletins/${b.id}`)}
+                                                    className="p-1 rounded-xl text-purple-600 hover:bg-purple-50 transition-colors"
                                                     title="Détails"
                                                 >
                                                     <Eye size={16} />
                                                 </button>
-                                                {(b.statut === 0 || b.statut === 3) && (
+                                                {(b.statut === 0) && (
                                                     <>
                                                         <button
                                                             onClick={() => handleEdit(b)}
@@ -403,12 +404,6 @@ const BulletinsPage = () => {
                 title="Supprimer le bulletin"
                 message="Êtes-vous sûr de vouloir supprimer ce bulletin ? Cette action est irréversible."
                 type="danger"
-            />
-
-            <BulletinDetailsModal
-                isOpen={isDetailsModalOpen}
-                onClose={() => setIsDetailsModalOpen(false)}
-                bulletin={selectedBulletin}
             />
         </div>
     );

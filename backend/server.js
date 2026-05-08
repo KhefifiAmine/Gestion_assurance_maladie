@@ -25,7 +25,7 @@ const missingEnvVars = requiredEnvVars.filter((name) => !process.env[name]);
 if (missingEnvVars.length > 0) {
   throw new Error(`Variables d'environnement manquantes: ${missingEnvVars.join(", ")}`);
 }
-
+/*
 const allowedOrigins = (process.env.CORS_ORIGIN || "http://localhost:5173")
   .split(",")
   .map((origin) => origin.trim())
@@ -41,7 +41,9 @@ app.use(
     },
     credentials: true,
   })
-);
+);*/
+
+app.use(cors());
 app.use(express.json());
 app.use(journalMiddleware);
 

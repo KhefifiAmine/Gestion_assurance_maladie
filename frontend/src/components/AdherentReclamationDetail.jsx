@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft, Clock, MessageSquare, RefreshCw,
@@ -11,7 +12,6 @@ import {
   getReclamationById,
   deleteReclamation
 } from '../services/reclamationService';
-import BulletinDetailsModal from './BulletinDetailsModal';
 import ConfirmModal from './ConfirmModal';
 import { useToast } from '../context/ToastContext';
 
@@ -70,9 +70,9 @@ const StatusBadge = ({ statut }) => {
 
 const AdherentReclamationDetail = ({ id, onBack, onEdit, allBulletins = [], onReclamationDelete }) => {
   const { showToast } = useToast();
+  const navigate = useNavigate();
   const [reclamation, setReclamation] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isBulletinModalOpen, setIsBulletinModalOpen] = useState(false);
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: '', message: '', type: 'danger', onConfirm: () => { } });
 
   useEffect(() => {
@@ -324,7 +324,7 @@ const AdherentReclamationDetail = ({ id, onBack, onEdit, allBulletins = [], onRe
                     <motion.button
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
-                      onClick={() => setIsBulletinModalOpen(true)}
+                      onClick={() => navigate(`/bulletins/${bulletin.id}`)}
                       className="w-full py-4 bg-gradient-to-r from-slate-900 to-slate-800 dark:from-slate-800 dark:to-slate-900 text-white rounded-xl font-bold text-sm uppercase tracking-wider hover:from-purple-600 hover:to-blue-600 transition-all shadow-lg hover:shadow-xl group"
                     >
                       <Eye className="w-4 h-4 inline mr-2 group-hover:scale-110 transition-transform" />
@@ -349,11 +349,6 @@ const AdherentReclamationDetail = ({ id, onBack, onEdit, allBulletins = [], onRe
       </div>
 
       {/* Modals */}
-      <BulletinDetailsModal 
-        isOpen={isBulletinModalOpen} 
-        onClose={() => setIsBulletinModalOpen(false)} 
-        bulletin={bulletin} 
-      />
       
       <ConfirmModal 
         isOpen={confirmModal.isOpen} 

@@ -188,6 +188,8 @@ const analyzeBulletin = async (req, res) => {
       "montant_pharmacie": 0
     }
 
+    
+
     "actes": [ //c'est le meme prestataires de soins
       {
         "date_acte": "",

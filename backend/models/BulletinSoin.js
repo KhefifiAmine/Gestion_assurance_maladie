@@ -14,8 +14,7 @@ const BulletinSoin = sequelize.define('BulletinSoin', {
     },
     date_soin: {
         type: DataTypes.DATEONLY, // c'est le date de deriniére acte 
-        allowNull: false,
-        defaultValue: DataTypes.NOW
+        allowNull: true
     },
     code_cnam: {
         type: DataTypes.STRING,
@@ -53,10 +52,6 @@ const BulletinSoin = sequelize.define('BulletinSoin', {
         allowNull: false,
         defaultValue: DataTypes.NOW
     },
-    date_soin: {
-        type: DataTypes.DATEONLY,
-        allowNull: true
-    },
     montant_total_remboursé: {
         type: DataTypes.DOUBLE,
         allowNull: false,
@@ -64,35 +59,18 @@ const BulletinSoin = sequelize.define('BulletinSoin', {
     },
     statut: {
         type: DataTypes.INTEGER,
-        defaultValue: 0 // 0: En attente, 1: En cours de traitement, 2: Accepté, 3: Rejeté
-    },
-    motif_refus: {
-        type: DataTypes.TEXT,
-        allowNull: true
-    },
-    motifRejetId: {
-        type: DataTypes.INTEGER,
-        allowNull: true,
-        references: {
-            model: 'motifs_rejet',
-            key: 'id'
-        }
-    },
-    commentaire_rejet: {
-        type: DataTypes.TEXT,
-        allowNull: true,
-        comment: 'Commentaire libre de l\'admin en plus du motif structuré'
+        defaultValue: 0 // 0: En attente, 1: En cours de traitement, 2: Traité
     },
     est_signe_adherent: {
         type: DataTypes.BOOLEAN,
         allowNull: false,
         defaultValue: false
     },
-    date_traitement: {
+    date_traitement: { // date de traitement du bulletin (statut = en cours de traitement)
         type: DataTypes.DATE,
         allowNull: true
     },
-    date_fermeture: {
+    date_validation: { // date de validation du bulletin (statut = traité)
         type: DataTypes.DATE,
         allowNull: true
     },

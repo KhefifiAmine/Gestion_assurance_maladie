@@ -21,6 +21,7 @@ const createBulletin = async (req, res) => {
             suivi_grossesse,
             date_prevue_accouchement,
             soins_cadre,
+            date_soin,
             actes,
             pharmacie,
             suspicion_locale,
@@ -81,6 +82,7 @@ const createBulletin = async (req, res) => {
             const bulletin = await BulletinSoin.create({
                 numero_bulletin,
                 code_cnam,
+                date_soin,
                 qualite_malade: resolvedQualite,
                 est_apci: !!est_apci,
                 suivi_grossesse: !!suivi_grossesse,
@@ -245,7 +247,8 @@ const updateBulletin = async (req, res) => {
                 'confiance_score',
                 'suspicion_locale',
                 'beneficiaireId',
-                'motif_refus',
+                'motif_rejet',
+                'objet_rejet',
                 'statut',
                 'est_signe_adherent'
             ];
@@ -467,10 +470,43 @@ const getAllBulletins = async (req, res) => {
     }
 };
 
+const getBulletinById = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const userId = req.userId;
+        const userRole = req.userRole;
+
+        const bulletin = await BulletinSoin.findByPk(id, {
+            include: [
+                { model: User, as: 'adherent' },
+                { model: User, as: 'admin', attributes: ['id', 'nom', 'prenom'] },
+                { model: ActeMedical, as: 'actes' },
+                { model: Pharmacie, as: 'pharmacie' },
+                { model: DocumentJustificatif, as: 'documents' },
+                { model: Beneficiary, as: 'beneficiaire', attributes: ['id', 'nom', 'prenom', 'relation', 'ddn', 'statut'], required: false },
+            ]
+        });
+
+        if (!bulletin) {
+            return res.status(404).json({ message: 'Bulletin non trouvé' });
+        }
+
+        // Vérification des droits d'accès
+        if (userRole !== 'ADMIN' && userRole !== 'RESPONSABLE_RH' && bulletin.userId !== userId) {
+            return res.status(403).json({ message: 'Accès non autorisé' });
+        }
+
+        res.status(200).json(bulletin);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Erreur lors de la récupération du bulletin', error: error.message });
+    }
+};
+
 const updateBulletinStatus = async (req, res) => {
     try {
         const { id } = req.params;
-        const { statut, motif_refus, motifRejetId, commentaire_rejet } = req.body;
+        const { statut } = req.body;
         const adminId = req.userId;
 
         const bulletin = await BulletinSoin.findByPk(id, {
@@ -483,11 +519,16 @@ const updateBulletinStatus = async (req, res) => {
 
         bulletin.statut = statut;
         bulletin.adminId = adminId;
-        bulletin.date_traitement = new Date();
 
-        if (motif_refus !== undefined) bulletin.motif_refus = motif_refus;
-        // On n'enregistre plus motifRejetId car la liste est désormais statique et non en base
-        if (commentaire_rejet !== undefined) bulletin.commentaire_rejet = commentaire_rejet || null;
+
+        if(statut === 1){
+            bulletin.date_traitement = new Date();
+        }
+
+        if(statut === 2){
+
+            bulletin.date_validation = new Date();
+        }
 
         await bulletin.save();
 
@@ -496,18 +537,18 @@ const updateBulletinStatus = async (req, res) => {
             const userId = bulletin.userId;
             const user = bulletin.adherent || await User.findByPk(userId, { attributes: ['email', 'prenom', 'nom'] });
 
-            const statutLabels = { 0: 'En attente', 1: 'En cours', 2: 'Validé', 3: 'Refusé' };
+            const statutLabels = { 0: 'En attente', 1: 'En cours de traitement', 2: 'Traité' };
             const statutLabel = statutLabels[statut] || `Statut ${statut}`;
 
             let titre, description, priorite;
             if (statut === 2) {
-                titre = '✅ Bulletin validé';
-                description = `Votre bulletin de soin n°${bulletin.numero_bulletin || id} a été validé par l'administration.`;
+                titre = '✅ Bulletin traité';
+                description = `Votre bulletin de soin n°${bulletin.numero_bulletin || id} a été traité par l'administration.`;
                 priorite = 'normale';
-            } else if (statut === 3) {
-                titre = '❌ Bulletin refusé';
-                description = `Votre bulletin de soin n°${bulletin.numero_bulletin || id} a été refusé.${motif_refus ? ' Motif : ' + motif_refus : ''}`;
-                priorite = 'haute';
+            } else if (statut === 1) {
+                titre = '⏳ Bulletin en cours';
+                description = `Votre bulletin de soin n°${bulletin.numero_bulletin || id} est en cours de traitement.`;
+                priorite = 'normale';
             } else {
                 titre = 'ℹ️ Statut bulletin mis à jour';
                 description = `Votre bulletin de soin n°${bulletin.numero_bulletin || id} est maintenant : ${statutLabel}.`;
@@ -539,84 +580,6 @@ const updateBulletinStatus = async (req, res) => {
         res.status(500).json({ message: 'Erreur lors de la mise à jour du statut', error: error.message });
     }
 };
-
-/*
-const addBulletinComment = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const { message } = req.body;
-        const senderId = req.userId;
-
-        const bulletin = await BulletinSoin.findByPk(id);
-        if (!bulletin) {
-            return res.status(404).json({ message: 'Bulletin non trouvé' });
-        }
-
-
-        const user = await User.findByPk(senderId);
-        const isAdmin = user && user.role === 'ADMIN';
-
-        // Restriction : Si déjà assigné à un autre admin
-        if (isAdmin && bulletin.adminId && bulletin.adminId !== senderId) {
-            return res.status(403).json({ message: 'Cette discussion est associée à un autre administrateur' });
-        }
-
-        // Auto-assignation si admin envoie premier message
-        if (isAdmin && !bulletin.adminId) {
-            bulletin.adminId = senderId;
-            await bulletin.save();
-        }
-
-        const comment = await BulletinComment.create({
-            message,
-            senderId,
-            bulletinId: id
-        });
-
-        const fullComment = await BulletinComment.findByPk(comment.id, {
-            include: [{ model: User, as: 'sender', attributes: ['nom', 'prenom', 'role'] }]
-        });
-
-        res.status(201).json(fullComment);
-    } catch (error) {
-        res.status(500).json({ message: 'Erreur lors de l\'ajout du commentaire', error: error.message });
-    }
-};
-
-const getBulletinComments = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const requestingUserId = req.userId;
-
-        const bulletin = await BulletinSoin.findByPk(id);
-        if (!bulletin) {
-            return res.status(404).json({ message: 'Bulletin non trouvé' });
-        }
-
-        const user = await User.findByPk(requestingUserId);
-        const isAdmin = user && user.role === 'ADMIN';
-
-        // Restriction : Si déjà assigné à un autre admin, on bloque l'accès aux messages
-        if (isAdmin && bulletin.adminId && bulletin.adminId !== requestingUserId) {
-            return res.status(200).json({
-                isRestricted: true,
-                message: 'Cette discussion est associée à un autre administrateur',
-                comments: []
-            });
-        }
-
-        const comments = await BulletinComment.findAll({
-            where: { bulletinId: id },
-            include: [{ model: User, as: 'sender', attributes: ['nom', 'prenom', 'role'] }],
-            order: [['createdAt', 'ASC']]
-        });
-        res.status(200).json(comments);
-    } catch (error) {
-        res.status(500).json({ message: 'Erreur lors de la récupération des commentaires', error: error.message });
-    }
-};
-*/
-
 
 const generatePreFilledPDF = async (req, res) => {
     try {
@@ -668,11 +631,62 @@ const generatePreFilledPDF = async (req, res) => {
     }
 };
 
+const updateStatutActeMedical = async (req, res) => {
+    try {
+        const { id } = req.params; // ID de l'acte médical
+        const { statut, objet_rejet, motif_rejet, montant_remboursement } = req.body;
+
+        const acte = await ActeMedical.findByPk(id);
+        if (!acte) {
+            return res.status(404).json({ message: 'Acte médical non trouvé' });
+        }
+        
+        await acte.update({
+            statut,
+            objet_rejet: statut === 2 ? objet_rejet : null,
+            motif_rejet: statut === 2 ? motif_rejet : null,
+            montant_remboursement: statut === 1 ? montant_remboursement : 0
+        });
+
+        res.status(200).json(acte);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Erreur lors de la mise à jour de l\'acte', error: error.message });
+    }
+};
+
+const updateStatutPharmacie = async (req, res) => {
+    try {
+        const { id } = req.params; // ID de la pharmacie
+        const { statut, objet_rejet, motif_rejet, montant_remboursement } = req.body;
+
+        const pharmacie = await Pharmacie.findByPk(id);
+        if (!pharmacie) {
+            return res.status(404).json({ message: 'Pharmacie non trouvée' });
+        }
+
+        await pharmacie.update({
+            statut,
+            objet_rejet: statut === 2 ? objet_rejet : null,
+            motif_rejet: statut === 2 ? motif_rejet : null,
+            montant_remboursement: statut === 1 ? montant_remboursement : 0
+        });
+
+        res.status(200).json(pharmacie);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Erreur lors de la mise à jour de la pharmacie', error: error.message });
+    }
+};
+
 module.exports = {
     createBulletin,
     getMyBulletins,
     getAllBulletins,
+    getBulletinById,
     updateBulletinStatus,
+    updateStatutActeMedical,
+    updateStatutPharmacie,
     updateBulletin,
     deleteBulletin,
     generatePreFilledPDF

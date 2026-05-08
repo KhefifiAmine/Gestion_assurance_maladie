@@ -58,7 +58,7 @@ const BeneficiaryDetailsModal = ({ beneficiary, onClose, onViewAdherent, onPrevi
                                 <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50 space-y-1">
                                     <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">Date de naissance</div>
                                     <div className="font-bold text-slate-800 dark:text-slate-100">
-                                        {beneficiary.ddn ? new Date(beneficiary.ddn).toLocaleDateString() : 'N/A'} 
+                                        {beneficiary.ddn ? new Date(beneficiary.ddn).toLocaleDateString() : 'N/A'}
                                         <span className="text-xs text-slate-500 ml-1">({calculateAge(beneficiary.ddn)} ans)</span>
                                     </div>
                                 </div>
@@ -123,7 +123,7 @@ const BeneficiaryDetailsModal = ({ beneficiary, onClose, onViewAdherent, onPrevi
                                     <div className="flex items-center gap-2">
                                         <div className="h-px flex-1 bg-slate-100 dark:bg-slate-800" />
                                         <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Adhérent Associé</span>
-                                        <button 
+                                        <button
                                             onClick={() => onViewAdherent(beneficiary.user)}
                                             className="text-[10px] font-black uppercase tracking-widest text-indigo-600 hover:text-indigo-800 transition-colors flex items-center gap-1"
                                         >

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft, Clock, MessageSquare, Send, RefreshCw,
@@ -9,7 +10,6 @@ import {
   getReclamationById,
   updateReclamationStatus
 } from '../services/reclamationService';
-import BulletinDetailsModal from './BulletinDetailsModal';
 import UserDetailsModal from './UserDetailsModal';
 import ConfirmModal from './ConfirmModal';
 import { useToast } from '../context/ToastContext';
@@ -52,12 +52,12 @@ const formatDate = (dateStr) => {
 
 const AdminReclamationDetail = ({ id, onBack, onReclamationUpdate, allBulletins = [] }) => {
   const { showToast } = useToast();
+  const navigate = useNavigate();
   const [reclamation, setReclamation] = useState(null);
   const [status, setStatus] = useState('Ouverte');
   const [replyText, setReplyText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [isBulletinModalOpen, setIsBulletinModalOpen] = useState(false);
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
   const [isStatusOpen, setIsStatusOpen] = useState(false);
   const [isPriorityOpen, setIsPriorityOpen] = useState(false);
@@ -268,7 +268,7 @@ const AdminReclamationDetail = ({ id, onBack, onReclamationUpdate, allBulletins 
                       <p className="text-[8px] font-black text-slate-400 uppercase mb-1">Bulletin N°</p>
                       <p className="text-xl font-black tracking-tight text-slate-900 dark:text-white">#{bulletin.numero_bulletin}</p>
                     </div>
-                    <button onClick={() => setIsBulletinModalOpen(true)} className="w-full py-4 bg-slate-900 text-white rounded-xl font-black text-[9px] uppercase tracking-widest hover:bg-purple-600 transition-all">Détails Dossier</button>
+                    <button onClick={() => navigate(`/admin/bulletins/${bulletin.id}`)} className="w-full py-4 bg-slate-900 text-white rounded-xl font-black text-[9px] uppercase tracking-widest hover:bg-purple-600 transition-all">Détails Dossier</button>
                  </div>
                ) : <div className="p-8 text-center bg-slate-50 rounded-2xl border border-dashed text-[10px] font-black text-slate-400 uppercase tracking-widest">Aucun bulletin</div>}
              </div>
@@ -276,7 +276,6 @@ const AdminReclamationDetail = ({ id, onBack, onReclamationUpdate, allBulletins 
         </div>
       </div>
 
-      <BulletinDetailsModal isOpen={isBulletinModalOpen} onClose={() => setIsBulletinModalOpen(false)} bulletin={bulletin} adherent={reclamation.adherent} />
       <UserDetailsModal isOpen={isUserModalOpen} onClose={() => setIsUserModalOpen(false)} user={reclamation.adherent} />
       <ConfirmModal isOpen={confirmModal.isOpen} onClose={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))} onConfirm={confirmModal.onConfirm} title={confirmModal.title} message={confirmModal.message} type={confirmModal.type} />
     </div>

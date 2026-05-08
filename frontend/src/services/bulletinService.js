@@ -85,11 +85,40 @@ export const getAllBulletins = async () => {
     return handleResponse(response);
 };
 
+export const getBulletinById = async (id) => {
+    const response = await fetch(`${API_URL}/${id}`, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+    });
+
+    return handleResponse(response);
+};
+
 export const updateBulletinStatus = async (id, statut, data = {}) => {
     const response = await fetch(`${API_URL}/${id}/status`, {
         method: 'PUT',
         headers: getAuthHeaders(),
         body: JSON.stringify({ statut, ...data }),
+    });
+
+    return handleResponse(response);
+};
+
+export const updateStatutActeMedical = async (id, data) => {
+    const response = await fetch(`${API_URL}/acte/${id}/status`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(data),
+    });
+
+    return handleResponse(response);
+};
+
+export const updateStatutPharmacie = async (id, data) => {
+    const response = await fetch(`${API_URL}/pharmacie/${id}/status`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(data),
     });
 
     return handleResponse(response);
