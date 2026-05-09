@@ -44,7 +44,7 @@ const AddBeneficiaryModal = ({
                         animate={{ scale: 1, opacity: 1, y: 0 }}
                         exit={{ scale: 0.95, opacity: 0, y: 30 }}
                         transition={{ type: "spring", duration: 0.5 }}
-                        className={`relative w-full ${documentPreviewUrl ? 'max-w-6xl' : 'max-w-2xl'} bg-white dark:bg-slate-900 rounded-[48px] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.3)] border border-slate-100 dark:border-white/10 overflow-hidden`}
+                        className={`relative w-full ${(documentPreviewUrls && documentPreviewUrls.length > 0) ? 'max-w-6xl' : 'max-w-2xl'} bg-white dark:bg-slate-900 rounded-[48px] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.3)] border border-slate-100 dark:border-white/10 overflow-hidden`}
                     >
                         {/* Header Section */}
                         <div className="relative bg-gradient-to-r from-purple-600 to-indigo-600 p-10 overflow-hidden">

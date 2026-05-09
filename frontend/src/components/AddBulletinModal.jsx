@@ -510,13 +510,17 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
                                                             </div>
                                                         </div>
 
-                                                        <div className="md:col-span-2 flex justify-center mt-4">
+                                                        <div className="md:col-span-2 flex justify-center mt-6">
                                                             <button
                                                                 type="button"
                                                                 onClick={() => setStep(2)}
-                                                                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-sm font-medium transition-colors"
+                                                                className="group flex items-center gap-3 px-8 py-4 bg-slate-50 hover:bg-slate-100 dark:bg-slate-800/50 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-slate-600 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 font-black text-sm transition-all duration-300 hover:shadow-md hover:-translate-y-1"
                                                             >
-                                                                Sauter et remplir manuellement
+                                                                <FileText size={18} className="text-slate-400 group-hover:text-purple-500 transition-colors" />
+                                                                <span>Sauter et remplir manuellement</span>
+                                                                <div className="p-1 bg-slate-200 dark:bg-slate-700 rounded-lg group-hover:bg-purple-100 dark:group-hover:bg-purple-900/30 transition-colors">
+                                                                    <ChevronRight size={16} className="text-slate-500 group-hover:text-purple-600 group-hover:translate-x-0.5 transition-all" />
+                                                                </div>
                                                             </button>
                                                         </div>
                                                     </div>

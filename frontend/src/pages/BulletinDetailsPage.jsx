@@ -320,93 +320,106 @@ const MedicalActCard = ({ acte, index, isAdmin, onProcess, onSave }) => {
 };
 
 // Composant pour les documents amélioré
+// Composant pour les documents amélioré
 const DocumentCard = ({ doc, index, onPreview, isActive, isAdmin, expandedAiDocs, toggleAiDoc, uploadBase }) => {
     const fileUrl = `${uploadBase}/uploads/${doc.fichier}`;
     const isPdf = doc.fichier?.toLowerCase().endsWith('.pdf');
+    const isImage = !isPdf && (doc.fichier?.toLowerCase().endsWith('.jpg') || doc.fichier?.toLowerCase().endsWith('.jpeg') || doc.fichier?.toLowerCase().endsWith('.png'));
 
     return (
         <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.05 }}
-            whileHover={{ y: -2 }}
-            className={`group rounded-2xl border transition-all duration-300 ${isActive
-                ? 'border-purple-500 bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 shadow-lg shadow-purple-500/20'
-                : 'border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-800 hover:shadow-xl'
+            whileHover={{ y: -4 }}
+            className={`group relative overflow-hidden rounded-2xl border transition-all duration-500 ${isActive
+                ? 'border-purple-500 bg-white dark:bg-slate-800 shadow-2xl shadow-purple-500/10 ring-2 ring-purple-500/20'
+                : 'border-slate-100 dark:border-slate-700 bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm hover:border-purple-200 dark:hover:border-purple-900/50'
                 }`}
         >
-            <div className="p-5">
-                <div className="flex items-start justify-between mb-4">
-                    <div className="flex items-center gap-4 flex-1">
-                        <div className={`w-14 h-14 rounded-xl flex items-center justify-center transition-all ${isActive
-                            ? 'bg-gradient-to-br from-purple-500 to-indigo-600 text-white shadow-lg'
-                            : 'bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-600 text-slate-500'
+            <div className="p-4">
+                <div className="flex gap-4">
+                    {/* Visual Preview / Icon */}
+                    <div 
+                        onClick={() => onPreview(isActive ? null : doc)}
+                        className={`relative cursor-pointer w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 flex items-center justify-center transition-all duration-300 ${
+                        isActive ? 'ring-2 ring-purple-500 ring-offset-2 dark:ring-offset-slate-900' : 'group-hover:scale-105'
+                    }`}>
+                        {isImage ? (
+                            <img 
+                                src={fileUrl} 
+                                alt="Miniature" 
+                                className="w-full h-full object-cover"
+                            />
+                        ) : (
+                            <div className={`w-full h-full flex flex-col items-center justify-center ${
+                                isPdf ? 'bg-rose-50 dark:bg-rose-900/20 text-rose-500' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'
                             }`}>
-                            {isPdf ? <FileText size={24} /> : <Eye size={24} />}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                            <p className="font-bold text-slate-800 dark:text-white truncate">
-                                {doc.type_document || doc.fichier || 'Document'}
-                            </p>
-                            <div className="flex items-center gap-2 mt-1">
-                                <span className="text-[9px] font-bold text-slate-400 uppercase">
-                                    {isPdf ? 'PDF Document' : 'Image'}
-                                </span>
-                                <span className="w-1 h-1 rounded-full bg-slate-300" />
-                                <span className="text-[9px] font-bold text-slate-400">
-                                    {new Date().toLocaleDateString()}
-                                </span>
+                                <FileText size={24} />
+                                <span className="text-[8px] font-black mt-1 uppercase">PDF</span>
                             </div>
+                        )}
+                        <div className={`absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity ${isActive ? 'opacity-100' : ''}`}>
+                            <Eye size={20} className="text-white" />
                         </div>
                     </div>
-                    <div className="flex gap-2">
-                        <button
-                            onClick={() => onPreview(isActive ? null : doc)}
-                            className={`p-2 rounded-xl transition-all ${isActive
-                                ? 'bg-purple-600 text-white shadow-lg'
-                                : 'bg-slate-100 dark:bg-slate-700 text-slate-500 hover:bg-purple-100 hover:text-purple-600'
+
+                    {/* Content */}
+                    <div className="flex-1 min-w-0 flex flex-col justify-center">
+                        <h4 className={`font-bold text-sm truncate transition-colors ${isActive ? 'text-purple-600 dark:text-purple-400' : 'text-slate-800 dark:text-white'}`}>
+                            {doc.type_document || 'Justificatif médical'}
+                        </h4>
+                        <p className="text-[10px] text-slate-400 font-medium truncate mt-1">
+                            {doc.fichier}
+                        </p>
+                        
+                        <div className="flex items-center gap-3 mt-3">
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onPreview(isActive ? null : doc);
+                                }}
+                                className={`flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest transition-colors ${
+                                    isActive ? 'text-purple-600' : 'text-slate-400 hover:text-purple-500'
                                 }`}
-                        >
-                            {isActive ? <X size={16} /> : <Eye size={16} />}
-                        </button>
-                        <a
-                            href={fileUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="p-2 rounded-xl bg-slate-100 dark:bg-slate-700 text-slate-500 hover:bg-purple-100 hover:text-purple-600 transition-all"
-                        >
-                            <ExternalLink size={16} />
-                        </a>
-                        <a
-                            href={fileUrl}
-                            download
-                            className="p-2 rounded-xl bg-slate-100 dark:bg-slate-700 text-slate-500 hover:bg-emerald-100 hover:text-emerald-600 transition-all"
-                        >
-                            <Download size={16} />
-                        </a>
+                            >
+                                <Eye size={12} />
+                                {isActive ? 'Fermer' : 'Aperçu'}
+                            </button>
+                            <span className="w-1 h-1 rounded-full bg-slate-200 dark:bg-slate-700" />
+                            <a
+                                href={fileUrl}
+                                download
+                                className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-slate-400 hover:text-emerald-500 transition-colors"
+                            >
+                                <Download size={12} />
+                                Télécharger
+                            </a>
+                        </div>
                     </div>
                 </div>
 
-                {/* IA Analysis Section */}
-                {isAdmin && (doc.score !== undefined || doc.niveauRisque || doc.resultat_analyse) && (
-                    <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-700">
+                {/* IA Analysis Badge Section */}
+                {isAdmin && (doc.score !== undefined || doc.niveauRisque) && (
+                    <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-700/50">
                         <button
                             onClick={() => toggleAiDoc(index)}
-                            className="w-full flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-slate-500 hover:text-purple-600 transition-colors"
+                            className={`w-full flex items-center justify-between py-1.5 px-2 rounded-lg transition-colors ${
+                                expandedAiDocs[index] ? 'bg-purple-50 dark:bg-purple-900/10' : 'hover:bg-slate-50 dark:hover:bg-slate-700/30'
+                            }`}
                         >
-                            <span className="flex items-center gap-2">
-                                <ShieldCheck size={14} />
-                                Analyse IA
+                            <div className="flex items-center gap-2">
+                                <Zap size={12} className={doc.score > 80 ? 'text-emerald-500' : 'text-purple-500'} />
+                                <span className="text-[9px] font-black uppercase tracking-tight text-slate-500">Analyse IA</span>
                                 {doc.score && (
-                                    <span className={`px-1.5 py-0.5 rounded text-[8px] font-black ${doc.score > 80 ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'
-                                        }`}>
-                                        Score: {doc.score}%
+                                    <span className={`ml-1 text-[9px] font-black ${doc.score > 80 ? 'text-emerald-600' : 'text-purple-600'}`}>
+                                        {doc.score}%
                                     </span>
                                 )}
-                            </span>
-                            <ChevronRight size={14} className={`transform transition-transform ${expandedAiDocs[index] ? 'rotate-90' : ''}`} />
+                            </div>
+                            <ChevronRight size={12} className={`text-slate-400 transition-transform ${expandedAiDocs[index] ? 'rotate-90' : ''}`} />
                         </button>
-
+                        
                         <AnimatePresence>
                             {expandedAiDocs[index] && (
                                 <motion.div
@@ -415,19 +428,17 @@ const DocumentCard = ({ doc, index, onPreview, isActive, isAdmin, expandedAiDocs
                                     exit={{ height: 0, opacity: 0 }}
                                     className="overflow-hidden"
                                 >
-                                    <div className="mt-4 space-y-3">
+                                    <div className="pt-3 pb-1 space-y-2">
                                         {doc.niveauRisque && (
-                                            <div className="flex items-center justify-between p-3 rounded-xl bg-amber-50 dark:bg-amber-900/20">
-                                                <span className="text-[10px] font-bold text-amber-600">Niveau de risque</span>
-                                                <span className="text-xs font-black text-amber-700">{doc.niveauRisque}</span>
+                                            <div className="flex items-center justify-between p-2 rounded-lg bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-800/20">
+                                                <span className="text-[8px] font-black text-amber-600 uppercase">Risque</span>
+                                                <span className="text-[10px] font-black text-amber-700">{doc.niveauRisque}</span>
                                             </div>
                                         )}
                                         {doc.resultat_analyse && (
-                                            <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-700/50">
-                                                <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-                                                    {doc.resultat_analyse}
-                                                </p>
-                                            </div>
+                                            <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight italic px-1">
+                                                "{doc.resultat_analyse.length > 100 ? doc.resultat_analyse.substring(0, 100) + '...' : doc.resultat_analyse}"
+                                            </p>
                                         )}
                                     </div>
                                 </motion.div>
@@ -1039,50 +1050,108 @@ const BulletinDetailsPage = () => {
                     </div>
 
                     {/* Document Preview Panel */}
-                    {previewDoc && (
-                        <motion.div
-                            initial={{ opacity: 0, x: 20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: 20 }}
-                            className="lg:w-1/2 lg:sticky lg:top-28 h-[calc(100vh-120px)] flex flex-col rounded-2xl overflow-hidden bg-white dark:bg-slate-900 shadow-2xl border border-slate-100 dark:border-slate-700"
-                        >
-                            <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between bg-gradient-to-r from-slate-50 to-white dark:from-slate-800 dark:to-slate-900">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center text-white shadow-lg">
-                                        <Eye size={18} />
+                    <AnimatePresence>
+                        {previewDoc && (
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.95, x: 20 }}
+                                animate={{ opacity: 1, scale: 1, x: 0 }}
+                                exit={{ opacity: 0, scale: 0.95, x: 20 }}
+                                transition={{ type: "spring", damping: 25, stiffness: 200 }}
+                                className="lg:w-1/2 lg:sticky lg:top-28 h-[calc(100vh-140px)] flex flex-col rounded-3xl overflow-hidden bg-white dark:bg-slate-900 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.2)] border border-slate-100 dark:border-white/5 z-10"
+                            >
+                                {/* Glass Header */}
+                                <div className="px-6 py-4 flex items-center justify-between bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-100 dark:border-white/5">
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-purple-500/20">
+                                            <Eye size={18} />
+                                        </div>
+                                        <div>
+                                            <h3 className="text-xs font-black uppercase tracking-[0.1em] text-slate-800 dark:text-white">Visionneuse</h3>
+                                            <p className="text-[10px] text-purple-600 font-black uppercase mt-0.5 truncate max-w-[200px]">
+                                                {previewDoc.type_document || 'Document justificatif'}
+                                            </p>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <h3 className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-white">Aperçu</h3>
-                                        <p className="text-[10px] text-slate-400 font-bold">{previewDoc.type_document}</p>
+                                    
+                                    <div className="flex items-center gap-2">
+                                        <a
+                                            href={`${uploadBase}/uploads/${previewDoc.fichier}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-purple-600 hover:text-white transition-all duration-300"
+                                            title="Ouvrir dans un nouvel onglet"
+                                        >
+                                            <ExternalLink size={16} />
+                                        </a>
+                                        <button
+                                            onClick={() => setPreviewDoc(null)}
+                                            className="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-rose-500 hover:text-white transition-all duration-300 shadow-sm"
+                                        >
+                                            <X size={18} />
+                                        </button>
                                     </div>
                                 </div>
-                                <button
-                                    onClick={() => setPreviewDoc(null)}
-                                    className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-red-100 hover:text-red-600 transition-all"
-                                >
-                                    <X size={18} />
-                                </button>
-                            </div>
 
-                            <div className="flex-1 bg-slate-100 dark:bg-slate-950 p-4 overflow-auto">
-                                {previewDoc.fichier?.toLowerCase().endsWith('.pdf') ? (
-                                    <iframe
-                                        src={`${uploadBase}/uploads/${previewDoc.fichier}#toolbar=0&navpanes=0`}
-                                        className="w-full h-full border-0 rounded-xl shadow-inner"
-                                        title="Aperçu PDF"
-                                    />
-                                ) : (
-                                    <div className="w-full h-full flex items-center justify-center">
-                                        <img
-                                            src={`${uploadBase}/uploads/${previewDoc.fichier}`}
-                                            alt="Aperçu document"
-                                            className="max-w-full max-h-full object-contain rounded-xl shadow-2xl"
-                                        />
+                                {/* Main Preview Area */}
+                                <div className="flex-1 bg-slate-50 dark:bg-slate-950 p-6 overflow-hidden relative group/preview">
+                                    <div className="w-full h-full rounded-2xl overflow-hidden bg-white dark:bg-slate-900 shadow-inner border border-slate-200 dark:border-slate-800 flex items-center justify-center">
+                                        {previewDoc.fichier?.toLowerCase().endsWith('.pdf') ? (
+                                            <iframe
+                                                src={`${uploadBase}/uploads/${previewDoc.fichier}#toolbar=0&navpanes=0`}
+                                                className="w-full h-full border-0"
+                                                title="Aperçu PDF"
+                                            />
+                                        ) : (
+                                            <div className="relative w-full h-full p-4 flex items-center justify-center">
+                                                <motion.img
+                                                    initial={{ scale: 0.9, opacity: 0 }}
+                                                    animate={{ scale: 1, opacity: 1 }}
+                                                    src={`${uploadBase}/uploads/${previewDoc.fichier}`}
+                                                    alt="Aperçu"
+                                                    className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
+                                                />
+                                            </div>
+                                        )}
                                     </div>
-                                )}
-                            </div>
-                        </motion.div>
-                    )}
+
+                                    {/* Action Floating Buttons (appear on hover) */}
+                                    <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex items-center gap-3 opacity-0 group-hover/preview:opacity-100 transition-all duration-500 translate-y-4 group-hover/preview:translate-y-0">
+                                        <div className="flex items-center gap-1 p-1.5 bg-white/90 dark:bg-slate-800/90 backdrop-blur-xl rounded-2xl shadow-2xl border border-white dark:border-slate-700">
+                                            <button 
+                                                onClick={() => window.print()}
+                                                className="p-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-all"
+                                                title="Imprimer"
+                                            >
+                                                <Printer size={18} />
+                                            </button>
+                                            <div className="w-px h-6 bg-slate-200 dark:bg-slate-700 mx-1" />
+                                            <a 
+                                                href={`${uploadBase}/uploads/${previewDoc.fichier}`}
+                                                download
+                                                className="flex items-center gap-2 px-5 py-3 bg-purple-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-purple-700 transition-all shadow-lg shadow-purple-500/20"
+                                            >
+                                                <Download size={14} />
+                                                Télécharger
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                {/* Footer Info */}
+                                <div className="px-6 py-3 bg-slate-50 dark:bg-slate-900 border-t border-slate-100 dark:border-white/5 flex items-center justify-between">
+                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                                        Format: {previewDoc.fichier?.split('.').pop().toUpperCase()}
+                                    </p>
+                                    <div className="flex items-center gap-4">
+                                        <div className="flex items-center gap-1.5">
+                                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                                            <span className="text-[9px] font-black text-slate-500 uppercase">Document Vérifié</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
                 </div>
             </div>
 
