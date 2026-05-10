@@ -517,6 +517,23 @@ const updateBulletinStatus = async (req, res) => {
             return res.status(404).json({ message: 'Bulletin non trouvé' });
         }
 
+        // Contrainte : ne pouvez pas modifier le statut du bulletin au traité (2) sans être en cours (1)
+        if (statut === 2 && bulletin.statut !== 1) {
+            return res.status(400).json({ message: 'Le bulletin doit être "En cours de traitement" pour être marqué comme "Traité".' });
+        }
+
+        // Contrainte : ne pouvez pas modifier le statut bulletin au traité si des actes ou pharmacie sont en attente
+        if (statut === 2) {
+            const itemsEnAttente = await Promise.all([
+                ActeMedical.count({ where: { bulletinId: id, statut: 0 } }),
+                Pharmacie.count({ where: { bulletinId: id, statut: 0 } })
+            ]);
+            
+            if (itemsEnAttente[0] > 0 || itemsEnAttente[1] > 0) {
+                return res.status(400).json({ message: 'Tous les actes médicaux et la pharmacie doivent être traités avant de clôturer le bulletin.' });
+            }
+        }
+
         bulletin.statut = statut;
         bulletin.adminId = adminId;
 
@@ -640,6 +657,16 @@ const updateStatutActeMedical = async (req, res) => {
         if (!acte) {
             return res.status(404).json({ message: 'Acte médical non trouvé' });
         }
+
+        // Contrainte : ne peut pas modifier un acte déjà traité
+        if (acte.statut !== 0) {
+            return res.status(400).json({ message: 'Cet acte médical a déjà été traité et ne peut plus être modifié.' });
+        }
+
+        // Contrainte : le montant de remboursement ne peut pas dépasser les honoraires
+        if (statut === 1 && montant_remboursement > acte.honoraires) {
+            return res.status(400).json({ message: `Le montant de remboursement (${montant_remboursement}) ne peut pas dépasser les honoraires (${acte.honoraires}).` });
+        }
         
         await acte.update({
             statut,
@@ -647,6 +674,19 @@ const updateStatutActeMedical = async (req, res) => {
             motif_rejet: statut === 2 ? motif_rejet : null,
             montant_remboursement: statut === 1 ? montant_remboursement : 0
         });
+
+        // Mise à jour dynamique du montant_total_remboursé du bulletin
+        const bulletin = await BulletinSoin.findByPk(acte.bulletinId);
+        if (bulletin) {
+            const [totalActes, totalPharmacie] = await Promise.all([
+                ActeMedical.sum('montant_remboursement', { where: { bulletinId: bulletin.id } }),
+                Pharmacie.sum('montant_remboursement', { where: { bulletinId: bulletin.id } })
+            ]);
+            
+            await bulletin.update({
+                montant_total_remboursé: (totalActes) + (totalPharmacie)
+            });
+        }
 
         res.status(200).json(acte);
     } catch (error) {
@@ -665,12 +705,35 @@ const updateStatutPharmacie = async (req, res) => {
             return res.status(404).json({ message: 'Pharmacie non trouvée' });
         }
 
+        // Contrainte : ne peut pas modifier une pharmacie déjà traitée
+        if (pharmacie.statut !== 0) {
+            return res.status(400).json({ message: 'Cet article de pharmacie a déjà été traité et ne peut plus être modifié.' });
+        }
+
+        // Contrainte : le montant de remboursement ne peut pas dépasser le montant engagé
+        if (statut === 1 && montant_remboursement > pharmacie.montant_pharmacie) {
+            return res.status(400).json({ message: `Le montant de remboursement (${montant_remboursement}) ne peut pas dépasser le montant engagé (${pharmacie.montant_pharmacie}).` });
+        }
+
         await pharmacie.update({
             statut,
             objet_rejet: statut === 2 ? objet_rejet : null,
             motif_rejet: statut === 2 ? motif_rejet : null,
             montant_remboursement: statut === 1 ? montant_remboursement : 0
         });
+
+        // Mise à jour dynamique du montant_total_remboursé du bulletin
+        const bulletin = await BulletinSoin.findByPk(pharmacie.bulletinId);
+        if (bulletin) {
+            const [totalActes, totalPharmacie] = await Promise.all([
+                ActeMedical.sum('montant_remboursement', { where: { bulletinId: bulletin.id } }),
+                Pharmacie.sum('montant_remboursement', { where: { bulletinId: bulletin.id } })
+            ]);
+            
+            await bulletin.update({
+                montant_total_remboursé: (totalActes) + (totalPharmacie)
+            });
+        }
 
         res.status(200).json(pharmacie);
     } catch (error) {

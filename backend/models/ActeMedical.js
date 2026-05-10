@@ -12,7 +12,7 @@ const ActeMedical = sequelize.define('ActeMedical', {
         allowNull: false
     },
     cote: {
-        type: DataTypes.INTEGER,
+        type: DataTypes.STRING,
         allowNull: true
     },
     acte: {

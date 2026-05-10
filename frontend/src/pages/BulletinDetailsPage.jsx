@@ -239,9 +239,12 @@ const MedicalActCard = ({ acte, index, isAdmin, onProcess, onSave }) => {
                                         <div className="flex items-center gap-3">
                                             <button
                                                 onClick={() => onProcess(acte.id, 'statut', 1)}
+                                                disabled={acte.statut !== 0}
                                                 className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${acte.statut === 1
                                                     ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-500/30'
-                                                    : 'bg-white dark:bg-slate-900 text-slate-400 hover:text-emerald-600 hover:border-emerald-200 border border-transparent'
+                                                    : acte.statut !== 0 
+                                                        ? 'bg-slate-100 text-slate-300 cursor-not-allowed'
+                                                        : 'bg-white dark:bg-slate-900 text-slate-400 hover:text-emerald-600 hover:border-emerald-200 border border-transparent'
                                                     }`}
                                             >
                                                 <CheckCircle2 size={14} />
@@ -249,9 +252,12 @@ const MedicalActCard = ({ acte, index, isAdmin, onProcess, onSave }) => {
                                             </button>
                                             <button
                                                 onClick={() => onProcess(acte.id, 'statut', 2)}
+                                                disabled={acte.statut !== 0}
                                                 className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${acte.statut === 2
                                                     ? 'bg-rose-600 text-white shadow-lg shadow-rose-500/30'
-                                                    : 'bg-white dark:bg-slate-900 text-slate-400 hover:text-rose-600 hover:border-rose-200 border border-transparent'
+                                                    : acte.statut !== 0
+                                                        ? 'bg-slate-100 text-slate-300 cursor-not-allowed'
+                                                        : 'bg-white dark:bg-slate-900 text-slate-400 hover:text-rose-600 hover:border-rose-200 border border-transparent'
                                                     }`}
                                             >
                                                 <XCircle size={14} />
@@ -282,15 +288,22 @@ const MedicalActCard = ({ acte, index, isAdmin, onProcess, onSave }) => {
                                         <label className="text-[9px] font-black uppercase text-slate-400 mb-1 block ml-1">Montant à rembourser (TND)</label>
                                         <input
                                             type="number"
+                                            disabled={acte.statut !== 0}
                                             value={acte.montant_remboursement || 0}
-                                            onChange={(e) => onProcess(acte.id, 'montant_remboursement', parseFloat(e.target.value) || 0)}
-                                            className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-xs font-black text-emerald-600 focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
+                                            max={acte.honoraires}
+                                            onChange={(e) => {
+                                                const val = parseFloat(e.target.value) || 0;
+                                                if (val > acte.honoraires) return;
+                                                onProcess(acte.id, 'montant_remboursement', val);
+                                            }}
+                                            className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-xs font-black text-emerald-600 focus:ring-2 focus:ring-emerald-500 outline-none transition-all disabled:opacity-50"
                                         />
                                     </div>
 
                                     <button
                                         onClick={() => onSave(acte)}
-                                        className="w-full py-3 bg-slate-900 text-white rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-black transition-all flex items-center justify-center gap-2"
+                                        disabled={acte.statut !== 0}
+                                        className="w-full py-3 bg-slate-900 text-white rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-black transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                         <Save size={14} />
                                         Mettre à jour cet acte
@@ -514,6 +527,22 @@ const BulletinDetailsPage = () => {
     };
 
     const initiateStatusChange = (status) => {
+        if (status === 2) {
+            // Vérifier si le bulletin est en cours
+            if (bulletin.statut !== 1) {
+                showToast("Le bulletin doit être en cours de traitement pour être validé.", "error");
+                return;
+            }
+            // Vérifier si tous les items sont traités
+            const actsPending = bulletin.actes?.some(a => a.statut === 0);
+            const pharmaPending = bulletin.pharmacie && bulletin.pharmacie.statut === 0;
+            
+            if (actsPending || pharmaPending) {
+                showToast("Veuillez traiter tous les actes médicaux et la pharmacie avant de valider le bulletin.", "warning");
+                return;
+            }
+        }
+
         setConfirmData({
             isOpen: true,
             status,
@@ -666,9 +695,9 @@ const BulletinDetailsPage = () => {
                                         whileHover={{ scale: 1.02 }}
                                         whileTap={{ scale: 0.98 }}
                                         onClick={() => initiateStatusChange(2)}
-                                        disabled={bulletin.statut === 2}
-                                        className={`px-5 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all flex items-center gap-2 ${bulletin.statut === 2
-                                            ? 'bg-emerald-100 text-emerald-600 border border-emerald-200 cursor-not-allowed opacity-60'
+                                        disabled={bulletin.statut !== 1}
+                                        className={`px-5 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all flex items-center gap-2 ${bulletin.statut !== 1
+                                            ? 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed opacity-60'
                                             : 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20 hover:bg-indigo-700'
                                             }`}
                                     >
@@ -919,13 +948,14 @@ const BulletinDetailsPage = () => {
                                                                 <p className="text-[9px] font-black text-emerald-600 uppercase mb-1">Remboursement</p>
                                                                 <input
                                                                     type="number"
+                                                                    disabled={bulletin.pharmacie.statut !== 0}
                                                                     value={bulletin.pharmacie.montant_remboursement || 0}
-                                                                    onChange={(e) =>
-                                                                        handlePharmacieProcessing(
-                                                                            'montant_remboursement',
-                                                                            parseFloat(e.target.value) || 0
-                                                                        )
-                                                                    }
+                                                                    max={bulletin.pharmacie.montant}
+                                                                    onChange={(e) => {
+                                                                        const val = parseFloat(e.target.value) || 0;
+                                                                        if (val > (bulletin.pharmacie.montant || 0)) return;
+                                                                        handlePharmacieProcessing('montant_remboursement', val);
+                                                                    }}
                                                                     placeholder="Montant remboursement"
                                                                     className="
                                                                         w-full
@@ -940,6 +970,7 @@ const BulletinDetailsPage = () => {
                                                                         focus:border-emerald-500
                                                                         focus:ring-4 focus:ring-emerald-200
                                                                         hover:border-emerald-400
+                                                                        disabled:opacity-50
                                                                     "
                                                                 />
                                                             </div>
@@ -950,18 +981,24 @@ const BulletinDetailsPage = () => {
                                                                 <div className="flex gap-3">
                                                                     <button
                                                                         onClick={() => handlePharmacieProcessing('statut', 1)}
+                                                                        disabled={bulletin.pharmacie.statut !== 0}
                                                                         className={`flex-1 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${bulletin.pharmacie.statut === 1
                                                                             ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-500/30'
-                                                                            : 'bg-slate-100 text-slate-400 hover:bg-emerald-50'
+                                                                            : bulletin.pharmacie.statut !== 0
+                                                                                ? 'bg-slate-100 text-slate-300 cursor-not-allowed'
+                                                                                : 'bg-slate-100 text-slate-400 hover:bg-emerald-50'
                                                                             }`}
                                                                     >
                                                                         Accepter
                                                                     </button>
                                                                     <button
                                                                         onClick={() => handlePharmacieProcessing('statut', 2)}
+                                                                        disabled={bulletin.pharmacie.statut !== 0}
                                                                         className={`flex-1 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${bulletin.pharmacie.statut === 2
                                                                             ? 'bg-rose-600 text-white shadow-lg shadow-rose-500/30'
-                                                                            : 'bg-slate-100 text-slate-400 hover:bg-rose-50'
+                                                                            : bulletin.pharmacie.statut !== 0
+                                                                                ? 'bg-slate-100 text-slate-300 cursor-not-allowed'
+                                                                                : 'bg-slate-100 text-slate-400 hover:bg-rose-50'
                                                                             }`}
                                                                     >
                                                                         Rejeter
@@ -970,7 +1007,8 @@ const BulletinDetailsPage = () => {
 
                                                                 <button
                                                                     onClick={handleSinglePharmacieSave}
-                                                                    className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-black transition-all flex items-center justify-center gap-2 shadow-lg"
+                                                                    disabled={bulletin.pharmacie.statut !== 0}
+                                                                    className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-black transition-all flex items-center justify-center gap-2 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                                                                 >
                                                                     <Save size={16} />
                                                                     Enregistrer Pharmacie

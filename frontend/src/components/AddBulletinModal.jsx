@@ -11,6 +11,19 @@ import { UPLOADS_BASE } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 
+const ACTE_STRUCTURE = {
+    "Consultation": ["C1", "C2", "C3", "V1", "V2", "V3"],
+    "Analyses": ["B"],
+    "Actes médicaux courants":["PC", "AM", "AMM", "AMO", "AMY"],
+    "Chirurgie": ["KC"],
+    "Radiologie / Électroradiologie": ["R", "REK"],
+    "Optique": ["Monture", "Verre"],
+    "Dentaire": ["Soin Dentaire", "orthopedie_dento_faciale"],
+    "Hospitalisation": ["Clinique", "Hôpital", "Réanimation", "Couveuse"],
+    "Maternité": ["Accouchement simple", "Gémellaire", "Stérilité"],
+    "Divers": ["Transport", "Circoncision", "Cure thermale"]
+};
+
 const DocumentPreview = ({ file, url }) => {
     const [fileUrl, setFileUrl] = useState(null);
 
@@ -867,7 +880,54 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
                                                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
                                                                     <div className="space-y-1">
                                                                         <label className="text-[8px] font-black text-slate-400 uppercase">Nature de l'acte</label>
-                                                                        <input placeholder="Ex: Consultation" className="w-full p-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white font-bold" value={acte.acte} onChange={e => updateActe(idx, { acte: e.target.value })} />
+                                                                        <select 
+                                                                            className="w-full p-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white font-bold" 
+                                                                            value={acte.acte} 
+                                                                            onChange={e => {
+                                                                                const val = e.target.value;
+                                                                                const updates = { acte: val };
+                                                                                if (val === 'Dentaire') updates.type_prestataire_soin = 'Soin Dentaire';
+                                                                                else if (val === 'Pharmacie') updates.type_prestataire_soin = 'Pharmacie';
+                                                                                else updates.type_prestataire_soin = '';
+                                                                                updateActe(idx, updates);
+                                                                            }}
+                                                                        >
+                                                                            <option value="">Sélectionner...</option>
+                                                                            {Object.keys(ACTE_STRUCTURE).map(k => (
+                                                                                <option key={k} value={k}>{k}</option>
+                                                                            ))}
+                                                                        </select>
+                                                                    </div>
+                                                                    <div className="space-y-1">
+                                                                        <label className="text-[8px] font-black text-slate-400 uppercase">Cote / Code</label>
+                                                                        <select 
+                                                                            className="w-full p-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white font-bold" 
+                                                                            value={acte.cote || ''} 
+                                                                            onChange={e => {
+                                                                                const val = e.target.value;
+                                                                                const updates = { cote: val };
+                                                                                if (val === 'B' || val === 'KC') {
+                                                                                    updates.code_acte = val;
+                                                                                } else {
+                                                                                    updates.code_acte = val;
+                                                                                }
+                                                                                updateActe(idx, updates);
+                                                                            }}
+                                                                        >
+                                                                            <option value="">Cote...</option>
+                                                                            {acte.acte && ACTE_STRUCTURE[acte.acte]?.map(c => (
+                                                                                <option key={c} value={c}>{c}</option>
+                                                                            ))}
+                                                                        </select>
+                                                                    </div>
+                                                                    <div className="space-y-1">
+                                                                        <label className="text-[8px] font-black text-slate-400 uppercase">Valeur/Coeff (ex: B 20)</label>
+                                                                        <input 
+                                                                            placeholder="Code ou Coeff" 
+                                                                            className="w-full p-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white font-black" 
+                                                                            value={acte.code_acte || ''} 
+                                                                            onChange={e => updateActe(idx, { code_acte: e.target.value })} 
+                                                                        />
                                                                     </div>
                                                                     <div className="space-y-1">
                                                                         <label className="text-[8px] font-black text-slate-400 uppercase">Date</label>
@@ -884,10 +944,6 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
 
                                                                     {/* Champs optionnels / Dentaire */}
                                                                     <div className="space-y-1">
-                                                                        <label className="text-[8px] font-black text-slate-400 uppercase">Code Acte (Dent.)</label>
-                                                                        <input placeholder="Code" className="w-full p-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white" value={acte.code_acte} onChange={e => updateActe(idx, { code_acte: e.target.value })} />
-                                                                    </div>
-                                                                    <div className="space-y-1">
                                                                         <label className="text-[8px] font-black text-slate-400 uppercase">N° Dent</label>
                                                                         <input placeholder="Ex: 14" className="w-full p-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white" value={acte.numero_dent} onChange={e => updateActe(idx, { numero_dent: e.target.value })} />
                                                                     </div>
@@ -902,10 +958,6 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
                                                                             <option value="Soin Dentaire">Soin Dentaire</option>
                                                                             <option value="Autre">Autre</option>
                                                                         </select>
-                                                                    </div>
-                                                                    <div className="space-y-1">
-                                                                        <label className="text-[8px] font-black text-slate-400 uppercase">Cote</label>
-                                                                        <input type="number" placeholder="Cote" className="w-full p-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white" value={acte.cote || ''} onChange={e => updateActe(idx, { cote: e.target.value ? Number(e.target.value) : null })} />
                                                                     </div>
                                                                     <div className="flex items-center gap-2 mt-4">
                                                                         <input type="checkbox" id={`cachet-${idx}`} className="w-3 h-3 rounded text-purple-600" checked={acte.est_cachet} onChange={e => updateActe(idx, { est_cachet: e.target.checked })} />
