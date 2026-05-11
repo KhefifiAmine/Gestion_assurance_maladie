@@ -13,7 +13,8 @@ import {
     X,
     AlertTriangle,
     Edit2,
-    Trash2
+    Trash2,
+    Download
 } from 'lucide-react';
 import { getMyBulletins, deleteBulletin } from '../../services/bulletinService';
 import { useToast } from '../../context/ToastContext';
@@ -109,6 +110,47 @@ const BulletinsPage = () => {
         }
     };
 
+    const handleExportExcel = () => {
+        if (filteredBulletins.length === 0) {
+            showToast("Aucun bulletin à exporter", "info");
+            return;
+        }
+
+        // En-têtes pour le fichier
+        const headers = ["N° Bulletin", "Code CNAM", "Patient", "Qualité", "Date Soin", "Date Dépôt", "Montant (TND)", "Remboursé (TND)", "Statut"];
+        
+        // Données formatées
+        const data = filteredBulletins.map(b => [
+            b.numero_bulletin,
+            b.code_cnam || '—',
+            getPatientDisplayName(b, user),
+            b.qualite_malade || '—',
+            formatDateFr(getDerivedCareDate(b)),
+            b.date_depot ? new Date(b.date_depot).toLocaleDateString('fr-FR') : '—',
+            formatMontantTnd(b.montant_total),
+            formatMontantTnd(b.montant_total_remboursé || 0),
+            getStatusConfig(b.statut).label
+        ]);
+
+        // Création du contenu CSV (avec BOM pour UTF-8 et séparateur virgule ou point-virgule pour Excel FR)
+        const csvContent = "\uFEFF" + [headers, ...data]
+            .map(e => e.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(";"))
+            .join("\n");
+
+        // Téléchargement
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement("a");
+        const url = URL.createObjectURL(blob);
+        link.setAttribute("href", url);
+        link.setAttribute("download", `Mes_Bulletins_Soin_${new Date().toLocaleDateString('fr-FR').replace(/\//g, '-')}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        showToast("Export terminé avec succès", "success");
+    };
+
     const getStatusConfig = (statut) => {
         const s = Number(statut);
         if (s === 2) return { label: 'Traité', icon: <CheckCircle2 size={12} />, classes: 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 border-emerald-100 dark:border-emerald-800/30' };
@@ -133,15 +175,27 @@ const BulletinsPage = () => {
                     </div>
                 </div>
 
-                <motion.button
-                    whileHover={{ y: -2 }}
-                    whileTap={{ scale: 0.97 }}
-                    onClick={() => setIsModalOpen(true)}
-                    className="flex items-center gap-3 px-8 py-4 rounded-2xl text-white font-black transition-all duration-300 shadow-2xl shadow-purple-500/20 bg-purple-600 hover:bg-purple-700 active:scale-95"
-                >
-                    <Plus size={20} strokeWidth={3} />
-                    NOUVEAU BULLETIN
-                </motion.button>
+                <div className="flex flex-wrap gap-3">
+                    <motion.button
+                        whileHover={{ y: -2 }}
+                        whileTap={{ scale: 0.97 }}
+                        onClick={handleExportExcel}
+                        className="flex items-center gap-3 px-6 py-4 rounded-2xl bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 font-black transition-all duration-300 shadow-xl border border-slate-100 dark:border-white/5 hover:bg-slate-50 dark:hover:bg-slate-800"
+                    >
+                        <Download size={20} className="text-purple-600" />
+                        EXPORTER EXCEL
+                    </motion.button>
+
+                    <motion.button
+                        whileHover={{ y: -2 }}
+                        whileTap={{ scale: 0.97 }}
+                        onClick={() => setIsModalOpen(true)}
+                        className="flex items-center gap-3 px-8 py-4 rounded-2xl text-white font-black transition-all duration-300 shadow-2xl shadow-purple-500/20 bg-purple-600 hover:bg-purple-700 active:scale-95"
+                    >
+                        <Plus size={20} strokeWidth={3} />
+                        NOUVEAU BULLETIN
+                    </motion.button>
+                </div>
             </motion.div>
 
             {/* Filter Bar */}

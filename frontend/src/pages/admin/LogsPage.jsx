@@ -22,10 +22,12 @@ import {
   Filter,
   X,
   Info,
-  Activity
+  Activity,
+  Download
 } from 'lucide-react';
 import { API_BASE } from "../../services/api";
 import { useTheme } from '../../context/ThemeContext';
+import { useToast } from '../../context/ToastContext';
 
 const ACTION_MAP = {
     // Authentification
@@ -121,6 +123,7 @@ const getActionInfo = (action) => {
 
 export default function LogsPage() {
     const { theme } = useTheme();
+    const { showToast } = useToast();
     const [logs, setLogs] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
@@ -166,6 +169,50 @@ export default function LogsPage() {
         setFilters({ action: '', userName: '', startDate: '', endDate: '', page: 1, limit: 15 });
     };
 
+    const handleExportLogs = async () => {
+        if (total === 0) {
+            showToast("Aucun log à exporter", "info");
+            return;
+        }
+
+        try {
+            showToast("Préparation de l'exportation complète...", "info");
+            
+            // On récupère l'intégralité des logs (page 1 avec une limite égale au total)
+            const dataAll = await fetchLogs({ ...filters, page: 1, limit: total });
+            const logsToExport = dataAll.logs;
+
+            const headers = ["Utilisateur", "Email", "Rôle", "Action", "Horodatage"];
+            
+            const data = logsToExport.map(log => [
+                log.user ? `${log.user.prenom} ${log.user.nom}` : 'Utilisateur inconnu',
+                log.user?.email || '—',
+                log.user?.role || 'ADHERENT',
+                getActionInfo(log.action).label,
+                formatDate(log.createdAt)
+            ]);
+
+            const csvContent = "\uFEFF" + [headers, ...data]
+                .map(e => e.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(";"))
+                .join("\n");
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+            link.setAttribute("download", `Export_Complet_Logs_${new Date().toLocaleDateString('fr-FR').replace(/\//g, '-')}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            showToast(`Export de ${total} lignes réussi`, "success");
+        } catch (err) {
+            console.error(err);
+            showToast("Erreur lors de l'exportation complète", "error");
+        }
+    };
+
     const handlePageChange = (newPage) => {
         if (newPage >= 1 && newPage <= totalPages) {
             setFilters(prev => ({ ...prev, page: newPage }));
@@ -199,6 +246,16 @@ export default function LogsPage() {
                     >
                         {showFilters ? <X size={18} /> : <Filter size={18} />}
                         {showFilters ? 'Fermer Filtres' : 'Filtrer les logs'}
+                    </button>
+                    <button 
+                        onClick={handleExportLogs}
+                        disabled={loading || logs.length === 0}
+                        className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-all border ${
+                            theme === 'dark' ? 'bg-emerald-600/20 border-emerald-500/50 text-emerald-400 hover:bg-emerald-600/30' : 'bg-emerald-50 border-emerald-200 text-emerald-600 hover:bg-emerald-600 hover:text-white'
+                        } ${loading || logs.length === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    >
+                        <Download size={18} />
+                        Exporter
                     </button>
                     <button 
                         onClick={loadLogs}
