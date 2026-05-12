@@ -9,6 +9,7 @@ const {
     updateBulletinStatus,
     updateStatutActeMedical,
     updateStatutPharmacie,
+    updateStatutMedicament,
     //addBulletinComment,
     //getBulletinComments,
     updateBulletin,
@@ -34,6 +35,7 @@ router.get('/:id', verifyToken, getBulletinById);
 router.put('/:id/status', verifyToken, isAdmin, updateBulletinStatus);
 router.put('/acte/:id/status', verifyToken, isAdmin, updateStatutActeMedical);
 router.put('/pharmacie/:id/status', verifyToken, isAdmin, updateStatutPharmacie);
+router.put('/medicament/:id/status', verifyToken, isAdmin, updateStatutMedicament);
 
 // Routes pour les commentaires (accessibles aux deux rôles)
 //router.get('/:id/comments', verifyToken, getBulletinComments);

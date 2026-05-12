@@ -127,17 +127,15 @@ const AmountCard = ({ title, amount, icon: Icon, color, subtext }) => (
     </motion.div>
 );
 
+const MEDICAL_ACT_ICONS = [Stethoscope, Thermometer, Syringe, Scissors, Microscope, Heart];
+
 // Composant pour les détails d'acte médical amélioré
 const MedicalActCard = ({ acte, index, isAdmin, onProcess, onSave }) => {
     const [isExpanded, setIsExpanded] = useState(false);
-
-    const getActeIcon = () => {
-        const icons = [Stethoscope, Thermometer, Syringe, Scissors, Microscope, Heart];
-        const Icon = icons[index % icons.length];
-        return Icon;
-    };
-
-    const IconComponent = getActeIcon();
+    // savedStatut = statut persisté en base (ne change qu'après un vrai Save)
+    const [savedStatut, setSavedStatut] = useState(acte.statut);
+    const IconComponent = MEDICAL_ACT_ICONS[index % MEDICAL_ACT_ICONS.length];
+    const isAlreadyProcessed = savedStatut !== 0;
 
     return (
         <motion.div
@@ -239,10 +237,10 @@ const MedicalActCard = ({ acte, index, isAdmin, onProcess, onSave }) => {
                                         <div className="flex items-center gap-3">
                                             <button
                                                 onClick={() => onProcess(acte.id, 'statut', 1)}
-                                                disabled={acte.statut !== 0}
+                                                disabled={isAlreadyProcessed}
                                                 className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${acte.statut === 1
                                                     ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-500/30'
-                                                    : acte.statut !== 0 
+                                                    : isAlreadyProcessed
                                                         ? 'bg-slate-100 text-slate-300 cursor-not-allowed'
                                                         : 'bg-white dark:bg-slate-900 text-slate-400 hover:text-emerald-600 hover:border-emerald-200 border border-transparent'
                                                     }`}
@@ -252,10 +250,10 @@ const MedicalActCard = ({ acte, index, isAdmin, onProcess, onSave }) => {
                                             </button>
                                             <button
                                                 onClick={() => onProcess(acte.id, 'statut', 2)}
-                                                disabled={acte.statut !== 0}
+                                                disabled={isAlreadyProcessed}
                                                 className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${acte.statut === 2
                                                     ? 'bg-rose-600 text-white shadow-lg shadow-rose-500/30'
-                                                    : acte.statut !== 0
+                                                    : isAlreadyProcessed
                                                         ? 'bg-slate-100 text-slate-300 cursor-not-allowed'
                                                         : 'bg-white dark:bg-slate-900 text-slate-400 hover:text-rose-600 hover:border-rose-200 border border-transparent'
                                                     }`}
@@ -288,7 +286,7 @@ const MedicalActCard = ({ acte, index, isAdmin, onProcess, onSave }) => {
                                         <label className="text-[9px] font-black uppercase text-slate-400 mb-1 block ml-1">Montant à rembourser (TND)</label>
                                         <input
                                             type="number"
-                                            disabled={acte.statut !== 0}
+                                            disabled={isAlreadyProcessed}
                                             value={acte.montant_remboursement || 0}
                                             max={acte.honoraires}
                                             onChange={(e) => {
@@ -301,8 +299,8 @@ const MedicalActCard = ({ acte, index, isAdmin, onProcess, onSave }) => {
                                     </div>
 
                                     <button
-                                        onClick={() => onSave(acte)}
-                                        disabled={acte.statut !== 0}
+                                        onClick={() => onSave(acte, setSavedStatut)}
+                                        disabled={isAlreadyProcessed || acte.statut === 0}
                                         className="w-full py-3 bg-slate-900 text-white rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-black transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                         <Save size={14} />
@@ -333,7 +331,6 @@ const MedicalActCard = ({ acte, index, isAdmin, onProcess, onSave }) => {
 };
 
 // Composant pour les documents amélioré
-// Composant pour les documents amélioré
 const DocumentCard = ({ doc, index, onPreview, isActive, isAdmin, expandedAiDocs, toggleAiDoc, uploadBase }) => {
     const fileUrl = `${uploadBase}/uploads/${doc.fichier}`;
     const isPdf = doc.fichier?.toLowerCase().endsWith('.pdf');
@@ -353,21 +350,19 @@ const DocumentCard = ({ doc, index, onPreview, isActive, isAdmin, expandedAiDocs
             <div className="p-4">
                 <div className="flex gap-4">
                     {/* Visual Preview / Icon */}
-                    <div 
+                    <div
                         onClick={() => onPreview(isActive ? null : doc)}
-                        className={`relative cursor-pointer w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 flex items-center justify-center transition-all duration-300 ${
-                        isActive ? 'ring-2 ring-purple-500 ring-offset-2 dark:ring-offset-slate-900' : 'group-hover:scale-105'
-                    }`}>
+                        className={`relative cursor-pointer w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 flex items-center justify-center transition-all duration-300 ${isActive ? 'ring-2 ring-purple-500 ring-offset-2 dark:ring-offset-slate-900' : 'group-hover:scale-105'
+                            }`}>
                         {isImage ? (
-                            <img 
-                                src={fileUrl} 
-                                alt="Miniature" 
+                            <img
+                                src={fileUrl}
+                                alt="Miniature"
                                 className="w-full h-full object-cover"
                             />
                         ) : (
-                            <div className={`w-full h-full flex flex-col items-center justify-center ${
-                                isPdf ? 'bg-rose-50 dark:bg-rose-900/20 text-rose-500' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'
-                            }`}>
+                            <div className={`w-full h-full flex flex-col items-center justify-center ${isPdf ? 'bg-rose-50 dark:bg-rose-900/20 text-rose-500' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'
+                                }`}>
                                 <FileText size={24} />
                                 <span className="text-[8px] font-black mt-1 uppercase">PDF</span>
                             </div>
@@ -385,16 +380,15 @@ const DocumentCard = ({ doc, index, onPreview, isActive, isAdmin, expandedAiDocs
                         <p className="text-[10px] text-slate-400 font-medium truncate mt-1">
                             {doc.fichier}
                         </p>
-                        
+
                         <div className="flex items-center gap-3 mt-3">
                             <button
                                 onClick={(e) => {
                                     e.stopPropagation();
                                     onPreview(isActive ? null : doc);
                                 }}
-                                className={`flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest transition-colors ${
-                                    isActive ? 'text-purple-600' : 'text-slate-400 hover:text-purple-500'
-                                }`}
+                                className={`flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest transition-colors ${isActive ? 'text-purple-600' : 'text-slate-400 hover:text-purple-500'
+                                    }`}
                             >
                                 <Eye size={12} />
                                 {isActive ? 'Fermer' : 'Aperçu'}
@@ -417,9 +411,8 @@ const DocumentCard = ({ doc, index, onPreview, isActive, isAdmin, expandedAiDocs
                     <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-700/50">
                         <button
                             onClick={() => toggleAiDoc(index)}
-                            className={`w-full flex items-center justify-between py-1.5 px-2 rounded-lg transition-colors ${
-                                expandedAiDocs[index] ? 'bg-purple-50 dark:bg-purple-900/10' : 'hover:bg-slate-50 dark:hover:bg-slate-700/30'
-                            }`}
+                            className={`w-full flex items-center justify-between py-1.5 px-2 rounded-lg transition-colors ${expandedAiDocs[index] ? 'bg-purple-50 dark:bg-purple-900/10' : 'hover:bg-slate-50 dark:hover:bg-slate-700/30'
+                                }`}
                         >
                             <div className="flex items-center gap-2">
                                 <Zap size={12} className={doc.score > 80 ? 'text-emerald-500' : 'text-purple-500'} />
@@ -432,7 +425,7 @@ const DocumentCard = ({ doc, index, onPreview, isActive, isAdmin, expandedAiDocs
                             </div>
                             <ChevronRight size={12} className={`text-slate-400 transition-transform ${expandedAiDocs[index] ? 'rotate-90' : ''}`} />
                         </button>
-                        
+
                         <AnimatePresence>
                             {expandedAiDocs[index] && (
                                 <motion.div
@@ -536,7 +529,7 @@ const BulletinDetailsPage = () => {
             // Vérifier si tous les items sont traités
             const actsPending = bulletin.actes?.some(a => a.statut === 0);
             const pharmaPending = bulletin.pharmacie && bulletin.pharmacie.statut === 0;
-            
+
             if (actsPending || pharmaPending) {
                 showToast("Veuillez traiter tous les actes médicaux et la pharmacie avant de valider le bulletin.", "warning");
                 return;
@@ -554,7 +547,7 @@ const BulletinDetailsPage = () => {
         });
     };
 
-    const handleSingleActSave = async (acte) => {
+    const handleSingleActSave = async (acte, setSavedStatut) => {
         try {
             setLoading(true);
             await updateStatutActeMedical(acte.id, {
@@ -564,6 +557,8 @@ const BulletinDetailsPage = () => {
                 montant_remboursement: acte.montant_remboursement
             });
             showToast("Acte mis à jour avec succès", "success");
+            // Verrouille la carte localement (statut persisté = statut actuel)
+            if (setSavedStatut) setSavedStatut(acte.statut);
             // Refresh data
             const data = await getBulletinById(id);
             setBulletin(data);
@@ -606,6 +601,38 @@ const BulletinDetailsPage = () => {
             ...prev,
             pharmacie: { ...prev.pharmacie, [field]: value }
         }));
+    };
+
+    const handleMedicamentProcessing = (medId, field, value) => {
+        setBulletin(prev => ({
+            ...prev,
+            pharmacie: {
+                ...prev.pharmacie,
+                medicaments: prev.pharmacie.medicaments.map(m => m.id === medId ? { ...m, [field]: value } : m)
+            }
+        }));
+    };
+
+    const handleMedicamentStatusUpdate = async (medId, status) => {
+        try {
+            const med = bulletin.pharmacie.medicaments.find(m => m.id === medId);
+            if (!med) return;
+
+            const response = await bulletinService.updateStatutMedicament(medId, {
+                statut: status,
+                montant_remboursement: status === 1 ? med.montant_remboursement : 0
+            });
+
+            if (response) {
+                toast.success('Médicament mis à jour');
+                // Rafraîchir les données du bulletin
+                const updatedBulletin = await bulletinService.getBulletinById(id);
+                setBulletin(updatedBulletin);
+            }
+        } catch (error) {
+            console.error(error);
+            toast.error(error.message || 'Erreur lors de la mise à jour');
+        }
     };
 
     if (loading) {
@@ -942,7 +969,7 @@ const BulletinDetailsPage = () => {
                                                         <div className="grid grid-cols-2 gap-4">
                                                             <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700">
                                                                 <p className="text-[9px] font-black text-slate-400 uppercase mb-1">Montant Total</p>
-                                                                <p className="text-lg font-black text-slate-800 dark:text-white">{formatMontantTnd(bulletin.pharmacie.montant || 0)} TND</p>
+                                                                <p className="text-lg font-black text-slate-800 dark:text-white">{formatMontantTnd(bulletin.pharmacie.montant_pharmacie || bulletin.pharmacie.montant || 0)} TND</p>
                                                             </div>
                                                             <div className="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-100 dark:border-emerald-800/30">
                                                                 <p className="text-[9px] font-black text-emerald-600 uppercase mb-1">Remboursement</p>
@@ -950,10 +977,10 @@ const BulletinDetailsPage = () => {
                                                                     type="number"
                                                                     disabled={bulletin.pharmacie.statut !== 0}
                                                                     value={bulletin.pharmacie.montant_remboursement || 0}
-                                                                    max={bulletin.pharmacie.montant}
+                                                                    max={bulletin.pharmacie.montant_pharmacie || bulletin.pharmacie.montant || 0}
                                                                     onChange={(e) => {
                                                                         const val = parseFloat(e.target.value) || 0;
-                                                                        if (val > (bulletin.pharmacie.montant || 0)) return;
+                                                                        if (val > (bulletin.pharmacie.montant_pharmacie || bulletin.pharmacie.montant || 0)) return;
                                                                         handlePharmacieProcessing('montant_remboursement', val);
                                                                     }}
                                                                     placeholder="Montant remboursement"
@@ -975,6 +1002,74 @@ const BulletinDetailsPage = () => {
                                                                 />
                                                             </div>
                                                         </div>
+
+                                                        {/* Liste des Médicaments */}
+                                                        {bulletin.pharmacie.medicaments && bulletin.pharmacie.medicaments.length > 0 && (
+                                                            <div className="space-y-3">
+                                                                <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Liste des médicaments ({bulletin.pharmacie.medicaments.length})</p>
+                                                                <div className="grid grid-cols-1 gap-3">
+                                                                    {bulletin.pharmacie.medicaments.map((med, mIdx) => (
+                                                                        <div key={med.id || mIdx} className="p-5 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-700 flex flex-col gap-4">
+                                                                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                                                                <div className="flex items-center gap-3">
+                                                                                    <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600">
+                                                                                        <Pill size={18} />
+                                                                                    </div>
+                                                                                    <div>
+                                                                                        <h4 className="text-sm font-bold text-slate-800 dark:text-white">{med.nom_medicament}</h4>
+                                                                                        <p className="text-[10px] text-slate-500 font-medium">{med.dosage || 'Dosage non spécifié'} • Qté: {med.quantite}</p>
+                                                                                    </div>
+                                                                                </div>
+                                                                                <div className="flex items-center gap-6">
+                                                                                    <div className="text-right">
+                                                                                        <p className="text-[10px] font-black text-slate-400 uppercase mb-0.5">Montant</p>
+                                                                                        <p className="text-sm font-black text-slate-800 dark:text-white">{formatMontantTnd(med.montant_total)} TND</p>
+                                                                                    </div>
+                                                                                    {med.statut === 1 && med.montant_remboursement > 0 && (
+                                                                                        <div className="text-right">
+                                                                                            <p className="text-[10px] font-black text-emerald-500 uppercase mb-0.5">Remb.</p>
+                                                                                            <p className="text-sm font-black text-emerald-600">{formatMontantTnd(med.montant_remboursement)} TND</p>
+                                                                                        </div>
+                                                                                    )}
+                                                                                    {med.statut === 2 && (
+                                                                                        <div className="px-2 py-1 rounded-md bg-rose-100 text-rose-600 text-[9px] font-black uppercase">Rejeté</div>
+                                                                                    )}
+                                                                                </div>
+                                                                            </div>
+
+                                                                            {isAdmin && med.statut === 0 && (
+                                                                                <div className="pt-4 border-t border-slate-200/50 dark:border-slate-700/50 flex flex-col md:flex-row items-center gap-4">
+                                                                                    <div className="flex-1 w-full">
+                                                                                        <input
+                                                                                            type="number"
+                                                                                            step="0.001"
+                                                                                            placeholder="Montant remboursable"
+                                                                                            className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold"
+                                                                                            value={med.montant_remboursement || ''}
+                                                                                            onChange={(e) => handleMedicamentProcessing(med.id, 'montant_remboursement', parseFloat(e.target.value) || 0)}
+                                                                                        />
+                                                                                    </div>
+                                                                                    <div className="flex gap-2 w-full md:w-auto">
+                                                                                        <button
+                                                                                            onClick={() => handleMedicamentStatusUpdate(med.id, 1)}
+                                                                                            className="flex-1 md:px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-[10px] font-black uppercase transition-all"
+                                                                                        >
+                                                                                            Accepter
+                                                                                        </button>
+                                                                                        <button
+                                                                                            onClick={() => handleMedicamentStatusUpdate(med.id, 2)}
+                                                                                            className="flex-1 md:px-4 py-2 bg-rose-500 hover:bg-rose-600 text-white rounded-xl text-[10px] font-black uppercase transition-all"
+                                                                                        >
+                                                                                            Rejeter
+                                                                                        </button>
+                                                                                    </div>
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+                                                        )}
 
                                                         {isAdmin && (
                                                             <div className="space-y-4">
@@ -1110,7 +1205,7 @@ const BulletinDetailsPage = () => {
                                             </p>
                                         </div>
                                     </div>
-                                    
+
                                     <div className="flex items-center gap-2">
                                         <a
                                             href={`${uploadBase}/uploads/${previewDoc.fichier}`}
@@ -1155,7 +1250,7 @@ const BulletinDetailsPage = () => {
                                     {/* Action Floating Buttons (appear on hover) */}
                                     <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex items-center gap-3 opacity-0 group-hover/preview:opacity-100 transition-all duration-500 translate-y-4 group-hover/preview:translate-y-0">
                                         <div className="flex items-center gap-1 p-1.5 bg-white/90 dark:bg-slate-800/90 backdrop-blur-xl rounded-2xl shadow-2xl border border-white dark:border-slate-700">
-                                            <button 
+                                            <button
                                                 onClick={() => window.print()}
                                                 className="p-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-all"
                                                 title="Imprimer"
@@ -1163,7 +1258,7 @@ const BulletinDetailsPage = () => {
                                                 <Printer size={18} />
                                             </button>
                                             <div className="w-px h-6 bg-slate-200 dark:bg-slate-700 mx-1" />
-                                            <a 
+                                            <a
                                                 href={`${uploadBase}/uploads/${previewDoc.fichier}`}
                                                 download
                                                 className="flex items-center gap-2 px-5 py-3 bg-purple-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-purple-700 transition-all shadow-lg shadow-purple-500/20"
@@ -1174,7 +1269,7 @@ const BulletinDetailsPage = () => {
                                         </div>
                                     </div>
                                 </div>
-                                
+
                                 {/* Footer Info */}
                                 <div className="px-6 py-3 bg-slate-50 dark:bg-slate-900 border-t border-slate-100 dark:border-white/5 flex items-center justify-between">
                                     <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">

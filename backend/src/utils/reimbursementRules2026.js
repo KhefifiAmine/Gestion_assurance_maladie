@@ -1,88 +1,148 @@
 /**
  * Barème de remboursement Assurance Groupe Maladie 2026
- * Source: Livret d'information assurances 2026.pdf (Tableau 2026 Amélioré)
  */
 
 const reimbursementRules2026 = {
+
     consultations: {
-        C1_V1: 35.000, // Médecin Généraliste
-        C2_V2: 45.000, // Médecin Spécialiste
-        C3_V3: 50.000  // Professeur Agrégé
+        C1: 35,
+        C2: 45,
+        C3: 50,
+        V1: 35,
+        V2: 45,
+        V3: 50
     },
+
     pharmacie: {
         taux: 0.90,
-        plafond_annuel: 1000.000,
-        // Nouveauté 2026: Homéopathie, Phytothérapie, Hygiène et Vitamines (Femmes enceintes)
-        produits_bien_etre: {
-            taux: 0.90,
-            plafond_annuel: 1000.000
-        }
+        plafond_annuel: 1000
     },
+
     actes_medicaux_courants: {
-        PC: 1.000,  // Petite chirurgie
-        AMM: 1.000, // Auxiliaires médicaux (infirmiers)
-        AMO: 1.000, // Orthophonistes
-        AMY: 1.000  // Orthoptistes
-    },
-    analyses_biologiques: {
-        coefficient_B: 0.300,
-        taux_remboursement: 0.80,
-        plafond_annuel: 800.000
-    },
-    chirurgie: {
-        coefficient_KC: 9.000, // Amélioré (était 8 en 2025)
-        anesthesie_max: 250.000,
-        salle_operation_max: 250.000
-    },
-    radiographie_electroradiologie: {
-        taux: 0.90,
-        plafond_annuel: 600.000
-    },
-    optique: {
-        montures: {
-            taux: 0.90,
-            plafond_max: 250.000,
-            renouvellement_ans: 2,
-            renouvellement_enfant_moins_16_ans: 1
-        },
-        verres: {
-            taux: 0.90,
-            plafond_max: 200.000,
-            condition: "Changement d'acuité visuelle uniquement"
+        coefficients: {
+            PC: 1,
+            AM:  1,
+            AMM: 1,
+            AMO: 1,
+            AMY: 1
         }
     },
+
+    analyses: {
+        coefficient_B: 0.300,
+        taux: 0.80,
+        plafond_annuel: 800
+    },
+
+    chirurgie: {
+        coefficient_KC: 9,
+        anesthesie: {
+            taux: 0.90,
+            plafond_annuel: 250
+        },
+        salle_operation: {
+            taux: 0.90,
+            plafond_annuel: 250
+        }
+    },
+
+    orthopedie_prothese: {
+        taux: 1,
+        plafond_annuel: 600
+    },
+
+    radiologie_electroradiologie: {
+        taux: 0.90,
+        plafond_annuel: 600
+    },
+
+    traitement_special: {
+        taux: 1,
+        plafond_annuel: 650
+    },
+
+    optique: {
+        monture: {
+            taux: 0.90,
+            plafond_max: 250,
+            renouvellement: {
+                adulte_ans: 2,
+                enfant_moins_16_ans: 1
+            }
+        },
+
+        verre: {
+            taux: 0.90,
+            plafond_max: 200
+        }
+    },
+
     dentaire: {
+
         soins_protheses_implants: {
+            types: [
+                "Soin dentaire",
+                "Prothèses dentaires",
+                "Implants dentaires"
+            ],
             taux: 0.80,
-            plafond_annuel: 1000.000
+            plafond_annuel: 1000
         },
+
         orthopedie_dento_faciale: {
-            age_limite: 18,
-            plafond_annuel: 300.000
-        },
-        soins_etales_max_ans: 3 // Amélioré (était 2 en 2025)
+            plafond_annuel: 300,
+            conditions: {
+                age_max: 18,
+                par_an: true
+            }
+        }
     },
+
     hospitalisation: {
-        clinique: 110.000,   // par jour
-        hopital: 10.000,     // par jour
-        reanimation: 150.000, // par jour
-        couveuse: 80.000,     // par jour (max 15 jours)
-        usage_unique_medical: 200.000
+
+        clinique: {
+            montant_par_jour: 110
+        },
+
+        hopital: {
+            montant_par_jour: 10
+        },
+
+        reanimation: {
+            montant_par_jour: 150
+        },
+
+        couveuse: {
+            montant_par_jour: 80,
+            max_jours: 15
+        },
+        usage_unique_medical: { 
+            montant: 200
+        } 
     },
+
     maternite: {
-        accouchement_simple: 500.000,
-        gemellaire: 600.000,
-        sterilite: 1500.000
+        accouchement_simple: 500,
+        gemellaire: 600,
+        sterilite: 1500
     },
+
     divers: {
+
         transport_malade: {
             taux: 0.80,
-            plafond_max: 100.000
+            plafond_max: 100
         },
-        circoncision: 100.000,
-        cure_thermale: 15.000 // par jour (max 21 jours)
+
+        circoncision: 100,
+
+        cure_thermale: {
+            montant_par_jour: 15,
+            max_jours: 21
+        }
     },
-    plafond_annuel_global_par_prestataire: 4500.000
+
+    plafond_annuel_global_par_prestataire: 4500
 };
 
 module.exports = reimbursementRules2026;

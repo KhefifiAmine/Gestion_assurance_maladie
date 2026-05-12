@@ -74,6 +74,14 @@ const ActeMedical = sequelize.define('ActeMedical', {
             model: 'bulletin_soins',
             key: 'id'
         }
+    },
+    prestataireId: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        references: {
+            model: 'prestataires',
+            key: 'id'
+        }
     }
 }, {
     tableName: 'acte_medicaux',

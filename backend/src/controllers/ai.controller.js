@@ -55,7 +55,7 @@ const analyzeBulletin = async (req, res) => {
         duplicateFiles: filesExist.map(f => f.name)
       });
     }
-    
+
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
       console.error("Erreur: GEMINI_API_KEY non trouvée dans .env");
@@ -66,156 +66,223 @@ const analyzeBulletin = async (req, res) => {
     const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
 
     const prompt = `
-    Tu agis en tant qu'expert en analyse de bulletins de soins en Tunisie.
+      Tu es un expert certifié en analyse de bulletins de soins tunisiens, 
+      spécialisé dans la détection de fraude documentaire et la vérification de conformité.
 
-    Analyse ces documents (image ou PDF) avec une grande précision. 
-    Il s'agit principalement d’un bulletin de soins tunisien contenant des informations sur le patient, les actes médicaux et le professionnel de santé.
-    Tu responsables d'analyser un jusqu'a 5 documents.
+      Tu analyses entre 1 et 5 documents (images ou PDFs) transmis simultanément.
+      Pour chaque document, produis un objet JSON indépendant dans un tableau racine.
 
-    ========================
-    📌 INSTRUCTIONS GÉNÉRALES
-    ========================
+      ========================
+      📌 RÈGLES FONDAMENTALES
+      ========================
 
-    - Extraire uniquement les données visibles dans le document.
-    - Ne pas inventer d'informations.
-    - Si une donnée est absente → mettre null ou "".
-    - Respecter les formats demandés.
-    - Un bulletin peut contenir plusieurs actes → utiliser un tableau.
+      1. N'extraire que les données VISIBLES dans le document.
+      2. Ne jamais inventer, compléter ou déduire une donnée absente.
+      3. Champ absent → null (jamais "" sauf pour les chaînes explicitement vides).
+      4. Si le document est illisible, renvoyer : { "erreur": "document_illisible", "Numero_de_fichier_analyser": N }
+      5. Si le document n'est pas un bulletin de soins, renvoyer : { "erreur": "non_medical", "Numero_de_fichier_analyser": N }
+      4. Formats obligatoires : dates → YYYY-MM-DD | montants → float | noms → MAJUSCULES sans accents superflus.
 
-    ========================
-    📌 EXTRACTION DES DONNÉES
-    ========================
+      ========================
+      📌 TYPES DE FICHIERS ACCEPTÉS
+      ========================
 
-    1. IDENTIFICATION DU DOCUMENT :
-    - Déterminer si c’est un bulletin de soins tunisien.
-    - Détecter s’il contient des termes médicaux (acte, médecin, cachet, ordonnance, etc.).
+      - Images : JPG, PNG, TIFF (résolution minimum recommandée : 150 DPI)
+      - Documents : PDF (texte natif ou scanné)
+      - En cas de document dégradé : signaler dans "champs_manquants" et poursuivre l'extraction partielle.
 
-    2. INFORMATIONS ADHÉRENT / PATIENT :
-    - Nom et prénom (en MAJUSCULES)
-    - Matricule (ex: TT-12345)
-    - Qualité : Lui-même / Conjoint / Enfant
+      ========================
+      📌 EXTRACTION DES DONNÉES
+      ========================
 
-    3. INFORMATIONS BULLETIN :
-    - Numéro du bulletin (N°, Référence, etc.)
-    - Code CNAM (si présent)
-    - Date de soin principale (C'est la date de la dernière acte figurant sur le bulletin)
-    - Soins dans le cadre de :
-    - APCI
-    - Suivi de la grossesse
-    - Autres
-    - Date prévue d’accouchement (si mentionnée)
+      --- A. IDENTIFICATION DU DOCUMENT ---
+      - Confirmer qu'il s'agit d'un bulletin de soins tunisien (présence de : cachet, actes, matricule CNAM).
+      - Détecter les termes clés : acte, médecin, cachet, ordonnance, CNAM, APCI.
 
-    4. PROFESSIONNEL DE SANTÉ (IMPORTANT) :
-    - Identifiant unique (MF)
-    - Nom (si présent dans le cachet)
-    - Présence de cachet (true/false)
-    - Présence de signature (true/false)
+      --- B. INFORMATIONS ADHÉRENT / PATIENT ---
+      - Nom et prénom : MAJUSCULES
+      - Matricule : format attendu XX-NNNNN (ex : TT-12345) — signaler si format inhabituel
+      - Qualité : enum strict → "Lui-même" | "Conjoint" | "Enfant"
 
-    5. ACTES MÉDICAUX (TRÈS IMPORTANT) : // c'est le meme prestataires de soins
-    Pour chaque ligne d’acte extraire :
+      --- C. INFORMATIONS BULLETIN ---
+      - Numéro du bulletin
+      - Code CNAM (si présent)
+      - Date de soin : DATE DU DERNIER ACTE figurant sur le bulletin
+      - Cadre de soins (un seul) : "APCI" | "Suivi de la grossesse" | "Autres"
+      - Date prévue d'accouchement (uniquement si suivi de grossesse)
 
-    - date_acte
-    - code_acte
-    - description_acte
-    - cote
-    - numero_dent (si dentaire)
-    - montant (honoraires)
-    - identifiant_unique_mf
-    - cachet_signature_present (true/false)
-    - date_cachet_signature (si visible)
+      --- D. PROFESSIONNEL DE SANTÉ ---
+      - Identifiant MF (matricule fiscal)
+      - Nom issu du cachet
+      - Présence cachet : true/false
+      - Présence signature : true/false
+      ⚠️ L'absence de cachet ET de signature est un signal de fraude fort.
 
-    ⚠️ Un bulletin peut contenir plusieurs actes → retourner un tableau "actes"
+      --- E. ACTES MÉDICAUX ---
+      Pour chaque ligne d'acte, extraire :
 
-    6. MONTANT :
-    - Extraire le montant total (le plus grand montant ou total du document)
+      - date_acte
+      - acte : valeur issue de ACTE_STRUCTURE (voir section JSON)
+      - cote : valeur de cote associée à l'acte
+      - code_acte : uniquement pour les actes dentaires
+      - numero_dent : uniquement pour les actes dentaires (ex : "14", "36")
+      - honoraires : montant float, null si absent
+      - identifiant_unique_mf : MF du prestataire
+      - est_cachet / est_signature : true/false
+      - date_cachet_signature : si distincte de date_acte
+      - prestataire_detecté : true/false
+      - prestataire : { nom, telephone, adresse }
 
-    ========================
-    🚨 DÉTECTION DE FRAUDE LOCALE
-    ========================
+      ⚠️ Plusieurs actes possibles par bulletin → tableau "actes" obligatoire, même pour 1 seul acte.
 
-    Analyser le document pour détecter :
+      --- F. PHARMACIE ---
+      Détecter si une ordonnance/pharmacie est jointe :
+      - Si oui : renseigner le bloc "pharmacie" complet
+      - Pour chaque médicament : nom, dosage, quantité, prix unitaire, montant total
 
-    - surcharge ou modification de chiffres
-    - incohérence d’alignement
-    - différences de police
-    - montants incohérents entre actes
-    - absence de cachet/signature
+      --- G. MONTANT ---
+      - montant_total = somme de tous les honoraires des actes
+      - Si un total imprimé est visible ET diffère du calcul → signaler en "zones_modifiees"
 
-    Retourner :
-    - suspicion_locale (true/false)
-    - zones_modifiees (description technique)
+      ========================
+      🚨 DÉTECTION DE FRAUDE
+      ========================
 
-    ========================
-    📊 NORMALISATION
-    ========================
+      Analyser systématiquement :
 
-    - Dates → format YYYY-MM-DD
-    - Montants → float
-    - Noms → MAJUSCULES
-    - Supprimer espaces inutiles
+      FRAUDE DOCUMENTAIRE :
+      □ Surcharge ou rature de chiffres ou dates
+      □ Changement de police ou taille de caractères mid-document
+      □ Désalignement de texte sur lignes préimprimées
+      □ Incohérence entre date d'acte et date de cachet
+      □ Montant total ≠ somme des actes
 
-    ========================
-    📦 FORMAT JSON OBLIGATOIRE
-    ========================
+      FRAUDE MÉTIER :
+      □ Acte incompatible avec la spécialité du prestataire
+      □ Plusieurs actes le même jour pour le même patient par le même prestataire (doublon)
+      □ Qualité "Enfant" avec date de naissance > 26 ans
+      □ Matricule adhérent invalide (format non conforme)
 
-    {
-    "Numero_de_fichier_analyser" : 0
-    "est_document_medical": true/false,
+      Retourner :
+      - suspicion_locale : true/false
+      - niveau_risque : "faible" | "moyen" | "élevé"
+      - zones_modifiees : description précise des anomalies détectées
 
-    "numero_bulletin": "", //Numéro du bulletin initial (N°, Référence, etc.)
-    "code_cnam": "", //Code CNAM (si présent)
-    "matricule_adherent": "", //Matricule (ex: TT-12345)
-    "nom_prenom_adherent": "", //Nom et prénom  de l'adherent(en MAJUSCULES)
-    "adresse_adherent": "", //Adresse (si présent)
-    "client": "", //Client(en MAJUSCULES)
+      ========================
+      📊 NORMALISATION
+      ========================
 
-    "nom_prenom_malade": "", //Nom et prénom  du malade(en MAJUSCULES)
-    "qualite_malade": "", //soit un des ces champs marquets Lui-même / Conjoint / Enfant
-    "date_naissance_malade": "", //data de naissance
+      - Dates → YYYY-MM-DD
+      - Montants → float (ex : 45.500 → 45.5)
+      - Noms → MAJUSCULES, espaces normalisés
+      - Numéros de téléphone → format +216 XX XXX XXX si détecté
+      - MF → conserver tel quel, noter si format inhabituel
 
-    "date_soin": "", // format YYYY-MM-DD (date du dernier acte)
+      ========================
+      📦 FORMAT JSON OBLIGATOIRE
+      ========================
 
-    "est_apci": true/false,
-    "suivi_grossesse": true/false,
-    "date_prevue_accouchement": "",
-    "soins_cadre": "", //APCI / Suivi de la grossesse / Autres
+      const ACTE_STRUCTURE = {
+        "Consultation": ["C1", "C2", "C3", "V1", "V2", "V3"],
+        "Analyses": ["B"],
+        "Actes médicaux courants": ["PC", "AMM", "AMO", "AMY"],
+        "Chirurgie": ["KC"],
+        "Radiologie / Électroradiologie": ["R", "REK"],
+        "Optique": ["Monture", "Verre"],
+        "Dentaire": ["Soin dentaire", "Orthopedie Dento Faciale", "Prothèses dentaires", "Implants dentaires"],
+        "Hospitalisation": ["Clinique", "Hôpital", "Réanimation", "Couveuse", "Usage unique medical"],
+        "Maternité": ["Accouchement simple", "Gémellaire", "Stérilité"],
+        "Divers": ["Transport Maladie", "Circoncision", "Cure thermale"],
+        "Traitement Spécial": ["Traitement spécial"],
+        "Orthopédie / Prothèse": ["Orthopédie", "Prothèse"],
+        "Salle d’opération": ["SO"],
+        "Anesthésie": ["ANE"]
+      };
 
-    "pharmacie": {
-      "identifiant_unique_mf": "",
-      "est_cachet": true/false,
-      "est_signature": true/false,
-      "date": "",
-      "montant_pharmacie": 0
-    }
-
-    
-
-    "actes": [ //c'est le meme prestataires de soins
+      // Réponse
       {
-        "date_acte": "",
-        "acte": "",
-        "cote": "",
-        "code_acte": "", //pour le dentaire
-        "numero_dent": "", //pour le dentaire
-        "honoraires": 0,
-        "identifiant_unique_mf": "",
-        "est_cachet": true/false,
-        "est_signature": true/false,
-        "date_cachet_signature": "",
-        "type_prestataire_soin": "", //non dentaire ou dentaire
+      "Numero_de_fichier_analyser": 1,         // Index 1-based, obligatoire
+      "erreur": null,                           // "document_illisible" | "non_medical" | null
+
+      "est_document_medical": true,
+
+      "numero_bulletin": null,
+      "code_cnam": null,
+      "matricule_adherent": null,               // format XX-NNNNN
+      "nom_prenom_adherent": null,
+      "adresse_adherent": null,
+      "client": null,
+
+      "nom_prenom_malade": null,
+      "qualite_malade": null,                   // "Lui-même" | "Conjoint" | "Enfant"
+      "date_naissance_malade": null,
+
+      "date_soin": null,                        // Date du DERNIER acte — YYYY-MM-DD
+
+      "est_apci": false,
+      "suivi_grossesse": false,
+      "date_prevue_accouchement": null,         // Uniquement si suivi_grossesse = true
+      "soins_cadre": null,                      // "APCI" | "Suivi de la grossesse" | "Autres"
+
+      "pharmacie_detecte": false,               // ⚠️ Corrigé : "detecté" → "detecte" (ASCII safe)
+      "pharmacie": {
+        "identifiant_unique_mf": null,
+        "est_cachet": false,
+        "est_signature": false,
+        "date": null,
+        "montant_pharmacie": null,
+        "nom": null,
+        "telephone": null,
+        "adresse": null,
+        "medicaments": [
+          {
+            "nom_medicament": null,
+            "dosage": null,
+            "quantite": null,
+            "prix_unitaire": null,
+            "montant_total": null
+          }
+        ]
+      },
+
+      "actes": [
+        {
+          "date_acte": null,
+          "acte": null,                         // Valeur de ACTE_STRUCTURE (clé)
+          "cote": null,                         // Valeur de cote (valeur dans le tableau)
+          "code_acte": null,                    // Dentaire uniquement
+          "numero_dent": null,                  // Dentaire uniquement
+          "honoraires": null,
+          "est_cachet": false,
+          "est_signature": false,
+          "date_cachet_signature": null,
+          "type_prestataire_soin": null,        // "dentaire" | "non dentaire"
+          "prestataire_detecte": false,
+          "prestataire": {
+            "identifiant_unique_mf": null,
+            "nom": null,
+            "telephone": null,
+            "adresse": null
+          }
+        }
+      ],
+
+      "est_signe_adherent": false,
+
+      "montant_total": null,                    // Calculé = somme des honoraires
+
+      "confiance_score": null,                  // Float 0.0 à 1.0
+      "confiance_details": {                    // ⬅ NOUVEAU
+        "lisibilite": null,                     // "bonne" | "moyenne" | "faible"
+        "completude": null,                     // % de champs non-null
+        "coherence": null                       // "cohérent" | "anomalie détectée"
+      },
+
+      "suspicion_locale": false,
+      "niveau_risque": null,                    // ⬅ NOUVEAU : "faible" | "moyen" | "élevé"
+      "zones_modifiees": null,
+      "champs_manquants": []
       }
-    ],
-    
-    "est_signe_adherent": true/false, //signature adherent
-    
-    "montant_total": 0, //calculer montant total du bulletin
-
-    "confiance_score": 0, //score de confiance de l'IA
-    "suspicion_locale": true/false, //suspicion locale de l'IA
-    "zones_modifiees": "" //zones modifiées par l'utilisateur
-    "champs_manquants": [] //champs manquants par l'IA
-
-    }
     `;
 
     const parts = [

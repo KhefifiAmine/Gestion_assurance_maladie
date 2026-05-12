@@ -15,6 +15,18 @@ const Pharmacie = sequelize.define('Pharmacie', {
             key: 'id'
         }
     },
+    nom: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    telephone: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    adresse: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
     identifiant_unique_mf: {
         type: DataTypes.STRING,
         allowNull: true
@@ -39,8 +51,7 @@ const Pharmacie = sequelize.define('Pharmacie', {
     },
     statut: {
         type: DataTypes.INTEGER,
-        defaultValue: 0 // 0:
-        // En attente, 1: Accepté, 2: Rejeté
+        defaultValue: 0 // 0: En attente, 1: Accepté, 2: Rejeté
     },
     objet_rejet: {
         type: DataTypes.STRING,

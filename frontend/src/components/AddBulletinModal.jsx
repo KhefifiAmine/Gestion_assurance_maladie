@@ -14,14 +14,18 @@ import { useToast } from '../context/ToastContext';
 const ACTE_STRUCTURE = {
     "Consultation": ["C1", "C2", "C3", "V1", "V2", "V3"],
     "Analyses": ["B"],
-    "Actes médicaux courants":["PC", "AM", "AMM", "AMO", "AMY"],
+    "Actes médicaux courants": ["PC", "AMM", "AMO", "AMY"],
     "Chirurgie": ["KC"],
     "Radiologie / Électroradiologie": ["R", "REK"],
     "Optique": ["Monture", "Verre"],
-    "Dentaire": ["Soin Dentaire", "orthopedie_dento_faciale"],
-    "Hospitalisation": ["Clinique", "Hôpital", "Réanimation", "Couveuse"],
+    "Dentaire": ["Soin dentaire", "Orthopedie Dento Faciale", "Prothèses dentaires", "Implants dentaires"],
+    "Hospitalisation": ["Clinique", "Hôpital", "Réanimation", "Couveuse", "Usage unique medical"],
     "Maternité": ["Accouchement simple", "Gémellaire", "Stérilité"],
-    "Divers": ["Transport", "Circoncision", "Cure thermale"]
+    "Divers": ["Transport Maladie", "Circoncision", "Cure thermale"],
+    "Traitement Spécial": ["Traitement spécial"],
+    "Orthopédie / Prothèse": ["Orthopédie", "Prothèse"],
+    "Salle d’opération": ["SO"],
+    "Anesthésie": ["ANE"]
 };
 
 const DocumentPreview = ({ file, url }) => {
@@ -96,7 +100,8 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
             est_cachet: false,
             est_signature: false,
             date: '',
-            montant_pharmacie: 0
+            montant_pharmacie: 0,
+            medicaments: []
         },
 
         actes: [],
@@ -152,7 +157,8 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
                         est_cachet: initialData.pharmacie.est_cachet || false,
                         est_signature: initialData.pharmacie.est_signature || false,
                         date: initialData.pharmacie.date || initialData.pharmacie.date_achat || '',
-                        montant_pharmacie: initialData.pharmacie.montant_pharmacie || 0
+                        montant_pharmacie: initialData.pharmacie.montant_pharmacie || initialData.pharmacie.montant || 0,
+                        medicaments: initialData.pharmacie.medicaments || []
                     } : initialFormState.pharmacie,
                     est_signe_adherent: initialData.est_signe_adherent || false,
                     actes: initialData.actes || [],
@@ -263,7 +269,14 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
                     est_cachet: aiData.pharmacie.est_cachet || false,
                     est_signature: aiData.pharmacie.est_signature || false,
                     date: formatDateForInput(aiData.pharmacie.date) || '',
-                    montant_pharmacie: Number(aiData.pharmacie.montant_pharmacie) || 0
+                    montant_pharmacie: Number(aiData.pharmacie.montant_pharmacie) || 0,
+                    medicaments: Array.isArray(aiData.pharmacie.medicaments) ? aiData.pharmacie.medicaments.map(m => ({
+                        nom_medicament: clean(m.nom_medicament) || '',
+                        dosage: clean(m.dosage) || '',
+                        quantite: Number(m.quantite) || 1,
+                        prix_unitaire: Number(m.prix_unitaire) || 0,
+                        montant_total: Number(m.montant_total) || 0
+                    })) : []
                 } : prev.pharmacie,
 
                 actes: Array.isArray(aiData.actes) ? aiData.actes.map(a => ({
@@ -345,6 +358,60 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
             ...prev,
             actes: prev.actes.filter((_, i) => i !== index)
         }));
+    };
+
+    const addMedicament = () => {
+        setFormData(prev => ({
+            ...prev,
+            pharmacie: {
+                ...prev.pharmacie,
+                medicaments: [
+                    ...prev.pharmacie.medicaments,
+                    { nom_medicament: '', dosage: '', quantite: 1, prix_unitaire: 0, montant_total: 0 }
+                ]
+            }
+        }));
+    };
+
+    const updateMedicament = (index, fields) => {
+        setFormData(prev => {
+            const newMedicaments = [...prev.pharmacie.medicaments];
+            const updatedMed = { ...newMedicaments[index], ...fields };
+            
+            // Recalculer le montant total de la ligne
+            const qty = Number(updatedMed.quantite) || 0;
+            const up = Number(updatedMed.prix_unitaire) || 0;
+            updatedMed.montant_total = Number((qty * up).toFixed(3));
+            
+            newMedicaments[index] = updatedMed;
+            
+            // Recalculer le montant total pharmacie
+            const totalPharma = newMedicaments.reduce((sum, m) => sum + (Number(m.montant_total) || 0), 0);
+            
+            return {
+                ...prev,
+                pharmacie: {
+                    ...prev.pharmacie,
+                    medicaments: newMedicaments,
+                    montant_pharmacie: Number(totalPharma.toFixed(3))
+                }
+            };
+        });
+    };
+
+    const removeMedicament = (index) => {
+        setFormData(prev => {
+            const newMedicaments = prev.pharmacie.medicaments.filter((_, i) => i !== index);
+            const totalPharma = newMedicaments.reduce((sum, m) => sum + (Number(m.montant_total) || 0), 0);
+            return {
+                ...prev,
+                pharmacie: {
+                    ...prev.pharmacie,
+                    medicaments: newMedicaments,
+                    montant_pharmacie: Number(totalPharma.toFixed(3))
+                }
+            };
+        });
     };
 
     const handleSubmit = async (e) => {
@@ -976,7 +1043,72 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
                                                 </div>
 
                                                 <div className="p-4 bg-blue-50 dark:bg-blue-900/10 rounded-2xl border border-blue-100 dark:border-blue-800/50">
-                                                    <h4 className="text-[10px] font-black uppercase tracking-widest text-blue-600 dark:text-blue-400 mb-3 flex items-center gap-2"><Activity size={14} /> Détails Pharmacie</h4>
+                                                    <div className="flex items-center justify-between mb-4">
+                                                        <h4 className="text-[10px] font-black uppercase tracking-widest text-blue-600 dark:text-blue-400 flex items-center gap-2">
+                                                            <Activity size={14} /> Détails Pharmacie
+                                                        </h4>
+                                                        <button
+                                                            type="button"
+                                                            onClick={addMedicament}
+                                                            className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg text-[10px] font-black uppercase hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-all"
+                                                        >
+                                                            <Plus size={14} /> Ajouter un médicament
+                                                        </button>
+                                                    </div>
+
+                                                    <div className="space-y-4 mb-6">
+                                                        {formData.pharmacie.medicaments.map((med, idx) => (
+                                                            <div key={idx} className="p-4 bg-white dark:bg-slate-900/50 rounded-xl border border-blue-100 dark:border-blue-800 relative group animate-in slide-in-from-top-2 duration-300">
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => removeMedicament(idx)}
+                                                                    className="absolute -top-2 -right-2 p-1.5 bg-red-100 dark:bg-red-900/30 text-red-500 rounded-full opacity-0 group-hover:opacity-100 transition-all hover:scale-110"
+                                                                >
+                                                                    <X size={14} />
+                                                                </button>
+                                                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
+                                                                    <div className="space-y-1 lg:col-span-2">
+                                                                        <label className="text-[8px] font-black text-slate-400 uppercase">Nom du Médicament</label>
+                                                                        <input 
+                                                                            placeholder="Ex: Doliprane" 
+                                                                            className="w-full p-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white font-bold" 
+                                                                            value={med.nom_medicament} 
+                                                                            onChange={e => updateMedicament(idx, { nom_medicament: e.target.value })} 
+                                                                        />
+                                                                    </div>
+                                                                    <div className="space-y-1">
+                                                                        <label className="text-[8px] font-black text-slate-400 uppercase">Dosage</label>
+                                                                        <input 
+                                                                            placeholder="1000mg" 
+                                                                            className="w-full p-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white" 
+                                                                            value={med.dosage} 
+                                                                            onChange={e => updateMedicament(idx, { dosage: e.target.value })} 
+                                                                        />
+                                                                    </div>
+                                                                    <div className="space-y-1">
+                                                                        <label className="text-[8px] font-black text-slate-400 uppercase">Qté</label>
+                                                                        <input 
+                                                                            type="number" 
+                                                                            className="w-full p-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white font-black" 
+                                                                            value={med.quantite} 
+                                                                            onChange={e => updateMedicament(idx, { quantite: Number(e.target.value) })} 
+                                                                        />
+                                                                    </div>
+                                                                    <div className="space-y-1">
+                                                                        <label className="text-[8px] font-black text-slate-400 uppercase">P.U (TND)</label>
+                                                                        <input 
+                                                                            type="number" 
+                                                                            step="0.001" 
+                                                                            className="w-full p-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white font-black text-blue-600" 
+                                                                            value={med.prix_unitaire} 
+                                                                            onChange={e => updateMedicament(idx, { prix_unitaire: Number(e.target.value) })} 
+                                                                        />
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+
                                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                                         <div className="space-y-1">
                                                             <label className="text-[9px] font-bold text-slate-500 uppercase ml-1">MF Pharmacie</label>
@@ -988,7 +1120,7 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
                                                         </div>
                                                         <div className="space-y-1">
                                                             <label className="text-[9px] font-bold text-slate-500 uppercase ml-1">Montant Pharmacie (TND)</label>
-                                                            <input type="number" step="0.001" placeholder="0.000" className="w-full p-2.5 text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white font-bold" value={formData.pharmacie.montant_pharmacie || ''} onChange={e => setFormData({ ...formData, pharmacie: { ...formData.pharmacie, montant_pharmacie: Number(e.target.value) } })} />
+                                                            <input type="number" step="0.001" placeholder="0.000" className="w-full p-2.5 text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white font-black text-blue-600" value={formData.pharmacie.montant_pharmacie || ''} onChange={e => setFormData({ ...formData, pharmacie: { ...formData.pharmacie, montant_pharmacie: Number(e.target.value) } })} />
                                                         </div>
                                                         <div className="flex items-center gap-4 col-span-full">
                                                             <div className="flex items-center gap-2">
