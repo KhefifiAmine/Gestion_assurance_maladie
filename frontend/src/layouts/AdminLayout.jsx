@@ -133,9 +133,22 @@ const AdminLayout = () => {
         className="fixed top-0 left-0 h-1 z-[100] bg-gradient-to-r from-purple-400 to-indigo-600"
       />
 
+      {/* Mobile Sidebar Overlay */}
+      <AnimatePresence>
+        {isSidebarOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setIsSidebarOpen(false)}
+            className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-[45] lg:hidden"
+          />
+        )}
+      </AnimatePresence>
+
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex flex-col transition-all duration-500 transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:relative lg:translate-x-0 shadow-2xl`}
+        className={`fixed inset-y-0 left-0 z-50 flex flex-col transition-all duration-500 transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:relative lg:translate-x-0 shadow-2xl shrink-0`}
         style={{ width: isCollapsed ? '90px' : '280px', background: colors.secondary30Gradient }}
       >
         {/* Toggle Button - Floating Adjustment */}
@@ -168,6 +181,9 @@ const AdminLayout = () => {
             <motion.div key={item.name} whileHover={{ x: 5 }} transition={{ type: "spring", stiffness: 300 }}>
               <NavLink
                 to={item.path}
+                onClick={() => {
+                  if (window.innerWidth < 1024) setIsSidebarOpen(false);
+                }}
                 className={({ isActive }) =>
                   `w-full flex items-center justify-between px-6 py-4 rounded-2xl transition-all duration-300 group ${isActive ? 'shadow-2xl' : 'opacity-60 hover:opacity-100 hover:bg-white/10'
                   }`
@@ -213,7 +229,7 @@ const AdminLayout = () => {
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Header */}
         <header
-          className="h-20 flex items-center justify-between px-8 z-10 shadow-lg border-b dark:border-white/5"
+          className="h-20 flex items-center justify-between px-4 lg:px-8 z-10 shadow-lg border-b dark:border-white/5"
           style={{ background: theme === 'dark' ? '#1E1B4B' : colors.white }}
         >
           <div className="flex items-center gap-4">
@@ -229,7 +245,7 @@ const AdminLayout = () => {
           <div className="flex items-center gap-6">
             <button
               onClick={() => navigate('/dashboard')}
-              className="hidden sm:flex items-center gap-2 px-4 py-2.5 bg-purple-600/10 hover:bg-purple-600 text-purple-600 hover:text-white rounded-xl transition-all border border-purple-500/20 group active:scale-95"
+              className="hidden lg:flex items-center gap-2 px-4 py-2.5 bg-purple-600/10 hover:bg-purple-600 text-purple-600 hover:text-white rounded-xl transition-all border border-purple-500/20 group active:scale-95"
               title="Passer à l'Espace Adhérent"
             >
               <UserIcon size={18} className="group-hover:rotate-12 transition-transform" />
@@ -318,7 +334,7 @@ const AdminLayout = () => {
             {/* --- End Notification Bell --- */}
 
             <div className="flex items-center gap-4 pl-6 border-l dark:border-white/10">
-              <div className="text-right hidden md:block">
+              <div className="text-right hidden lg:block">
                 <p className="text-[10px] font-black tracking-widest opacity-40 uppercase text-slate-900 dark:text-white">{user?.role === 'RESPONSABLE_RH' ? 'RH Manager' : 'Administrateur'}</p>
                 <p className="text-sm font-black text-slate-900 dark:text-white">{user?.prenom} {user?.nom}</p>
               </div>

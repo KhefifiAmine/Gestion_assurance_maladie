@@ -374,19 +374,12 @@ const UserBeneficiarie = () => {
             />
 
             {/* --- BENEFICIARY DETAILS MODAL --- */}
-            <AnimatePresence>
-                {viewingBeneficiary && (
-                    <BeneficiaryDetailsModal
-                        beneficiary={viewingBeneficiary}
-                        onClose={() => setViewingBeneficiary(null)}
-                        onPreviewDocument={(doc) => {
-                            setViewingBeneficiary(null);
-                            setTimeout(() => setPreviewDocument(doc), 300);
-                        }}
-                        calculateAge={calculateAge}
-                    />
-                )}
-            </AnimatePresence>
+            <BeneficiaryDetailsModal
+                isOpen={!!viewingBeneficiary}
+                beneficiary={viewingBeneficiary}
+                onClose={() => setViewingBeneficiary(null)}
+                calculateAge={calculateAge}
+            />
 
             <ConfirmModal
                 isOpen={!!deleteId}

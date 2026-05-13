@@ -354,23 +354,16 @@ const AdminBeneficiarie = () => {
             </AnimatePresence>
 
             {/* Beneficiary Details Modal */}
-            <AnimatePresence>
-                {viewingBeneficiary && (
-                    <BeneficiaryDetailsModal
-                        beneficiary={viewingBeneficiary}
-                        onClose={() => setViewingBeneficiary(null)}
-                        onViewAdherent={(u) => {
-                            setViewingBeneficiary(null);
-                            setTimeout(() => setSelectedUserForDetails(u), 300);
-                        }}
-                        onPreviewDocument={(docUrl) => {
-                            setViewingBeneficiary(null);
-                            setTimeout(() => setPreviewDocument(docUrl), 300);
-                        }}
-                        calculateAge={calculateAge}
-                    />
-                )}
-            </AnimatePresence>
+            <BeneficiaryDetailsModal
+                isOpen={!!viewingBeneficiary}
+                beneficiary={viewingBeneficiary}
+                onClose={() => setViewingBeneficiary(null)}
+                onViewAdherent={(u) => {
+                    setViewingBeneficiary(null);
+                    setTimeout(() => setSelectedUserForDetails(u), 300);
+                }}
+                calculateAge={calculateAge}
+            />
 
             <UserDetailsModal
                 isOpen={selectedUserForDetails !== null}

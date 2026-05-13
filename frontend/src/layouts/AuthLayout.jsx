@@ -17,10 +17,10 @@ export default function AuthLayout() {
   const bgImage = isAdmin ? adminBg : purpleBg;
 
   return (
-    <div className={`min-h-screen flex w-full transition-colors duration-500 ${theme === 'dark' ? 'dark bg-slate-900' : 'bg-white'}`}>
+    <div className={`min-h-screen flex flex-col lg:flex-row w-full transition-colors duration-500 ${theme === 'dark' ? 'dark bg-slate-900' : 'bg-white'}`}>
 
       {/* 🟦 SECTION GAUCHE : Image & Branding */}
-      <div className={`relative ${isAdmin ? 'lg:w-[60%]' : 'w-[40%] lg:w-[55%]'} w-full h-[40vh] lg:h-screen overflow-hidden bg-gradient-to-br from-indigo-950 to-purple-900`}>
+      <div className={`relative ${isAdmin ? 'lg:w-[60%]' : 'lg:w-[55%]'} w-full h-[30vh] lg:h-screen overflow-hidden bg-gradient-to-br from-indigo-950 to-purple-900 shrink-0`}>
         {/* Background Image Container */}
         <div
           key={location.pathname}
@@ -34,7 +34,7 @@ export default function AuthLayout() {
         <div className={`absolute inset-0 ${isAdmin ? 'bg-slate-950/60' : 'bg-purple-900/10'} z-10 backdrop-blur-[1px]`} />
 
         {/* Texte style institutionnel */}
-        <div className="absolute bottom-24 left-12 right-12 z-20">
+        <div className="absolute bottom-10 lg:bottom-24 left-6 lg:left-12 right-6 lg:right-12 z-20">
           <motion.div
             initial={{ y: 50, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
@@ -44,10 +44,10 @@ export default function AuthLayout() {
             <div className="mb-4 px-4 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white text-[10px] font-black uppercase tracking-[0.3em]">
                 {isAdmin ? 'System Core' : 'Digital Health Experience'}
             </div>
-            <h2 className="text-white text-4xl lg:text-7xl font-black mb-6 italic tracking-tighter drop-shadow-2xl">
+            <h2 className="text-white text-3xl lg:text-7xl font-black mb-2 lg:mb-6 italic tracking-tighter drop-shadow-2xl">
               {isAdmin ? 'Admin Portal' : 'CareCover'}
             </h2>
-            <p className="text-white/90 text-base lg:text-lg font-medium max-w-[550px] leading-relaxed drop-shadow-lg text-left">
+            <p className="hidden lg:block text-white/90 text-base lg:text-lg font-medium max-w-[550px] leading-relaxed drop-shadow-lg text-left">
               {isAdmin
                 ? "Interface de gestion sécurisée pour les administrateurs de Tunisie Telecom. Accédez aux outils de contrôle et supervisez les flux en temps réel."
                 : "Votre nouvel espace de santé intelligent. Centralisez vos remboursements, suivez vos dossiers et gérez vos bénéficiaires en quelques clics."
@@ -63,7 +63,7 @@ export default function AuthLayout() {
       </div>
 
       {/* ⬜ SECTION DROITE : Le Formulaire */}
-      <div className="flex-1 flex flex-col justify-center items-center p-4 lg:p-16 relative bg-[#f8f9fa] dark:bg-slate-900 h-screen overflow-y-auto">
+      <div className="flex-1 flex flex-col justify-center items-center p-6 lg:p-16 relative bg-[#f8f9fa] dark:bg-slate-900 min-h-[70vh] lg:h-screen overflow-y-auto">
 
         {/* Bouton Theme */}
         <div className="absolute top-6 right-6 z-30">

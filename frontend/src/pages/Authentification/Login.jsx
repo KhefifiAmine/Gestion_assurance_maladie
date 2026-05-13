@@ -56,21 +56,21 @@ const Login = () => {
     return (
         <div className={`bg-white dark:bg-slate-800 ${isAdmin ? 'p-3 md:p-5 max-w-[340px]' : 'p-4 md:p-8 max-w-[400px]'} mx-auto rounded-[1.2rem] shadow-2xl border border-slate-50 dark:border-slate-700 transition-all`}>
             {/* Top Branding Section */}
-            <div className="flex items-center justify-center gap-8 mb-10 mt-4">
+            <div className="flex items-center justify-center gap-4 lg:gap-8 mb-8 lg:mb-10 mt-2 lg:mt-4">
                 {/* Logo 1: GAT Assurances */}
                 <div className="flex flex-col items-center group transition-all duration-300">
-                    <div className="flex items-center gap-2 px-4 py-2 bg-white rounded-2xl group-hover:scale-105 transition-transform shadow-sm border border-slate-50">
-                        <img src={logoGat} alt="GAT" className="h-14 lg:h-20 w-auto object-contain" />
+                    <div className="flex items-center gap-2 px-3 lg:px-4 py-2 bg-white rounded-2xl group-hover:scale-105 transition-transform shadow-sm border border-slate-50">
+                        <img src={logoGat} alt="GAT" className="h-12 lg:h-20 w-auto object-contain" />
                     </div>
                 </div>
 
                 {/* Separator */}
-                <div className="w-px h-12 bg-slate-200 dark:bg-slate-700"></div>
+                <div className="w-px h-10 lg:h-12 bg-slate-200 dark:bg-slate-700"></div>
 
                 {/* Logo 2: Tunisie Telecom */}
                 <div className="flex flex-col items-center group transition-all duration-300">
-                    <div className="flex items-center gap-2 px-4 py-2 bg-white rounded-2xl group-hover:scale-105 transition-transform shadow-sm border border-slate-50">
-                        <img src={ttLogo} alt="Tunisie Telecom" className="h-14 lg:h-20 w-auto object-contain" />
+                    <div className="flex items-center gap-2 px-3 lg:px-4 py-2 bg-white rounded-2xl group-hover:scale-105 transition-transform shadow-sm border border-slate-50">
+                        <img src={ttLogo} alt="Tunisie Telecom" className="h-12 lg:h-20 w-auto object-contain" />
                     </div>
                 </div>
             </div>

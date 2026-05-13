@@ -1,13 +1,20 @@
 // utils/emailService.js
 const nodemailer = require('nodemailer');
 
-const transporter = nodemailer.createTransport({
+const isConfigured = () => {
+  return process.env.EMAIL_USER && 
+         process.env.EMAIL_USER !== 'votre_email@gmail.com' && 
+         process.env.EMAIL_PASS && 
+         process.env.EMAIL_PASS !== 'votre_mot_de_passe_application';
+};
+
+const transporter = isConfigured() ? nodemailer.createTransport({
   service: 'Gmail',
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS
   }
-});
+}) : null;
 
 const sendResetEmail = async (email, code) => {
 
@@ -31,12 +38,19 @@ const sendResetEmail = async (email, code) => {
   };
 
   try {
+    if (!transporter) {
+      console.log('--- MOCK EMAIL (REINITIALISATION) ---');
+      console.log(`To: ${email}`);
+      console.log(`Code: ${code}`);
+      console.log('--------------------------------------');
+      return true;
+    }
     await transporter.sendMail(mailOptions);
     console.log(`Email de réinitialisation envoyé à: ${email}`);
     return true;
   } catch (error) {
     console.error('Erreur envoi email:', error);
-    throw new Error(`Échec de l'envoi de l'email : ${error.message}`);
+    return false;
   }
 };
 
@@ -60,6 +74,12 @@ const sendApprovalEmail = async (email) => {
   };
 
   try {
+    if (!transporter) {
+      console.log('--- MOCK EMAIL (APPROBATION) ---');
+      console.log(`To: ${email}`);
+      console.log('-------------------------------');
+      return true;
+    }
     await transporter.sendMail(mailOptions);
     console.log(`Email d'approbation envoye a: ${email}`);
     return true;
@@ -89,6 +109,13 @@ const sendRejectionEmail = async (email, raison = "") => {
   };
 
   try {
+    if (!transporter) {
+      console.log('--- MOCK EMAIL (REFUS) ---');
+      console.log(`To: ${email}`);
+      console.log(`Raison: ${raison}`);
+      console.log('--------------------------');
+      return true;
+    }
     await transporter.sendMail(mailOptions);
     console.log(`Email de refus envoye a: ${email}`);
     return true;
@@ -118,6 +145,13 @@ const sendBlockEmail = async (email, raison = "") => {
   };
 
   try {
+    if (!transporter) {
+      console.log('--- MOCK EMAIL (BLOCAGE) ---');
+      console.log(`To: ${email}`);
+      console.log(`Raison: ${raison}`);
+      console.log('---------------------------');
+      return true;
+    }
     await transporter.sendMail(mailOptions);
     console.log(`Email de blocage envoye a: ${email}`);
     return true;
@@ -159,6 +193,14 @@ const sendNotificationEmail = async (email, titre, description) => {
   };
 
   try {
+    if (!transporter) {
+      console.log('--- MOCK EMAIL (NOTIFICATION) ---');
+      console.log(`To: ${email}`);
+      console.log(`Titre: ${titre}`);
+      console.log(`Description: ${description}`);
+      console.log('--------------------------------');
+      return true;
+    }
     await transporter.sendMail(mailOptions);
     console.log(`Email de notification envoyé à: ${email}`);
     return true;
@@ -206,6 +248,13 @@ const sendLoginNotificationEmail = async (email, prenom) => {
   };
 
   try {
+    if (!transporter) {
+      console.log('--- MOCK EMAIL (LOGIN NOTIFICATION) ---');
+      console.log(`To: ${email}`);
+      console.log(`User: ${prenom}`);
+      console.log('---------------------------------------');
+      return true;
+    }
     await transporter.sendMail(mailOptions);
     console.log(`Notification de connexion envoyée à: ${email}`);
     return true;

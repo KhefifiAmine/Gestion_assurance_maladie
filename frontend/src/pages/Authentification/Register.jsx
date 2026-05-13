@@ -22,9 +22,9 @@ import ttLogo from '../../assets/Tunisie_Telecom.jpg';
 // Composant InputField pour une cohérence parfaite et aucun problème de focus
 const InputField = ({ label, name, placeholder, icon: Icon, type = "text", error, value, onChange, onBlur, showToggle, onToggle, isVisible, max, readOnly }) => (
   <div className="space-y-1 w-full">
-    <div className="flex justify-between items-center ml-1">
-      <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{label}</label>
-      {error && <span className="text-red-500 text-[10px] font-bold">{error}</span>}
+    <div className="flex justify-between items-end ml-1 gap-2">
+      <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">{label}</label>
+      {error && <span className="text-red-500 text-[9px] font-bold whitespace-nowrap shrink-0">{error}</span>}
     </div>
     <div className="relative group">
       <div className={`absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none group-focus-within:text-purple-600 ${error ? 'text-red-400' : 'text-slate-300'}`}>
@@ -111,7 +111,7 @@ const Register = () => {
 
       case 'ddn':
         if (!value) {
-          error = "Date de naissance requise";
+          error = "Requis";
         } else {
           const today = new Date();
           const birthDate = new Date(value);
@@ -186,7 +186,7 @@ const Register = () => {
   };
 
   return (
-    <div className="bg-white dark:bg-slate-800 p-5 md:p-8 rounded-[2rem] shadow-2xl border border-slate-50 dark:border-slate-700">
+    <div className="bg-white dark:bg-slate-800 p-6 md:p-8 rounded-[2rem] shadow-2xl border border-slate-50 dark:border-slate-700 w-full max-w-xl mx-auto">
       <style>{`
         input[type="date"]::-webkit-calendar-picker-indicator {
           background: transparent;
@@ -207,12 +207,12 @@ const Register = () => {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <InputField label="Nom" name="nom" placeholder="Nom" icon={User} error={errors.nom} value={formData.nom} onChange={handleChange} onBlur={() => validateField('nom', formData.nom)} />
           <InputField label="Prénom" name="prenom" placeholder="Prénom" icon={User} error={errors.prenom} value={formData.prenom} onChange={handleChange} onBlur={() => validateField('prenom', formData.prenom)} />
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <InputField label="Téléphone" name="telephone" placeholder="Tel" icon={Phone} error={errors.telephone} value={formData.telephone} onChange={handleChange} onBlur={() => validateField('telephone', formData.telephone)} />
           <InputField
             label="Date de Naissance"
@@ -227,7 +227,7 @@ const Register = () => {
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-4">          
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">          
           <InputField label="Adresse" name="adresse" placeholder="Adresse" icon={MapPin} error={errors.adresse} value={formData.adresse} onChange={handleChange} onBlur={() => validateField('adresse', formData.adresse)} />
           <div className="space-y-1">
             <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1">Sexe</label>
