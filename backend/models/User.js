@@ -108,22 +108,38 @@ const User = sequelize.define('User', {
                     if (user.role === 'RESPONSABLE_RH') prefix = 'RH';
                     if (user.role === 'ADMIN') prefix = 'ADM';
 
-                    const lastUser = await user.constructor.findOne({
-                        where: { role: user.role },
-                        order: [['id', 'DESC']]
+                    // On cherche le matricule le plus élevé pour ce préfixe
+                    // On utilise Sequelize.Op.like pour filtrer par préfixe
+                    const { Op } = require('sequelize');
+                    const lastUserWithPrefix = await user.constructor.findOne({
+                        where: {
+                            matricule: {
+                                [Op.like]: `${prefix}%`
+                            }
+                        },
+                        order: [['matricule', 'DESC']]
                     });
 
                     let nextNumber = 1;
-                    if (lastUser && lastUser.matricule && lastUser.matricule.startsWith(prefix)) {
-                        const strNumber = lastUser.matricule.substring(prefix.length); 
+                    if (lastUserWithPrefix && lastUserWithPrefix.matricule) {
+                        const strNumber = lastUserWithPrefix.matricule.substring(prefix.length);
                         const parsedNumber = parseInt(strNumber, 10);
                         if (!isNaN(parsedNumber)) {
                             nextNumber = parsedNumber + 1;
                         }
                     }
+
+                    // On vérifie quand même si ce matricule n'existe pas déjà (sécurité supplémentaire)
+                    let matriculeCandidate = `${prefix}${String(nextNumber).padStart(3, '0')}`;
+                    let exists = await user.constructor.findOne({ where: { matricule: matriculeCandidate } });
                     
-                    // Formatage du numéro sur au moins 3 chiffres
-                    user.matricule = `${prefix}${String(nextNumber).padStart(3, '0')}`;
+                    while (exists) {
+                        nextNumber++;
+                        matriculeCandidate = `${prefix}${String(nextNumber).padStart(3, '0')}`;
+                        exists = await user.constructor.findOne({ where: { matricule: matriculeCandidate } });
+                    }
+                    
+                    user.matricule = matriculeCandidate;
                 } catch (error) {
                     console.error("Erreur lors de la génération du matricule:", error);
                 }

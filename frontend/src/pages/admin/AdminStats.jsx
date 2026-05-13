@@ -138,20 +138,22 @@ const AdminStats = () => {
 
       <div
         id="stats-flux"
-        className={`bg-white dark:bg-slate-900 p-10 rounded-[3rem] shadow-2xl border border-slate-100 h-[400px] relative overflow-hidden ${SECTION_SCROLL_MARGIN}`}
+        className={`bg-white dark:bg-slate-900 p-10 rounded-[3rem] shadow-2xl border border-slate-100 h-[500px] flex flex-col relative overflow-hidden ${SECTION_SCROLL_MARGIN}`}
       >
-          <h3 className="text-xl font-black mb-10">Flux Financiers</h3>
-          <ResponsiveContainer width="100%" height="100%" debounce={100} minWidth={0} minHeight={0}>
-            <AreaChart data={data?.monthlyData || []}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} />
-              <XAxis dataKey="name" />
-              <YAxis />
-              <Tooltip />
-              <Legend />
-              <Area type="monotone" dataKey="cash" name="Volume déclaré (TND)" stroke="#7C3AED" fill="#7C3AED" fillOpacity={0.1} />
-              <Area type="monotone" dataKey="cashAccepte" name="Montant accepté (TND)" stroke="#10B981" fill="#10B981" fillOpacity={0.12} />
-            </AreaChart>
-          </ResponsiveContainer>
+          <h3 className="text-xl font-black mb-6">Flux Financiers</h3>
+          <div className="flex-1 min-h-0">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={data?.monthlyData || []}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Area type="monotone" dataKey="cash" name="Volume déclaré (TND)" stroke="#7C3AED" fill="#7C3AED" fillOpacity={0.1} />
+                <Area type="monotone" dataKey="cashAccepte" name="Montant accepté (TND)" stroke="#10B981" fill="#10B981" fillOpacity={0.12} />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
       </div>
 
       {bi && (
@@ -224,34 +226,38 @@ const AdminStats = () => {
           )}
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="bg-white dark:bg-slate-900 p-8 rounded-[2rem] border border-slate-100 dark:border-white/5 h-[380px]">
+            <div className="bg-white dark:bg-slate-900 p-8 rounded-[2rem] border border-slate-100 dark:border-white/5 h-[400px] flex flex-col">
               <h3 className="text-xl font-black mb-6">Pipeline par statut</h3>
-              <ResponsiveContainer width="100%" height="82%">
-                <BarChart data={bi.pipelineByStatus || []}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                  <XAxis dataKey="label" tick={{ fontSize: 11 }} interval={0} angle={-12} textAnchor="end" height={60} />
-                  <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="count" name="Bulletins" fill="#6366f1" radius={[8, 8, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
+              <div className="flex-1 min-h-0">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={bi.pipelineByStatus || []}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                    <XAxis dataKey="label" tick={{ fontSize: 11 }} interval={0} angle={-12} textAnchor="end" height={60} />
+                    <YAxis />
+                    <Tooltip />
+                    <Bar dataKey="count" name="Bulletins" fill="#6366f1" radius={[8, 8, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
             </div>
-            <div className="bg-white dark:bg-slate-900 p-8 rounded-[2rem] border border-slate-100 dark:border-white/5 h-[380px]">
+            <div className="bg-white dark:bg-slate-900 p-8 rounded-[2rem] border border-slate-100 dark:border-white/5 h-[400px] flex flex-col">
               <h3 className="text-xl font-black mb-6">Répartition cadre de soins</h3>
               {pieData.length === 0 ? (
                 <p className="text-slate-500 text-sm p-6">Aucune donnée</p>
               ) : (
-                <ResponsiveContainer width="100%" height="82%">
-                  <PieChart>
-                    <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={110} label>
-                      {pieData.map((_, i) => (
-                        <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
+                <div className="flex-1 min-h-0">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label>
+                        {pieData.map((_, i) => (
+                          <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                      <Legend />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
               )}
             </div>
           </div>
@@ -304,17 +310,19 @@ const AdminStats = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white dark:bg-slate-900 p-8 rounded-[2rem] shadow-xl border border-slate-100 dark:border-white/5 h-[360px]">
+        <div className="bg-white dark:bg-slate-900 p-8 rounded-[2rem] shadow-xl border border-slate-100 dark:border-white/5 h-[360px] flex flex-col">
           <h3 className="text-xl font-black mb-6">Evolution fraude</h3>
-          <ResponsiveContainer width="100%" height="85%">
-            <BarChart data={data?.fraud?.fraudMonthlyTrend || []}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} />
-              <XAxis dataKey="name" />
-              <YAxis />
-              <Tooltip />
-              <Bar dataKey="avgFraudScore" fill="#ef4444" radius={[8, 8, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+          <div className="flex-1 min-h-0">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={data?.fraud?.fraudMonthlyTrend || []}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip />
+                <Bar dataKey="avgFraudScore" fill="#ef4444" radius={[8, 8, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
         </div>
 
         <div className="bg-white dark:bg-slate-900 p-8 rounded-[2rem] shadow-xl border border-slate-100 dark:border-white/5">
