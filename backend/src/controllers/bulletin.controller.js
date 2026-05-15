@@ -2,17 +2,26 @@ const path = require('path');
 const fs = require('fs');
 const { Op } = require('sequelize');
 const { PDFDocument, rgb } = require('pdf-lib');
-const { BulletinSoin, ActeMedical, Pharmacie, Medicament, User, DocumentJustificatif, Beneficiary, BulletinComment, Notification, MotifRejet, sequelize } = require('../../models');
+const { BulletinSoin, ActeMedical, Pharmacie, Medicament, User, DocumentJustificatif, Beneficiary, Notification, sequelize } = require('../../models');
 const { sendNotificationEmail } = require('../utils/emailService');
 const FraudService = require('../services/fraud.service');
 const { resolvePatientForBulletin } = require('../utils/validationPatientBulletin');
-const { calculateActeReimbursement, calculatePharmacieReimbursement } = require("../utils/calculateReimbursement");
+const { calculeRemboursementActe, calculeRemboursementPharmacie } = require('../services/reimbursement/calculerReimbursement');
+const ReimbursementService = require('../services/reimbursement/ReimbursementServices');
 
 
 const createBulletin = async (req, res) => {
+
+    const t = await sequelize.transaction();
+
     try {
-        const payload = req.body.data != null ? JSON.parse(req.body.data) : req.body;
-        const rawData = payload;
+
+        let payload = req.body;
+
+        if (req.body.data) {
+            payload = JSON.parse(req.body.data);
+        }
+
         const {
             numero_bulletin,
             code_cnam,
@@ -22,368 +31,318 @@ const createBulletin = async (req, res) => {
             date_prevue_accouchement,
             soins_cadre,
             date_soin,
-            actes,
-            pharmacie,
             suspicion_locale,
             confiance_score,
             est_signe_adherent,
-        } = rawData;
+            date_depot,
+            actes,
+            pharmacie,
+            pharmacie_detecte
+        } = payload;
 
-        // Des valeurs arrivent depuis middlewares
-        const fileHashes = req.fileHashes || []; // Tableau de { filename, hash, originalname }
+        const fileHashes = req.fileHashes;
         const userId = req.userId;
 
-        const patient = await resolvePatientForBulletin(userId, rawData);
+        const patient = await resolvePatientForBulletin(userId, payload);
+
         if (patient.error) {
-            return res.status(patient.error.status).json({ message: patient.error.message });
+            await t.rollback();
+            return res.status(patient.error.status)
+                .json({ message: patient.error.message });
         }
+
         const { beneficiaireId: resolvedBeneficiaireId, qualite_malade: resolvedQualite } = patient;
 
-        // --- CALCUL DU REMBOURSEMENT 2026 ---
-        let totalRemboursement = 0;
-        try {
-                    if (actes && Array.isArray(actes)) {
-                rawData.actes = actes.map(acte => {
-                    const montantRembourse = calculateActeReimbursement(acte);
-                    acte.montant_remboursement = montantRembourse;
-                    totalRemboursement += montantRembourse;
-                    return { ...acte, montant_remboursement: montantRembourse };
-                });
-            }
+        const resultActe =
+            calculeRemboursementActe(actes);
 
-            if (pharmacie) {
-                const montantRemboursePharmacie = calculatePharmacieReimbursement({
-                    montant: pharmacie.montant_pharmacie || pharmacie.montant || 0
-                });
-                rawData.pharmacie = { ...pharmacie, montant_remboursement: montantRemboursePharmacie };
-                totalRemboursement += montantRemboursePharmacie;
-            }
-        } catch (calcError) {
-            console.error("Erreur calcul remboursement:", calcError);
+        const resultPharmacie =
+            calculeRemboursementPharmacie(pharmacie, pharmacie_detecte);
+
+        const { actes: actesCalcules, totalActeRemboursement } =
+            resultActe;
+
+        const { pharmacie: pharmacieCalculee, totalPharmacieRemboursement } =
+            resultPharmacie;
+
+        const montant_total_remboursé = totalActeRemboursement + totalPharmacieRemboursement;
+
+        const bulletin = await BulletinSoin.create({
+            numero_bulletin,
+            qualite_malade: resolvedQualite,
+            code_cnam,
+            montant_total,
+            est_apci,
+            date_depot,
+            suivi_grossesse,
+            date_prevue_accouchement,
+            soins_cadre,
+            date_soin,
+            montant_total_remboursé,
+            niveauRisque: payload.niveauRisque,
+            suspicion_locale: !!suspicion_locale,
+            confiance_score,
+            est_signe_adherent,
+            resultat_analyse: payload.resultat_analyse,
+            userId,
+            beneficiaireId: resolvedBeneficiaireId
+        }, { transaction: t });
+
+        for (const acte of actesCalcules) {
+            await ActeMedical.create({
+                ...acte,
+                bulletinId: bulletin.id
+            }, { transaction: t });
         }
 
-        const result = await sequelize.transaction(async (t) => {
-            let niveauRisque = 'aucun';
-            if (suspicion_locale) {
-                if (confiance_score > 75) niveauRisque = 'faible';
-                else if (confiance_score > 50) niveauRisque = 'moyen';
-                else niveauRisque = 'eleve';
-            }
+        if (pharmacieCalculee) {
 
-            const bulletin = await BulletinSoin.create({
-                numero_bulletin,
-                code_cnam,
-                date_soin,
-                qualite_malade: resolvedQualite,
-                est_apci: !!est_apci,
-                suivi_grossesse: !!suivi_grossesse,
-                date_prevue_accouchement,
-                soins_cadre,
-                montant_total: montant_total != null ? Number(montant_total) : 0,
-                montant_total_remboursé: totalRemboursement,
-                userId,
-                niveauRisque,
-                beneficiaireId: resolvedBeneficiaireId,
-                confiance_score: confiance_score || 100,
-                suspicion_locale: !!suspicion_locale,
-                est_signe_adherent: !!est_signe_adherent
+            const pharm = await Pharmacie.create({
+                ...pharmacieCalculee,
+                bulletinId: bulletin.id
             }, { transaction: t });
 
+            for (const med of pharmacieCalculee.medicaments || []) {
+                await Medicament.create({
+                    ...med,
+                    pharmacieId: pharm.id
+                }, { transaction: t });
+            }
+        }
 
-
-            // 3. Créer les Documents Justificatifs
-            if (fileHashes.length > 0) {
-                await Promise.all(fileHashes.map(f => DocumentJustificatif.create({
+        if (fileHashes?.length) {
+            for (const f of fileHashes) {
+                await DocumentJustificatif.create({
                     fichier: f.filename,
                     hash_fichier: f.hash,
                     bulletinId: bulletin.id
-                }, { transaction: t })));
-            }
-
-            // 3. Créer les Actes Médicaux
-            if (rawData.actes && rawData.actes.length > 0) {
-                await Promise.all(rawData.actes.map(acte => ActeMedical.create({
-                    ...acte,
-                    bulletinId: bulletin.id
-                }, { transaction: t })));
-            }
-
-            // 4. Créer les détails Pharmacie s'ils existent
-            if (rawData.pharmacie) {
-                const pharmRecord = await Pharmacie.create({
-                    ...rawData.pharmacie,
-                    bulletinId: bulletin.id
                 }, { transaction: t });
-
-                // 4b. Créer les médicaments liés à cette pharmacie
-                if (Array.isArray(rawData.pharmacie.medicaments) && rawData.pharmacie.medicaments.length > 0) {
-                    await Promise.all(rawData.pharmacie.medicaments.map(med => Medicament.create({
-                        nom_medicament: med.nom_medicament,
-                        dosage: med.dosage || null,
-                        quantite: Number(med.quantite) || 1,
-                        prix_unitaire: Number(med.prix_unitaire) || 0,
-                        montant_total: (Number(med.quantite) || 1) * (Number(med.prix_unitaire) || 0),
-                        montant_remboursement: Number(med.montant_remboursement) || 0,
-                        est_remboursable: med.est_remboursable !== false,
-                        pharmacieId: pharmRecord.id
-                    }, { transaction: t })));
-                }
             }
+        }
 
-            return bulletin;
-        });
+        await t.commit();
 
-        // --- CALCUL DU SCORE DE FRAUDE (Etape 7) ---
-        await FraudService.calculateFraudScore(result.id);
+        await FraudService.calculateFraudScore(bulletin.id);
 
-        const finalBulletin = await BulletinSoin.findByPk(result.id, {
+        const loadedBulletin = await BulletinSoin.findByPk(bulletin.id, {
             include: [
                 { model: ActeMedical, as: 'actes' },
                 { model: Pharmacie, as: 'pharmacie', include: [{ model: Medicament, as: 'medicaments' }] },
                 { model: DocumentJustificatif, as: 'documents' },
-                { model: Beneficiary, as: 'beneficiaire', attributes: ['id', 'nom', 'prenom', 'relation', 'ddn', 'statut'], required: false }
+                { model: Beneficiary, as: 'beneficiaire', required: false }
             ]
         });
 
-        // --- Notification pour les Administrateurs ---
-        try {
-            const user = await User.findByPk(userId);
-            const userName = user ? `${user.prenom} ${user.nom}` : 'Un adhérent';
-
-            const admins = await User.findAll({ where: { role: 'ADMIN' } });
-
-            if (admins.length > 0) {
-                const notifPromises = admins.map(admin => Notification.create({
-                    titre: '📄 Nouveau bulletin de soin',
-                    description: `Un nouveau bulletin a été soumis par ${userName}.`,
-                    type: 'bulletin',
-                    priorite: finalBulletin.fraud_score > 60 ? 'haute' : 'normale',
-                    userId: admin.id,
-                    lu: false
-                }));
-                await Promise.all(notifPromises);
-            }
-        } catch (notifErr) {
-            console.error('Erreur notification admin bulletin:', notifErr);
-        }
-
-        res.status(201).json({ message: 'Bulletin créé avec succès', bulletin: finalBulletin });
+        res.status(201).json({
+            message: 'Bulletin créé avec succès',
+            bulletin: loadedBulletin
+        });
 
     } catch (error) {
+        await t.rollback();
         console.error(error);
-        if (error.name === 'SequelizeUniqueConstraintError') {
-            return res.status(400).json({ message: 'Ce document a déjà été soumis.' });
-        }
-        res.status(500).json({ message: 'Erreur lors de la création du bulletin', error: error.message });
+
+        res.status(500).json({
+            message: 'Erreur lors de la création du bulletin',
+            error: error.message
+        });
     }
 };
 
 const updateBulletin = async (req, res) => {
+    const t = await sequelize.transaction();
     try {
         const { id } = req.params;
         const userId = req.userId;
-        const payload = req.body.data != null ? JSON.parse(req.body.data) : req.body;
-        const rawData = payload;
+        const payload = req.body;
+
+        const bulletin = await BulletinSoin.findByPk(id, { transaction: t });
+
+        if (!bulletin) throw new Error('Bulletin non trouvé');
+        if (bulletin.userId !== userId) throw new Error('Accès non autorisé');
+        if (bulletin.adminId) throw new Error('Impossible de modifier un bulletin déjà pris en charge');
 
         const patientKeysTouched = ['qualite_malade', 'nom_prenom_malade', 'nom_prenom_adherent', 'beneficiaireId', 'matricule_adherent', 'date_naissance_malade']
-            .some((k) => rawData[k] !== undefined);
+            .some((k) => payload[k] !== undefined);
 
-        // Vérification des hashes si de nouveaux documents sont fournis
-        if (req.fileHashes && req.fileHashes.length > 0) {
-            for (const f of req.fileHashes) {
-                const existingDoc = await DocumentJustificatif.findOne({
+        let resolvedBeneficiaireId = bulletin.beneficiaireId;
+        let resolvedQualite = bulletin.qualite_malade;
+
+        if (patientKeysTouched) {
+            const mergedPatientBody = {
+                ...bulletin.toJSON(),
+                ...payload
+            };
+            const patient = await resolvePatientForBulletin(userId, mergedPatientBody);
+            if (patient.error) throw new Error(patient.error.message);
+            resolvedBeneficiaireId = patient.beneficiaireId;
+            resolvedQualite = patient.qualite_malade;
+        }
+
+        // Préparer les données à mettre à jour
+        const allowedFields = [
+            'numero_bulletin', 'code_cnam', 'date_soin', 'montant_total',
+            'qualite_malade', 'nom_prenom_malade', 'est_apci', 'suivi_grossesse',
+            'date_prevue_accouchement', 'soins_cadre', 'est_signe_adherent',
+            'pharmacie', 'actes', 'beneficiaireId', 'pharmacie_detecte '
+        ];
+
+        const updateData = {};
+        for (const key of allowedFields) {
+            if (payload[key] !== undefined) {
+                updateData[key] = payload[key];
+            }
+        }
+
+        if (patientKeysTouched) {
+            updateData.beneficiaireId = resolvedBeneficiaireId;
+            updateData.qualite_malade = resolvedQualite;
+        }
+
+
+        // Gérer le recalcul du remboursement si actes ou pharmacie changent
+        if (payload.actes !== undefined || payload.pharmacie !== undefined) {
+            const currentActes = await ActeMedical.findAll({ where: { bulletinId: id }, transaction: t });
+            const currentPharm = await Pharmacie.findOne({
+                where: { bulletinId: id },
+                include: [{ model: Medicament, as: 'medicaments' }],
+                transaction: t
+            });
+
+            // Déterminer les données à utiliser pour le calcul
+            const actesToCalc = payload.actes !== undefined ? payload.actes : currentActes.map(a => a.toJSON());
+            const pharmacieToCalc = payload.pharmacie !== undefined ? payload.pharmacie : (currentPharm ? currentPharm.toJSON() : null);
+
+            // pharmaDetecte: on se base sur hasPharmacy si présent, sinon sur l'existence de la pharmacie
+            const pharmaDetecte = payload.pharmacie_detecte !== undefined ? payload.pharmacie_detecte : !!pharmacieToCalc;
+
+            // Calculer les remboursements séparément
+            const resultActe = calculeRemboursementActe(actesToCalc);
+            const resultPharmacie = calculeRemboursementPharmacie(pharmacieToCalc, pharmaDetecte);
+
+            // Mise à jour du montant total remboursé
+            updateData.montant_total_remboursé = Number((resultActe.totalActeRemboursement + resultPharmacie.totalPharmacieRemboursement).toFixed(3));
+
+            // Si les actes ont été fournis, on utilise une logique d'Upsert
+            if (payload.actes !== undefined) {
+                const incomingActeIds = resultActe.actes.filter(a => a.id).map(a => a.id);
+
+                // 1. Supprimer les actes qui ne sont plus dans le payload
+                await ActeMedical.destroy({
                     where: {
-                        hash_fichier: f.hash,
-                        bulletinId: { [Op.ne]: id }
-                    }
+                        bulletinId: id,
+                        id: { [Op.notIn]: incomingActeIds }
+                    },
+                    transaction: t
                 });
-                if (existingDoc) {
-                    return res.status(400).json({ message: `Le document ${f.originalname} a déjà été soumis pour un autre bulletin.` });
+
+                // 2. Upsert (Update ou Create) pour chaque acte
+                for (const acteData of resultActe.actes) {
+                    if (acteData.id) {
+                        await ActeMedical.update(acteData, {
+                            where: { id: acteData.id, bulletinId: id },
+                            transaction: t
+                        });
+                    } else {
+                        await ActeMedical.create({ ...acteData, bulletinId: id }, { transaction: t });
+                    }
+                }
+            }
+
+            // Si la pharmacie a été fournie, on utilise aussi l'Upsert
+            if (payload.pharmacie !== undefined) {
+                if (resultPharmacie.pharmacie) {
+                    // Trouver ou créer la pharmacie pour ce bulletin
+                    let [pharm, created] = await Pharmacie.findOrCreate({
+                        where: { bulletinId: id },
+                        defaults: { ...resultPharmacie.pharmacie, bulletinId: id },
+                        transaction: t
+                    });
+
+                    if (!created) {
+                        await pharm.update(resultPharmacie.pharmacie, { transaction: t });
+                    }
+
+                    // Gérer les médicaments (Upsert)
+                    const medsData = resultPharmacie.pharmacie.medicaments || [];
+                    const incomingMedIds = medsData.filter(m => m.id).map(m => m.id);
+
+                    // Supprimer les médicaments absents du payload
+                    await Medicament.destroy({
+                        where: {
+                            pharmacieId: pharm.id,
+                            id: { [Op.notIn]: incomingMedIds }
+                        },
+                        transaction: t
+                    });
+
+                    // Update ou Create pour chaque médicament
+                    for (const medData of medsData) {
+                        if (medData.id) {
+                            await Medicament.update(medData, {
+                                where: { id: medData.id, pharmacieId: pharm.id },
+                                transaction: t
+                            });
+                        } else {
+                            await Medicament.create({ ...medData, pharmacieId: pharm.id }, { transaction: t });
+                        }
+                    }
+                } else {
+                    // Si resultPharmacie.pharmacie est null (pharmacie désactivée), on supprime tout
+                    await Pharmacie.destroy({ where: { bulletinId: id }, transaction: t });
                 }
             }
         }
 
-        const result = await sequelize.transaction(async (t) => {
-            const bulletin = await BulletinSoin.findByPk(id, { transaction: t });
+        // Gérer la suppression des anciens fichiers
+        if (payload.fichiers !== undefined) {
+            const currentFiles = await DocumentJustificatif.findAll({ where: { bulletinId: id }, transaction: t });
+            const remainingFilenames = payload.fichiers.map(f => f.fichier);
 
-            if (!bulletin) {
-                throw new Error('Bulletin non trouvé');
-            }
-
-            if (bulletin.userId !== userId) {
-                throw new Error('Accès non autorisé à ce bulletin');
-            }
-
-            if (bulletin.adminId) {
-                throw new Error('Impossible de modifier un bulletin déjà pris en charge');
-            }
-
-            let resolvedBeneficiaireId = bulletin.beneficiaireId;
-            let resolvedQualite = bulletin.qualite_malade;
-
-            if (patientKeysTouched) {
-                if (rawData.nom_prenom_malade === undefined && rawData.nom_prenom_adherent === undefined) {
-                    throw new Error('nom_prenom_malade est requis pour valider le patient lors de la mise à jour.');
+            for (const doc of currentFiles) {
+                if (!remainingFilenames.includes(doc.fichier)) {
+                    // 1. Supprimer du disque
+                    const filePath = path.join(__dirname, '../../uploads', doc.fichier);
+                    if (fs.existsSync(filePath)) {
+                        fs.unlinkSync(filePath);
+                    }
+                    // 2. Supprimer de la base de données
+                    await doc.destroy({ transaction: t });
                 }
-                const mergedPatientBody = {
-                    ...rawData,
-                    qualite_malade: rawData.qualite_malade !== undefined ? rawData.qualite_malade : bulletin.qualite_malade
-                };
-                const patient = await resolvePatientForBulletin(userId, mergedPatientBody);
-                if (patient.error) {
-                    throw new Error(patient.error.message);
-                }
-                resolvedBeneficiaireId = patient.beneficiaireId;
-                resolvedQualite = patient.qualite_malade;
             }
+        }
 
-            // Mise à jour des données de base (uniquement les champs du nouveau schéma)
-            const allowedBulletinFields = [
-                'numero_bulletin',
-                'code_cnam',
-                'date_soin',
-                'montant_total',
-                'montant_total_remboursé',
-                'qualite_malade',
-                'est_apci',
-                'suivi_grossesse',
-                'date_prevue_accouchement',
-                'soins_cadre',
-                'confiance_score',
-                'suspicion_locale',
-                'beneficiaireId',
-                'motif_rejet',
-                'objet_rejet',
-                'statut',
-                'est_signe_adherent'
-            ];
-            const bulletinData = Object.fromEntries(
-                Object.entries(rawData).filter(([key, value]) =>
-                    allowedBulletinFields.includes(key) && value !== undefined
-                )
-            );
-            if (patientKeysTouched) {
-                bulletinData.beneficiaireId = resolvedBeneficiaireId;
-                bulletinData.qualite_malade = resolvedQualite;
-            }
-            await bulletin.update(bulletinData, { transaction: t });
-
-            // Mise à jour des Actes Médicaux
-            if (rawData.actes) {
-                await ActeMedical.destroy({ where: { bulletinId: id }, transaction: t });
-                let totalRemboursement = 0;
-                const actesWithRemboursement = rawData.actes.map(acte => {
-                    const montantRembourse = calculateActeReimbursement(acte);
-                    totalRemboursement += montantRembourse;
-                    return { ...acte, montant_remboursement: montantRembourse };
-                });
-                await Promise.all(actesWithRemboursement.map(acte => ActeMedical.create({
-                    ...acte,
-                    bulletinId: id
-                }, { transaction: t })));
-                bulletinData.montant_total_remboursé = totalRemboursement;
-            }
-
-            // Mise à jour de la Pharmacie
-            if (rawData.pharmacie) {
-                await Pharmacie.destroy({ where: { bulletinId: id }, transaction: t });
-                const montantRemboursePharmacie = calculatePharmacieReimbursement({
-                    montant: rawData.pharmacie.montant_pharmacie || rawData.pharmacie.montant || 0
-                });
-                const pharmRecord = await Pharmacie.create({
-                    ...rawData.pharmacie,
-                    montant_remboursement: montantRemboursePharmacie,
-                    bulletinId: id
-                }, { transaction: t });
-
-                // Recréer les médicaments liés
-                if (Array.isArray(rawData.pharmacie.medicaments) && rawData.pharmacie.medicaments.length > 0) {
-                    await Promise.all(rawData.pharmacie.medicaments.map(med => Medicament.create({
-                        nom_medicament: med.nom_medicament,
-                        dosage: med.dosage || null,
-                        quantite: Number(med.quantite) || 1,
-                        prix_unitaire: Number(med.prix_unitaire) || 0,
-                        montant_total: (Number(med.quantite) || 1) * (Number(med.prix_unitaire) || 0),
-                        montant_remboursement: Number(med.montant_remboursement) || 0,
-                        est_remboursable: med.est_remboursable !== false,
-                        pharmacieId: pharmRecord.id
-                    }, { transaction: t })));
-                }
-
-                // Si on a des actes et de la pharmacie, on additionne
-                bulletinData.montant_total_remboursé = (bulletinData.montant_total_remboursé || 0) + montantRemboursePharmacie;
-            }
-
-            // Le schéma dentaire est désormais stocké dans ActeMedical
-
-            // Gérer les nouveaux fichiers s'il y en a
-            if (req.fileHashes && req.fileHashes.length > 0) {
-                let niveauRisque = "aucun";
-                if (rawData.suspicion_locale) {
-                    if (rawData.confiance_score > 75) niveauRisque = "faible";
-                    else if (rawData.confiance_score > 50) niveauRisque = "moyen";
-                    else niveauRisque = "eleve";
-
-                    /* // Gérer le nouveau fichier s'il y en a un
-                     if (req.file) {
-                         const [doc, created] = await DocumentJustificatif.findOrCreate({
-                             where: { bulletinId: id },
-                             defaults: {
-                                 type_document: rawData.documentType || 'Document',
-                                 fichier: req.file.filename,
-                                 hash_fichier: req.fileHash,
-                                 bulletinId: id
-                             },
-                             transaction: t
-                         });
-         
-                         if (!created) {
-                             const oldFile = doc.fichier;
-         
-                             // ✅ update DB d'abord
-                             await doc.update({
-                                 fichier: req.file.filename,
-                                 hash_fichier: req.fileHash
-                             }, { transaction: t });
-         
-                             // ✅ suppression après (safe)
-                             if (oldFile) {
-                                 const filePath = path.join(__dirname, '../../uploads', oldFile);
-         
-                                 if (fs.existsSync(filePath)) {
-                                     fs.unlinkSync(filePath);
-                                 }
-                             }
-         */
-                }
-
-                await Promise.all(req.fileHashes.map(f => DocumentJustificatif.create({
-                    type_document: rawData.documentType || 'Justificatif',
+        // Gérer l'ajout des nouveaux fichiers
+        if (req.fileHashes && req.fileHashes.length > 0) {
+            for (const f of req.fileHashes) {
+                await DocumentJustificatif.create({
                     fichier: f.filename,
                     hash_fichier: f.hash,
-                    score: rawData.confiance_score || 0,
-                    niveauRisque: niveauRisque,
                     bulletinId: id
-                }, { transaction: t })));
+                }, { transaction: t });
             }
+        }
 
-            return await BulletinSoin.findByPk(id, {
-                include: [
-                    { model: ActeMedical, as: 'actes' },
-                    { model: Pharmacie, as: 'pharmacie', include: [{ model: Medicament, as: 'medicaments' }] },
-                    { model: DocumentJustificatif, as: 'documents' },
-                    { model: Beneficiary, as: 'beneficiaire', attributes: ['id', 'nom', 'prenom', 'relation', 'ddn', 'statut'], required: false }
-                ],
-                transaction: t
-            });
+        await bulletin.update(updateData, { transaction: t });
+        await t.commit();
+
+        await FraudService.calculateFraudScore(id);
+
+        const loadedBulletin = await BulletinSoin.findByPk(id, {
+            include: [
+                { model: ActeMedical, as: 'actes' },
+                { model: Pharmacie, as: 'pharmacie', include: [{ model: Medicament, as: 'medicaments' }] },
+                { model: DocumentJustificatif, as: 'documents' },
+                { model: Beneficiary, as: 'beneficiaire', required: false }
+            ]
         });
 
-        res.status(200).json({ message: 'Bulletin mis à jour avec succès', bulletin: result });
+        res.status(200).json({ message: 'Bulletin mis à jour avec succès', bulletin: loadedBulletin });
+
     } catch (error) {
+        await t.rollback();
         console.error(error);
-        const status = error.message === 'Bulletin non trouvé' ? 404 :
-            error.message === 'Accès non autorisé à ce bulletin' ? 403 : 400;
-        res.status(status).json({ message: error.message });
+        res.status(500).json({ message: 'Erreur lors de la mise à jour', error: error.message });
     }
 };
 
@@ -404,7 +363,7 @@ const deleteBulletin = async (req, res) => {
         }
 
         // Autoriser suppression seulement si EN ATTENTE (0) ou REFUSÉ (3)
-        if (bulletin.statut !== 0 && bulletin.statut !== 3) {
+        if (bulletin.statut !== 0) {
             return res.status(400).json({
                 message: 'Impossible de supprimer un bulletin en cours ou validé.'
             });
@@ -537,7 +496,7 @@ const updateBulletinStatus = async (req, res) => {
                 ActeMedical.count({ where: { bulletinId: id, statut: 0 } }),
                 Pharmacie.count({ where: { bulletinId: id, statut: 0 } })
             ]);
-            
+
             if (itemsEnAttente[0] > 0 || itemsEnAttente[1] > 0) {
                 return res.status(400).json({ message: 'Tous les actes médicaux et la pharmacie doivent être traités avant de clôturer le bulletin.' });
             }
@@ -547,11 +506,11 @@ const updateBulletinStatus = async (req, res) => {
         bulletin.adminId = adminId;
 
 
-        if(statut === 1){
+        if (statut === 1) {
             bulletin.date_traitement = new Date();
         }
 
-        if(statut === 2){
+        if (statut === 2) {
 
             bulletin.date_validation = new Date();
         }
@@ -676,7 +635,13 @@ const updateStatutActeMedical = async (req, res) => {
         if (statut === 1 && montant_remboursement > acte.honoraires) {
             return res.status(400).json({ message: `Le montant de remboursement (${montant_remboursement}) ne peut pas dépasser les honoraires (${acte.honoraires}).` });
         }
-        
+
+        // Calcul et mise à jour du remboursement selon les plafonds
+        if (statut === 1) {
+            const remboursementReel = await ReimbursementService.calculePlafondActe(acte.beneficiaireId, acte, acte.date_soin);
+            montant_remboursement = Math.min(montant_remboursement, remboursementReel);
+        }
+
         await acte.update({
             statut,
             objet_rejet: statut === 2 ? objet_rejet : null,
@@ -691,7 +656,7 @@ const updateStatutActeMedical = async (req, res) => {
                 ActeMedical.sum('montant_remboursement', { where: { bulletinId: bulletin.id } }),
                 Pharmacie.sum('montant_remboursement', { where: { bulletinId: bulletin.id } })
             ]);
-            
+
             await bulletin.update({
                 montant_total_remboursé: (totalActes) + (totalPharmacie)
             });
@@ -738,7 +703,7 @@ const updateStatutPharmacie = async (req, res) => {
                 ActeMedical.sum('montant_remboursement', { where: { bulletinId: bulletin.id } }),
                 Pharmacie.sum('montant_remboursement', { where: { bulletinId: bulletin.id } })
             ]);
-            
+
             await bulletin.update({
                 montant_total_remboursé: (totalActes) + (totalPharmacie)
             });
@@ -763,6 +728,11 @@ const updateStatutMedicament = async (req, res) => {
 
         if (med.statut !== 0) {
             return res.status(400).json({ message: 'Ce médicament a déjà été traité.' });
+        }
+
+        if (statut === 1) {
+            const remboursementReel = await ReimbursementService.calculePlafondPharmacie(med.beneficiaireId, med, med.date_soin);
+            montant_remboursement = Math.min(montant_remboursement, remboursementReel);
         }
 
         await med.update({

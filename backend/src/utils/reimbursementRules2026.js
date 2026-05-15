@@ -36,14 +36,8 @@ const reimbursementRules2026 = {
 
     chirurgie: {
         coefficient_KC: 9,
-        anesthesie: {
-            taux: 0.90,
-            plafond_annuel: 250
-        },
-        salle_operation: {
-            taux: 0.90,
-            plafond_annuel: 250
-        }
+        taux: 0.90,
+        plafond_annuel: 600
     },
 
     orthopedie_prothese: {
@@ -62,7 +56,7 @@ const reimbursementRules2026 = {
     },
 
     optique: {
-        monture: {
+        monture: { //-------------------------------
             taux: 0.90,
             plafond_max: 250,
             renouvellement: {
@@ -89,7 +83,7 @@ const reimbursementRules2026 = {
             plafond_annuel: 1000
         },
 
-        orthopedie_dento_faciale: {
+        orthopedie_dento_faciale: { //-------------------------------
             plafond_annuel: 300,
             conditions: {
                 age_max: 18,
@@ -100,20 +94,20 @@ const reimbursementRules2026 = {
 
     hospitalisation: {
 
-        clinique: {
+        clinique: { //-------------------------------
             montant_par_jour: 110
         },
 
         hopital: {
-            montant_par_jour: 10
+            montant_par_jour: 10 //-------------------------------
         },
 
-        reanimation: {
+        reanimation: { //------------------------------------
             montant_par_jour: 150
         },
 
         couveuse: {
-            montant_par_jour: 80,
+            montant_par_jour: 80, //-------------------------------
             max_jours: 15
         },
         usage_unique_medical: { 
@@ -136,10 +130,18 @@ const reimbursementRules2026 = {
 
         circoncision: 100,
 
-        cure_thermale: {
+        cure_thermale: { //------------------------------------
             montant_par_jour: 15,
             max_jours: 21
         }
+    },
+    anesthesie: {
+            taux: 0.90,
+            plafond_annuel: 250
+        },
+    salle_operation: {
+        taux: 0.90,
+        plafond_annuel: 250
     },
 
     plafond_annuel_global_par_prestataire: 4500

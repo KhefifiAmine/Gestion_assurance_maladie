@@ -25,7 +25,7 @@ export function getPatientDisplayName(bulletin, currentUser = null) {
         return `${ben.prenom || ''} ${ben.nom || ''}`.trim() || '—';
     }
 
-    // 2. Sinon, on regarde la qualité du malade (Titulaire / Lui-même)
+    // 2. Sinon, on regarde la qualité du malade (Titulaire)
     const q = (bulletin.qualite_malade || '').toLowerCase();
     
     // Si la qualité est titulaire OU si c'est vide mais qu'on n'a pas de bénéficiaire

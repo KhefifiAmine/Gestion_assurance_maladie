@@ -102,7 +102,7 @@ const analyzeBulletin = async (req, res) => {
       --- B. INFORMATIONS ADHÉRENT / PATIENT ---
       - Nom et prénom : MAJUSCULES
       - Matricule : format attendu XX-NNNNN (ex : TT-12345) — signaler si format inhabituel
-      - Qualité : enum strict → "Lui-même" | "Conjoint" | "Enfant"
+      - Qualité : enum strict → "Titulaire" | "Conjoint" | "Enfant"
 
       --- C. INFORMATIONS BULLETIN ---
       - Numéro du bulletin
@@ -142,7 +142,7 @@ const analyzeBulletin = async (req, res) => {
 
       --- G. MONTANT ---
       - montant_total = somme de tous les honoraires des actes
-      - Si un total imprimé est visible ET diffère du calcul → signaler en "zones_modifiees"
+      - Si un total imprimé est visible ET diffère du calcul → signaler en "resultat_analyse"
 
       ========================
       🚨 DÉTECTION DE FRAUDE
@@ -166,7 +166,7 @@ const analyzeBulletin = async (req, res) => {
       Retourner :
       - suspicion_locale : true/false
       - niveau_risque : "faible" | "moyen" | "élevé"
-      - zones_modifiees : description précise des anomalies détectées
+      - resultat_analyse : description précise des anomalies détectées
 
       ========================
       📊 NORMALISATION
@@ -214,7 +214,7 @@ const analyzeBulletin = async (req, res) => {
       "client": null,
 
       "nom_prenom_malade": null,
-      "qualite_malade": null,                   // "Lui-même" | "Conjoint" | "Enfant"
+      "qualite_malade": null,                   // "Titulaire" | "Conjoint" | "Enfant"
       "date_naissance_malade": null,
 
       "date_soin": null,                        // Date du DERNIER acte — YYYY-MM-DD
@@ -230,7 +230,7 @@ const analyzeBulletin = async (req, res) => {
         "est_cachet": false,
         "est_signature": false,
         "date": null,
-        "montant_pharmacie": null,
+        "montant_pharmacie": null, // Récupérer le montant depuis la section pharmacie ou calculer le total des médicaments
         "nom": null,
         "telephone": null,
         "adresse": null,
@@ -280,7 +280,7 @@ const analyzeBulletin = async (req, res) => {
 
       "suspicion_locale": false,
       "niveau_risque": null,                    // ⬅ NOUVEAU : "faible" | "moyen" | "élevé"
-      "zones_modifiees": null,
+      "resultat_analyse": null,
       "champs_manquants": []
       }
     `;

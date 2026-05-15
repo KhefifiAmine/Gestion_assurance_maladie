@@ -27,13 +27,13 @@ function namesMatchDocument(docNomPrenom, nom, prenom) {
     return doc === n1 || doc === n2;
 }
 
-/** @returns {'LUI_MEME'|'CONJOINT'|'ENFANT'|null} */
+/** @returns {'Titulaire'|'CONJOINT'|'ENFANT'|null} */
 function parseQualiteMalade(raw) {
     if (raw == null || raw === '') return null;
     const s = stripAccents(String(raw).trim().toLowerCase())
         .replace(/[_-]+/g, ' ')
         .replace(/\s+/g, ' ');
-    if (/(^| )(lui|soi)[ -]meme($| )|adherent|titulaire|moi/.test(s)) return 'LUI_MEME';
+    if (/(^| )(lui|soi)[ -]meme($| )|adherent|titulaire|moi/.test(s)) return 'Titulaire';
     if (/conjoint|epoux|epouse|couple/.test(s)) return 'CONJOINT';
     if (/enfant|fils|fille/.test(s)) return 'ENFANT';
     return null;
@@ -46,7 +46,7 @@ function parseQualiteMalade(raw) {
 async function resolvePatientForBulletin(userId, body) {
     const kind = parseQualiteMalade(body.qualite_malade);
     if (!kind) {
-        return { error: { status: 400, message: 'qualite_malade invalide. Indiquez : Lui-même, Conjoint ou Enfant.' } };
+        return { error: { status: 400, message: 'qualite_malade invalide. Indiquez : Titulaire, Conjoint ou Enfant.' } };
     }
 
     const nomDoc = body.nom_prenom_malade || body.nom_prenom_adherent || '';
@@ -60,7 +60,7 @@ async function resolvePatientForBulletin(userId, body) {
         return { error: { status: 404, message: 'Adhérent introuvable.' } };
     }
 
-    if (kind === 'LUI_MEME') {
+    if (kind === 'Titulaire') {
         if (matriculeDoc && adherent.matricule && compactLabel(matriculeDoc) !== compactLabel(adherent.matricule)) {
             return { error: { status: 400, message: 'Le matricule sur le document ne correspond pas à votre profil.' } };
         }
@@ -68,9 +68,16 @@ async function resolvePatientForBulletin(userId, body) {
             return { error: { status: 400, message: 'Le nom sur le document ne correspond pas au titulaire du compte.' } };
         }
         if (body.beneficiaireId != null && body.beneficiaireId !== '' && Number(body.beneficiaireId) !== 0) {
-            return { error: { status: 400, message: 'Pour un soin « Lui-même », ne renseignez pas beneficiaireId.' } };
+            return { error: { status: 400, message: 'Pour un soin « Titulaire », ne renseignez pas beneficiaireId.' } };
         }
-        return { beneficiaireId: null, qualite_malade: 'Lui-même' };
+        const ben = await Beneficiary.findOne({
+            where: {
+                userId,
+                relation : 'Titulaire'
+                
+            }
+        })
+        return { beneficiaireId: ben.id, qualite_malade: 'Titulaire' };
     }
 
     const relation = kind === 'CONJOINT' ? 'Conjoint' : 'Enfant';
@@ -78,7 +85,7 @@ async function resolvePatientForBulletin(userId, body) {
         where: {
             userId,
             relation,
-            statut: { [Op.in]: ['Validé', 'En attente'] }
+            statut: 'Validé'
         }
     });
 

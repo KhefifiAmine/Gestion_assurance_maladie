@@ -6,6 +6,7 @@ const ActeMedical = require('./ActeMedical');
 const Pharmacie = require('./Pharmacie');
 const Medicament = require('./Medicament');
 const Prestataire = require('./Prestataire');
+const MaladieConsumption = require('./MaladieConsumption');
 
 const Reclamation = require('./Reclamation');
 
@@ -23,6 +24,9 @@ Beneficiary.belongsTo(User, { foreignKey: 'userId', as: 'user' });
 
 Beneficiary.hasMany(BulletinSoin, { foreignKey: 'beneficiaireId', as: 'bulletins', constraints: false });
 BulletinSoin.belongsTo(Beneficiary, { foreignKey: 'beneficiaireId', as: 'beneficiaire', constraints: false });
+
+Beneficiary.hasMany(MaladieConsumption, { foreignKey: 'maladieId', as: 'consumptions' });
+MaladieConsumption.belongsTo(Beneficiary, { foreignKey: 'maladieId', as: 'beneficiaire' });
 
 User.hasMany(BulletinSoin, { foreignKey: 'userId', as: 'bulletins' });
 BulletinSoin.belongsTo(User, { foreignKey: 'userId', as: 'adherent' });
@@ -97,5 +101,6 @@ module.exports = {
     BulletinComment,
     FraudAlert,
     MotifRejet,
-    Prestataire
+    Prestataire,
+    MaladieConsumption
 };

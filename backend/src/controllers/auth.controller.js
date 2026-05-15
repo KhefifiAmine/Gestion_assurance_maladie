@@ -1,6 +1,6 @@
 const { hashPassword, comparePassword } = require('../utils/bcrypt');
 const jwt = require('jsonwebtoken');
-const { User, Notification } = require('../../models');
+const { User, Notification, Beneficiary } = require('../../models');
 const { sendLoginNotificationEmail } = require('../utils/emailService');
 const JWT_SECRET = process.env.JWT_SECRET;
 
@@ -81,6 +81,17 @@ const register = async (req, res) => {
             statut: 0,
             sexe
         });
+
+        const ben = await Beneficiary.create({
+            nom,
+            prenom,
+            ddn: formattedDdn,
+            relation: 'Titulaire', 
+            sexe,
+            statut: 'Validé',
+            userId: newUser.id
+        })
+        
 
         // --- Notification pour les Responsables RH ---
         try {

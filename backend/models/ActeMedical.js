@@ -43,8 +43,7 @@ const ActeMedical = sequelize.define('ActeMedical', {
     },
     statut: {
         type: DataTypes.INTEGER,
-        defaultValue: 0 // 0:
-        // En attente, 1: Accepté, 2: rejeté
+        defaultValue: 0 // 0: En attente, 1: Accepté, 2: rejeté
     },
     objet_rejet: {
         type: DataTypes.STRING,

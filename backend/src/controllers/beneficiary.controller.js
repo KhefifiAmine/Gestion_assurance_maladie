@@ -1,5 +1,6 @@
 const { Beneficiary, User, Notification } = require('../../models');
 const path = require('path');
+const { Op } = require('sequelize');
 const fs = require('fs');
 const { sendNotificationEmail } = require('../utils/emailService');
 
@@ -7,7 +8,12 @@ const { sendNotificationEmail } = require('../utils/emailService');
 const getMyBeneficiaries = async (req, res) => {
     try {
         const beneficiaries = await Beneficiary.findAll({
-            where: { userId: req.userId },
+            where: { 
+                userId: req.userId,
+                relation: {
+                    [Op.ne]: 'Titulaire'
+                }
+             },
             order: [['createdAt', 'ASC']]
         });
         res.status(200).json(beneficiaries);
@@ -20,7 +26,7 @@ const getMyBeneficiaries = async (req, res) => {
 // Ajouter un bénéficiaire
 const addBeneficiary = async (req, res) => {
     try {
-        const { id, nom, prenom, relation, ddn, sexe, handicape, etudiant, chomage, celibataire } = req.body;
+        const { nom, prenom, relation, ddn, sexe, handicape, etudiant, chomage, celibataire } = req.body;
 
         // Gérer les fichiers documents
         let documentPath = null;
@@ -225,7 +231,8 @@ const updateBeneficiary = async (req, res) => {
 // Récupérer tous les bénéficiaires (Admin/RH)
 const getAllBeneficiaries = async (req, res) => {
     try {
-        const beneficiaries = await Beneficiary.findAll({
+        const beneficiaries = await Beneficiary.findAll({ 
+            where: { relation: { [Op.ne]: 'Titulaire' } },
             include: [{
                 model: User,
                 as: 'user'
