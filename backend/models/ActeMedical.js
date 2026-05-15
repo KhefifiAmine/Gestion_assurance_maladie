@@ -62,6 +62,10 @@ const ActeMedical = sequelize.define('ActeMedical', {
         type: DataTypes.STRING,
         allowNull: true
     },
+    nb_jour: {
+        type: DataTypes.INTEGER, //Pour l'acte Hospitalisation
+        allowNull: true
+    },
     type_prestataire_soin: {
         type: DataTypes.STRING, //non dentaire ou dentaire
         allowNull: true
@@ -81,6 +85,10 @@ const ActeMedical = sequelize.define('ActeMedical', {
             model: 'prestataires',
             key: 'id'
         }
+    },
+    message_remboursement: {
+        type: DataTypes.STRING,
+        allowNull: true
     }
 }, {
     tableName: 'acte_medicaux',

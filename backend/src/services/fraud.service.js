@@ -17,51 +17,23 @@ class FraudService {
             repetition_montant: 0,
             frequence_adherent_7j: 0,
             frequence_adherent_30j: 0,
+            duplicates_detected: 0,
+            doctor_concentration: 0
         };
 
-        const depotDay = bulletin.date_depot
-            ? String(bulletin.date_depot).slice(0, 10)
-            : (bulletin.createdAt ? new Date(bulletin.createdAt).toISOString().slice(0, 10) : null);
         const date30DaysAgo = new Date();
         date30DaysAgo.setDate(date30DaysAgo.getDate() - 30);
         const date7DaysAgo = new Date();
         date7DaysAgo.setDate(date7DaysAgo.getDate() - 7);
 
-        if (depotDay) {
-            const uniquePatients = await BulletinSoin.count({
-                distinct: true,
-                col: 'userId',
-                where: { date_depot: depotDay }
-            });
-            metrics.nb_patients_jour = uniquePatients;
-            const doctorFrequencyScore = this.scoreFromThreshold(uniquePatients, 20, 35);
-            if (doctorFrequencyScore > 0) {
-                sqlRulesScore += doctorFrequencyScore;
-                reasons.push(`Frequence medecin elevee (${uniquePatients} patients/jour).`);
-            }
-
-            const repeatedAmount = await BulletinSoin.count({
-                where: {
-                    montant_total: bulletin.montant_total,
-                    createdAt: { [Op.gte]: date30DaysAgo }
-                }
-            });
-            metrics.repetition_montant = repeatedAmount;
-            const repetitionScore = this.scoreFromThreshold(repeatedAmount, 3, 6);
-            if (repetitionScore > 0) {
-                sqlRulesScore += repetitionScore;
-                reasons.push(`Montants repetes suspects (${repeatedAmount} occurrences sur 30 jours).`);
-            }
-        }
-
+        // 1. Fréquence Adhérent (7j et 30j)
         const bulletinsWeek = await BulletinSoin.count({
             where: { userId: bulletin.userId, createdAt: { [Op.gte]: date7DaysAgo } },
         });
         metrics.frequence_adherent_7j = bulletinsWeek;
-        const adhWeeklyScore = this.scoreFromThreshold(bulletinsWeek, 5, 8);
-        if (adhWeeklyScore > 0) {
-            sqlRulesScore += adhWeeklyScore;
-            reasons.push(`Adherent hyperactif (${bulletinsWeek} bulletins en 7 jours).`);
+        if (bulletinsWeek >= 5) {
+            sqlRulesScore += bulletinsWeek >= 8 ? 60 : 30;
+            reasons.push(`Activité intense de l'adhérent (${bulletinsWeek} bulletins en 7 jours).`);
         }
 
         const bulletinsMonth = await BulletinSoin.count({
@@ -69,8 +41,75 @@ class FraudService {
         });
         metrics.frequence_adherent_30j = bulletinsMonth;
 
+        // 2. Détection de Doublons (Actes identiques pour le même bénéficiaire)
+        if (bulletin.actes && bulletin.actes.length > 0) {
+            for (const acte of bulletin.actes) {
+                const duplicateCount = await ActeMedical.count({
+                    include: [{
+                        model: BulletinSoin,
+                        where: {
+                            beneficiaireId: bulletin.beneficiaireId,
+                            id: { [Op.ne]: bulletin.id }
+                        }
+                    }],
+                    where: {
+                        date_acte: acte.date_acte,
+                        acte: acte.acte,
+                        honoraires: acte.honoraires,
+                        identifiant_unique_mf: acte.identifiant_unique_mf,
+                        statut: { [Op.ne]: 2 } // Non rejeté
+                    }
+                });
+
+                if (duplicateCount > 0) {
+                    metrics.duplicates_detected++;
+                    sqlRulesScore += 100;
+                    reasons.push(`Acte médical potentiellement déjà soumis le ${acte.date_acte} (Doublon suspect).`);
+                    break;
+                }
+            }
+        }
+
+        // 3. Concentration Médecin (Un même médecin pour beaucoup de patients différents)
+        const doctorMFs = [...new Set((bulletin.actes || []).map(a => a.identifiant_unique_mf).filter(mf => !!mf))];
+        for (const mf of doctorMFs) {
+            const uniquePatientsForDoctor = await BulletinSoin.count({
+                distinct: true,
+                col: 'userId',
+                include: [{
+                    model: ActeMedical,
+                    as: 'actes',
+                    where: { identifiant_unique_mf: mf }
+                }],
+                where: {
+                    createdAt: { [Op.gte]: date30DaysAgo }
+                }
+            });
+
+            metrics.doctor_concentration = Math.max(metrics.doctor_concentration, uniquePatientsForDoctor);
+            if (uniquePatientsForDoctor >= 15) {
+                sqlRulesScore += uniquePatientsForDoctor >= 30 ? 70 : 40;
+                reasons.push(`Médecin (MF: ${mf}) anormalement sollicité (${uniquePatientsForDoctor} adhérents différents en 30j).`);
+            }
+        }
+
+        // 4. Répétition de montants totaux (Sur 30 jours)
+        const repeatedAmount = await BulletinSoin.count({
+            where: {
+                montant_total: bulletin.montant_total,
+                userId: bulletin.userId,
+                id: { [Op.ne]: bulletin.id },
+                createdAt: { [Op.gte]: date30DaysAgo }
+            }
+        });
+        metrics.repetition_montant = repeatedAmount;
+        if (repeatedAmount >= 2) {
+            sqlRulesScore += repeatedAmount >= 4 ? 50 : 25;
+            reasons.push(`Répétition suspecte du montant total (${bulletin.montant_total} TND) par l'adhérent.`);
+        }
+
         return {
-            score: Math.min(100, Math.round(sqlRulesScore / 3)),
+            score: Math.min(100, sqlRulesScore),
             reasons,
             metrics,
         };
@@ -119,26 +158,40 @@ class FraudService {
             nb_actes: Number(dayStats?.nb_actes || 0),
             montant_total_jour: Number(dayStats?.montant_total_jour || 0),
             montant_moyen: Number(dayStats?.montant_moyen || 0),
-            nb_patients_uniques: Number(dayStats?.nb_patients_jour || 0),
             frequence_mensuelle: Number(monthlyFrequency || 0),
+            submission_hour: new Date(bulletin.createdAt || Date.now()).getHours()
         };
 
         let anomalyScore = 0;
         const reasons = [];
+
+        // 1. Volume de patients anormal
         if (features.nb_patients_jour >= 30) {
-            anomalyScore += 35;
-            reasons.push(`Anomalie IA: volume patients anormal (${features.nb_patients_jour}/jour).`);
-        }
-        if (features.frequence_mensuelle >= 120) {
-            anomalyScore += 25;
-            reasons.push(`Anomalie IA: frequence mensuelle elevee (${features.frequence_mensuelle}/mois).`);
+            anomalyScore += features.nb_patients_jour >= 50 ? 50 : 25;
+            reasons.push(`Anomalie IA: volume patients élevé (${features.nb_patients_jour}/jour).`);
         }
 
+        // 2. Fréquence mensuelle élevée
+        if (features.frequence_mensuelle >= 150) {
+            anomalyScore += 20;
+            reasons.push(`Anomalie IA: pic de fréquence mensuelle détecté.`);
+        }
+
+        // 3. Heure de soumission suspecte (00h - 05h)
+        if (features.submission_hour >= 0 && features.submission_hour <= 5) {
+            anomalyScore += 15;
+            reasons.push(`Soumission en horaire inhabituel (${features.submission_hour}h).`);
+        }
+
+        // 4. Montant Outlier (Z-score > 2.5)
         const avg = Number(globalBaseline?.avgMontant || 0);
         const std = Number(globalBaseline?.stdMontant || 0);
-        if (avg > 0 && bulletin.montant_total > avg + (2 * (std || avg * 0.25))) {
-            anomalyScore += 40;
-            reasons.push('Anomalie IA: montant total tres au-dessus de la distribution habituelle.');
+        if (avg > 0 && std > 0) {
+            const zScore = (bulletin.montant_total - avg) / std;
+            if (zScore > 2.5) {
+                anomalyScore += zScore > 4 ? 60 : 35;
+                reasons.push(`Anomalie IA: montant total statistiquement hors norme (Z-score: ${zScore.toFixed(2)}).`);
+            }
         }
 
         return { score: Math.min(100, anomalyScore), reasons, features };
@@ -157,9 +210,13 @@ class FraudService {
         const anomalyResult = await this.analyzeGlobalAnomaly(bulletin);
         const localScore = bulletin.suspicion_locale ? 100 : 0;
 
-        const finalScore = Math.min(
-            100,
-            Math.round((localScore * 0.2) + (anomalyResult.score * 0.5) + (sqlResult.score * 0.3))
+        // Si un doublon est détecté, le score est automatiquement de 100
+        const finalScore = Math.max(
+            sqlResult.metrics.duplicates_detected > 0 ? 100 : 0,
+            Math.min(
+                100,
+                Math.round((localScore * 0.2) + (anomalyResult.score * 0.4) + (sqlResult.score * 0.4))
+            )
         );
 
         const reasons = [

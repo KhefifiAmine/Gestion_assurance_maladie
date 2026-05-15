@@ -13,8 +13,6 @@ const Reclamation = require('./Reclamation');
 const Notification = require('./Notification');
 const Journal = require('./Journal');
 const DocumentJustificatif = require('./DocumentJustificatif');
-const ReclamationMessage = require('./ReclamationMessage');
-const BulletinComment = require('./BulletinComment');
 const FraudAlert = require('./FraudAlert');
 const MotifRejet = require('./MotifRejet');
 
@@ -69,21 +67,10 @@ Reclamation.belongsTo(User, { foreignKey: 'userId', as: 'adherent' });
 User.hasMany(Reclamation, { foreignKey: 'adminId', as: 'reclamationsTraitees' });
 Reclamation.belongsTo(User, { foreignKey: 'adminId', as: 'admin' });
 
-Reclamation.hasMany(ReclamationMessage, { foreignKey: 'reclamationId', as: 'messages' });
-ReclamationMessage.belongsTo(Reclamation, { foreignKey: 'reclamationId' });
-
 BulletinSoin.hasMany(Reclamation, { foreignKey: 'bulletinId', as: 'reclamations' });
 Reclamation.belongsTo(BulletinSoin, { foreignKey: 'bulletinId', as: 'bulletinSoin' });
 
-User.hasMany(ReclamationMessage, { foreignKey: 'senderId', as: 'envoyes' });
-ReclamationMessage.belongsTo(User, { foreignKey: 'senderId', as: 'sender' });
 
-// ====== Associations pour BULLETIN COMMENTS ======
-BulletinSoin.hasMany(BulletinComment, { foreignKey: 'bulletinId', as: 'comments' });
-BulletinComment.belongsTo(BulletinSoin, { foreignKey: 'bulletinId' });
-
-User.hasMany(BulletinComment, { foreignKey: 'senderId', as: 'bulletinComments' });
-BulletinComment.belongsTo(User, { foreignKey: 'senderId', as: 'sender' });
 
 module.exports = {
     sequelize,
@@ -97,8 +84,6 @@ module.exports = {
     Notification,
     Journal,
     DocumentJustificatif,
-    ReclamationMessage,
-    BulletinComment,
     FraudAlert,
     MotifRejet,
     Prestataire,

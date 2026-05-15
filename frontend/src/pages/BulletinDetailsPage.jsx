@@ -161,6 +161,11 @@ const MedicalActCard = ({ acte, index, isAdmin, onProcess, onSave }) => {
                                         {acte.code_acte}
                                     </span>
                                 )}
+                                {acte.nb_jour && (
+                                    <span className="px-2 py-0.5 rounded-md bg-blue-100 dark:bg-blue-900/30 text-[9px] font-bold text-blue-600">
+                                        {acte.nb_jour} jours
+                                    </span>
+                                )}
                             </div>
                             <div className="flex flex-wrap gap-3 text-[10px] font-bold text-slate-400 uppercase">
                                 <span className="flex items-center gap-1">
@@ -193,13 +198,16 @@ const MedicalActCard = ({ acte, index, isAdmin, onProcess, onSave }) => {
                                     <span className="text-[10px] font-bold text-red-500 uppercase">Rejeté</span>
                                 </div>
                             ) : null}
-                            {acte.montant_remboursement > 0 && (
-                                <div className="flex items-baseline gap-1 mt-1">
+                                <div className="flex flex-col items-end gap-1 mt-1">
                                     <span className="text-sm font-bold text-emerald-500">
                                         remb. {formatMontantTnd(acte.montant_remboursement)}
                                     </span>
+                                    {acte.message_remboursement && (
+                                        <span className="text-[7px] font-black text-amber-600 uppercase tracking-tighter text-right leading-none max-w-[120px]">
+                                            {acte.message_remboursement}
+                                        </span>
+                                    )}
                                 </div>
-                            )}
                         </div>
                         <ChevronRight
                             size={18}
@@ -282,20 +290,32 @@ const MedicalActCard = ({ acte, index, isAdmin, onProcess, onSave }) => {
                                         </div>
                                     )}
 
-                                    <div>
-                                        <label className="text-[9px] font-black uppercase text-slate-400 mb-1 block ml-1">Montant à rembourser (TND)</label>
-                                        <input
-                                            type="number"
-                                            disabled={isAlreadyProcessed}
-                                            value={acte.montant_remboursement || 0}
-                                            max={acte.honoraires}
-                                            onChange={(e) => {
-                                                const val = parseFloat(e.target.value) || 0;
-                                                if (val > acte.honoraires) return;
-                                                onProcess(acte.id, 'montant_remboursement', val);
-                                            }}
-                                            className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-xs font-black text-emerald-600 focus:ring-2 focus:ring-emerald-500 outline-none transition-all disabled:opacity-50"
-                                        />
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="text-[9px] font-black uppercase text-slate-400 mb-1 block ml-1">Montant à rembourser (TND)</label>
+                                            <input
+                                                type="number"
+                                                disabled={isAlreadyProcessed}
+                                                value={acte.montant_remboursement || 0}
+                                                max={acte.honoraires}
+                                                onChange={(e) => {
+                                                    const val = parseFloat(e.target.value) || 0;
+                                                    if (val > acte.honoraires) return;
+                                                    onProcess(acte.id, 'montant_remboursement', val);
+                                                }}
+                                                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-xs font-black text-emerald-600 focus:ring-2 focus:ring-emerald-500 outline-none transition-all disabled:opacity-50"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="text-[9px] font-black uppercase text-slate-400 mb-1 block ml-1">Nombre de jours</label>
+                                            <input
+                                                type="number"
+                                                disabled={isAlreadyProcessed}
+                                                value={acte.nb_jour || ''}
+                                                onChange={(e) => onProcess(acte.id, 'nb_jour', parseInt(e.target.value) || null)}
+                                                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-xs font-bold focus:ring-2 focus:ring-purple-500 outline-none transition-all disabled:opacity-50"
+                                            />
+                                        </div>
                                     </div>
 
                                     <button
@@ -554,7 +574,8 @@ const BulletinDetailsPage = () => {
                 statut: acte.statut,
                 objet_rejet: acte.objet_rejet,
                 motif_rejet: acte.motif_rejet,
-                montant_remboursement: acte.montant_remboursement
+                montant_remboursement: acte.montant_remboursement,
+                nb_jour: acte.nb_jour
             });
             showToast("Acte mis à jour avec succès", "success");
             // Verrouille la carte localement (statut persisté = statut actuel)
@@ -1026,9 +1047,14 @@ const BulletinDetailsPage = () => {
                                                                                         <p className="text-sm font-black text-slate-800 dark:text-white">{formatMontantTnd(med.montant_total)} TND</p>
                                                                                     </div>
                                                                                     {med.statut === 1 && med.montant_remboursement > 0 && (
-                                                                                        <div className="text-right">
+                                                                                        <div className="text-right flex flex-col items-end">
                                                                                             <p className="text-[10px] font-black text-emerald-500 uppercase mb-0.5">Remb.</p>
                                                                                             <p className="text-sm font-black text-emerald-600">{formatMontantTnd(med.montant_remboursement)} TND</p>
+                                                                                            {med.message_remboursement && (
+                                                                                                <p className="text-[7px] font-black text-amber-600 uppercase tracking-tighter mt-1 max-w-[100px] leading-none">
+                                                                                                    {med.message_remboursement}
+                                                                                                </p>
+                                                                                            )}
                                                                                         </div>
                                                                                     )}
                                                                                     {med.statut === 2 && (

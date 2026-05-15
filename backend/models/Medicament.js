@@ -59,6 +59,10 @@ const Medicament = sequelize.define('Medicament', {
     motif_rejet: {
         type: DataTypes.TEXT,
         allowNull: true
+    },
+    message_remboursement: {
+        type: DataTypes.STRING,
+        allowNull: true
     }
 }, {
     tableName: 'medicaments',

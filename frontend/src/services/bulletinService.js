@@ -13,10 +13,10 @@ const getAuthHeaders = () => {
 export const createBulletin = async (bulletinData, files = []) => {
     const token = localStorage.getItem('token');
     const formData = new FormData();
-    
+
     // On ajoute toutes les données du bulletin dans un champ 'data'
     formData.append('data', JSON.stringify(bulletinData));
-    
+
     // On ajoute les fichiers si présents
     if (files && files.length > 0) {
         files.forEach(file => {
@@ -38,9 +38,9 @@ export const createBulletin = async (bulletinData, files = []) => {
 export const updateBulletin = async (id, bulletinData, files = []) => {
     const token = localStorage.getItem('token');
     const formData = new FormData();
-    
+
     formData.append('data', JSON.stringify(bulletinData));
-    
+
     if (files && files.length > 0) {
         files.forEach(file => {
             formData.append('files', file);
@@ -137,7 +137,7 @@ export const updateStatutMedicament = async (id, data) => {
 export const analyzeBulletinIA = async (files) => {
     const token = localStorage.getItem('token');
     const formData = new FormData();
-    
+
     if (Array.isArray(files)) {
         files.forEach(file => {
             formData.append('file', file);
@@ -180,25 +180,3 @@ export const downloadPreFilledBulletin = async () => {
     link.click();
     link.remove();
 };
-
-
-/*
-export const getBulletinComments = async (id) => {
-    const response = await fetch(`${API_URL}/${id}/comments`, {
-        method: 'GET',
-        headers: getAuthHeaders(),
-    });
-
-    return handleResponse(response);
-};
-
-export const addBulletinComment = async (id, message) => {
-    const response = await fetch(`${API_URL}/${id}/comments`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({ message }),
-    });
-
-    return handleResponse(response);
-};
-*/

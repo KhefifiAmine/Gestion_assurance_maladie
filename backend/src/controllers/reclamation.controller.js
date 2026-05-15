@@ -1,4 +1,4 @@
-const { Reclamation, User, BulletinSoin, ReclamationMessage, Notification, Beneficiary, ActeMedical, Pharmacie, DocumentJustificatif } = require('../../models');
+const { Reclamation, User, BulletinSoin, Notification, Beneficiary, ActeMedical, Pharmacie, DocumentJustificatif } = require('../../models');
 const { sendNotificationEmail } = require('../utils/emailService');
 
 // ==========================================
@@ -68,12 +68,9 @@ const AdherentReclamationController = {
               { model: DocumentJustificatif, as: 'documents' }
             ]
           },
-          {
-            model: ReclamationMessage, as: 'messages',
-            include: [{ model: User, as: 'sender', attributes: ['nom', 'prenom', 'role'] }]
-          }
+         
         ],
-        order: [[{ model: ReclamationMessage, as: 'messages' }, 'createdAt', 'ASC']]
+       
       });
       if (!reclamation) return res.status(404).json({ success: false, message: 'Réclamation non trouvée.' });
       res.status(200).json({ success: true, data: reclamation });
@@ -150,13 +147,10 @@ const AdminReclamationController = {
               { model: Pharmacie, as: 'pharmacie' },
               { model: DocumentJustificatif, as: 'documents' }
             ]
-          },
-          {
-            model: ReclamationMessage, as: 'messages',
-            include: [{ model: User, as: 'sender', attributes: ['nom', 'prenom', 'role'] }]
           }
+         
         ],
-        order: [[{ model: ReclamationMessage, as: 'messages' }, 'createdAt', 'ASC']]
+       
       });
 
       if (!reclamation) return res.status(404).json({ success: false, message: 'Réclamation non trouvée.' });

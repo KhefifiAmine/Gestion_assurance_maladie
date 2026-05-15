@@ -236,94 +236,9 @@ const logout = async (req, res) => {
     }
 };
 
-const forgotPassword = async (req, res) => {
-    try {
-        const { email } = req.body;
-        const normalizedEmail = email.toLowerCase();
-
-        const user = await User.findOne({ where: { email: normalizedEmail } });
-        if (!user) {
-            // Pour des raisons de sécurité, on ne dit pas si l'email existe ou non
-            return res.status(200).json({ message: 'Si un compte correspond à cet email, un code de réinitialisation vous sera envoyé.' });
-        }
-
-        // Générer un code à 6 chiffres
-        const resetCode = Math.floor(100000 + Math.random() * 900000).toString();
-        const expiry = new Date(Date.now() + 30 * 60 * 1000); // 30 minutes
-
-        user.resetPasswordCode = resetCode;
-        user.resetPasswordExpires = expiry;
-        await user.save();
-
-        const { sendResetEmail } = require('../utils/emailService');
-        await sendResetEmail(user.email, resetCode);
-
-        res.status(200).json({ message: 'Code de réinitialisation envoyé par email.' });
-    } catch (error) {
-        console.error('Erreur forgot password:', error);
-        res.status(500).json({ message: 'Erreur serveur.' });
-    }
-};
-
-const verifyResetCode = async (req, res) => {
-    try {
-        const { email, code } = req.body;
-        const normalizedEmail = email.toLowerCase();
-
-        const user = await User.findOne({
-            where: {
-                email: normalizedEmail,
-                resetPasswordCode: code,
-                resetPasswordExpires: { [require('sequelize').Op.gt]: new Date() }
-            }
-        });
-
-        if (!user) {
-            return res.status(400).json({ message: 'Code invalide ou expiré.' });
-        }
-
-        res.status(200).json({ message: 'Code valide.' });
-    } catch (error) {
-        console.error('Erreur verify code:', error);
-        res.status(500).json({ message: 'Erreur serveur.' });
-    }
-};
-
-const resetPassword = async (req, res) => {
-    try {
-        const { email, code, newPassword } = req.body;
-        const normalizedEmail = email.toLowerCase();
-
-        const user = await User.findOne({
-            where: {
-                email: normalizedEmail,
-                resetPasswordCode: code,
-                resetPasswordExpires: { [require('sequelize').Op.gt]: new Date() }
-            }
-        });
-
-        if (!user) {
-            return res.status(400).json({ message: 'Session de réinitialisation expirée ou invalide.' });
-        }
-
-        const hashedPassword = await hashPassword(newPassword);
-        user.mot_de_passe = hashedPassword;
-        user.resetPasswordCode = null;
-        user.resetPasswordExpires = null;
-        await user.save();
-
-        res.status(200).json({ message: 'Mot de passe réinitialisé avec succès.' });
-    } catch (error) {
-        console.error('Erreur reset password:', error);
-        res.status(500).json({ message: 'Erreur serveur.' });
-    }
-};
 
 module.exports = {
     register,
     login,
-    logout,
-    forgotPassword,
-    verifyResetCode,
-    resetPassword
+    logout
 };

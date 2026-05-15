@@ -637,16 +637,20 @@ const updateStatutActeMedical = async (req, res) => {
         }
 
         // Calcul et mise à jour du remboursement selon les plafonds
+        let message_remboursement = null;
         if (statut === 1) {
-            const remboursementReel = await ReimbursementService.calculePlafondActe(acte.beneficiaireId, acte, acte.date_soin);
-            montant_remboursement = Math.min(montant_remboursement, remboursementReel);
+            const result = await ReimbursementService.calculePlafondActe(acte.beneficiaireId, acte, acte.date_soin);
+            montant_remboursement = Math.min(montant_remboursement, result.amount);
+            message_remboursement = result.message;
         }
 
         await acte.update({
             statut,
             objet_rejet: statut === 2 ? objet_rejet : null,
             motif_rejet: statut === 2 ? motif_rejet : null,
-            montant_remboursement: statut === 1 ? montant_remboursement : 0
+            montant_remboursement: statut === 1 ? montant_remboursement : 0,
+            nb_jour: req.body.nb_jour !== undefined ? req.body.nb_jour : acte.nb_jour,
+            message_remboursement
         });
 
         // Mise à jour dynamique du montant_total_remboursé du bulletin
@@ -730,16 +734,19 @@ const updateStatutMedicament = async (req, res) => {
             return res.status(400).json({ message: 'Ce médicament a déjà été traité.' });
         }
 
+        let message_remboursement = null;
         if (statut === 1) {
-            const remboursementReel = await ReimbursementService.calculePlafondPharmacie(med.beneficiaireId, med, med.date_soin);
-            montant_remboursement = Math.min(montant_remboursement, remboursementReel);
+            const result = await ReimbursementService.calculePlafondPharmacie(med.beneficiaireId, med, med.date_soin);
+            montant_remboursement = Math.min(montant_remboursement, result.amount);
+            message_remboursement = result.message;
         }
 
         await med.update({
             statut,
             objet_rejet: statut === 2 ? objet_rejet : null,
             motif_rejet: statut === 2 ? motif_rejet : null,
-            montant_remboursement: statut === 1 ? montant_remboursement : 0
+            montant_remboursement: statut === 1 ? montant_remboursement : 0,
+            message_remboursement
         });
 
         // Optionnel: recalculer le montant total remboursé du bulletin si nécessaire

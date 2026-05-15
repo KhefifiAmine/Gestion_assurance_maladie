@@ -57,10 +57,10 @@ const AdminStats = () => {
   }
 
   const kpis = [
-    { title: 'Budget Global', value: `${(data?.totalRemboursements || 0).toFixed(3)} TND`, icon: Wallet, color: 'purple' },
+    { title: 'Budget Remboursé', value: `${(data?.totalAcceptedCash || 0).toFixed(3)} TND`, icon: Wallet, color: 'emerald' },
     { title: 'Bulletins', value: data?.totalBulletins || 0, icon: FileText, color: 'indigo' },
     { title: 'Réclamations', value: data?.reclamationsByStatus?.ouvertes || 0, icon: AlertTriangle, color: 'amber' },
-    { title: 'Utilisateurs', value: data?.totalUsers || 0, icon: Users, color: 'emerald' },
+    { title: 'Utilisateurs', value: data?.totalUsers || 0, icon: Users, color: 'purple' },
   ];
 
   const bi = data?.bi;
@@ -150,7 +150,7 @@ const AdminStats = () => {
                 <Tooltip />
                 <Legend />
                 <Area type="monotone" dataKey="cash" name="Volume déclaré (TND)" stroke="#7C3AED" fill="#7C3AED" fillOpacity={0.1} />
-                <Area type="monotone" dataKey="cashAccepte" name="Montant accepté (TND)" stroke="#10B981" fill="#10B981" fillOpacity={0.12} />
+                <Area type="monotone" dataKey="remboursé" name="Montant remboursé (TND)" stroke="#10B981" fill="#10B981" fillOpacity={0.12} />
               </AreaChart>
             </ResponsiveContainer>
           </div>
@@ -275,12 +275,12 @@ const AdminStats = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {(bi.topAdherentsBySpend || []).map((row) => (
-                    <tr key={row.userId} className="border-b border-slate-50 dark:border-white/5">
+                  {(bi.topAdherentsBySpend || []).map((row, idx) => (
+                    <tr key={idx} className="border-b border-slate-50 dark:border-white/5">
                       <td className="py-3 pr-4 font-bold text-slate-900 dark:text-white">{row.nom}</td>
                       <td className="py-3 pr-4 text-slate-600 dark:text-slate-400">{row.matricule || '—'}</td>
-                      <td className="py-3 pr-4 tabular-nums">{row.bulletinCount}</td>
-                      <td className="py-3 tabular-nums font-semibold">{(row.totalMontant || 0).toFixed(3)}</td>
+                      <td className="py-3 pr-4 tabular-nums">{row.count}</td>
+                      <td className="py-3 tabular-nums font-semibold">{(row.total || 0).toFixed(3)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -304,7 +304,7 @@ const AdminStats = () => {
           <h3 className="text-3xl font-black text-rose-600">{data?.fraud?.highRiskAlertsCount || 0}</h3>
         </div>
         <div className="bg-white dark:bg-slate-900 p-8 rounded-[2rem] shadow-xl border border-slate-100 dark:border-white/5">
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">Top adhérents suspects</p>
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">Médecins suspects</p>
           <h3 className="text-3xl font-black text-slate-900 dark:text-white">{data?.fraud?.topSuspectDoctors?.length || 0}</h3>
         </div>
       </div>
@@ -326,18 +326,18 @@ const AdminStats = () => {
         </div>
 
         <div className="bg-white dark:bg-slate-900 p-8 rounded-[2rem] shadow-xl border border-slate-100 dark:border-white/5">
-          <h3 className="text-xl font-black mb-6">Top adhérents suspects</h3>
+          <h3 className="text-xl font-black mb-6">Top Médecins (Frais élevés)</h3>
           <div className="space-y-3 max-h-[280px] overflow-auto pr-1">
-            {(data?.fraud?.topSuspectDoctors || []).map((doc) => (
+            {(data?.fraud?.topSuspectDoctors || []).map((doc, idx) => (
               <div
-                key={doc.adherentId ?? doc.medecinId ?? doc.nom}
+                key={idx}
                 className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40"
               >
                 <div>
-                  <p className="font-bold text-slate-900 dark:text-slate-100">{doc.nom}</p>
-                  <p className="text-xs text-slate-500">{doc.alertsCount} alertes</p>
+                  <p className="font-bold text-slate-900 dark:text-slate-100">MF: {doc.mf}</p>
+                  <p className="text-xs text-slate-500">{doc.count} bulletins traités</p>
                 </div>
-                <span className="text-sm font-black text-rose-600">{doc.score}</span>
+                <span className="text-sm font-black text-violet-600">{(doc.total || 0).toFixed(2)} TND</span>
               </div>
             ))}
           </div>

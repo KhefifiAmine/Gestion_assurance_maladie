@@ -55,10 +55,14 @@ class RulesEngine {
 
         // 8. Hospitalisation
         if (type === 'Hospitalisation') {
-            if (cote === 'Clinique') return Math.min(rules.hospitalisation.clinique.montant_par_jour, honoraires);
-            if (cote === 'Hôpital') return Math.min(rules.hospitalisation.hopital.montant_par_jour, honoraires);
-            if (cote === 'Réanimation') return Math.min(rules.hospitalisation.reanimation.montant_par_jour, honoraires);
-            if (cote === 'Couveuse') return Math.min(Math.min(code, rules.hospitalisation.couveuse.max_jours) * rules.hospitalisation.couveuse.montant_par_jour, honoraires);
+            const nbJour = Number(acte.nb_jour || 1);
+            if (cote === 'Clinique') return Math.min(rules.hospitalisation.clinique.montant_par_jour * nbJour, honoraires);
+            if (cote === 'Hôpital') return Math.min(rules.hospitalisation.hopital.montant_par_jour * nbJour, honoraires);
+            if (cote === 'Réanimation') return Math.min(rules.hospitalisation.reanimation.montant_par_jour * nbJour, honoraires);
+            if (cote === 'Couveuse') {
+                const days = Math.min(nbJour, rules.hospitalisation.couveuse.max_jours);
+                return Math.min(days * rules.hospitalisation.couveuse.montant_par_jour, honoraires);
+            }
             if (cote === 'Usage unique medical') return Math.min(rules.hospitalisation.usage_unique_medical.montant, honoraires);
         }
 
@@ -77,7 +81,10 @@ class RulesEngine {
         if (type === 'Divers') {
             if (cote === 'Transport Maladie') return Math.min(honoraires * rules.divers.transport_malade.taux, rules.divers.transport_malade.plafond_max);
             if (cote === 'Circoncision') return rules.divers.circoncision;
-            if (cote === 'Cure thermale') return Math.min(rules.divers.cure_thermale.montant_par_jour, honoraires);
+            if (cote === 'Cure thermale') {
+                const nbJour = Math.min(Number(acte.nb_jour || 1), rules.divers.cure_thermale.max_jours);
+                return Math.min(nbJour * rules.divers.cure_thermale.montant_par_jour, honoraires);
+            }
         }
 
         // 12. Autres

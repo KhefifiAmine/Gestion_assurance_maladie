@@ -10,8 +10,6 @@ const {
     updateStatutActeMedical,
     updateStatutPharmacie,
     updateStatutMedicament,
-    //addBulletinComment,
-    //getBulletinComments,
     updateBulletin,
     deleteBulletin,
     generatePreFilledPDF
@@ -37,8 +35,5 @@ router.put('/acte/:id/status', verifyToken, isAdmin, updateStatutActeMedical);
 router.put('/pharmacie/:id/status', verifyToken, isAdmin, updateStatutPharmacie);
 router.put('/medicament/:id/status', verifyToken, isAdmin, updateStatutMedicament);
 
-// Routes pour les commentaires (accessibles aux deux rôles)
-//router.get('/:id/comments', verifyToken, getBulletinComments);
-//router.post('/:id/comments', verifyToken, addBulletinComment);
 
 module.exports = router;

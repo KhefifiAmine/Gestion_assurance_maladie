@@ -71,22 +71,3 @@ export const deleteReclamation = async (id) => {
     });
     return handleResponse(res);
 };
-/*
-export const markReclamationAsRead = async (id) => {
-    const res = await fetch(`${API_BASE}/reclamations/${id}/read`, {
-        method: 'PUT',
-        headers: authHeaders()
-    });
-    return handleResponse(res);
-};
-
-export const addReclamationMessage = async (id, message) => {
-    const res = await fetch(`${API_BASE}/reclamations/${id}/messages`, {
-        method: 'POST',
-        headers: authHeaders(),
-        body: JSON.stringify({ message })
-    });
-    const data = await handleResponse(res);
-    return data.data;
-};
-*/

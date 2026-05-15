@@ -153,6 +153,10 @@ const ActeItem = memo(({ acte, index, onUpdate, onRemove, structure }) => (
                 <input placeholder="MF" className="w-full p-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white" value={acte.identifiant_unique_mf || ''} onChange={e => onUpdate(index, { identifiant_unique_mf: e.target.value })} />
             </FormField>
 
+            <FormField label="Nb Jours">
+                <input type="number" placeholder="Ex: 5" className="w-full p-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white" value={acte.nb_jour || ''} onChange={e => onUpdate(index, { nb_jour: Number(e.target.value) })} />
+            </FormField>
+
             <FormField label="N° Dent">
                 <input placeholder="Ex: 14" className="w-full p-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white" value={acte.numero_dent || ''} onChange={e => onUpdate(index, { numero_dent: e.target.value })} />
             </FormField>
@@ -405,7 +409,8 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
                     est_cachet: !!a.est_cachet,
                     est_signature: !!a.est_signature,
                     date_cachet_signature: formatDateForInput(a.date_cachet_signature) || '',
-                    type_prestataire_soin: cleanIAValue(a.type_prestataire_soin) || ''
+                    type_prestataire_soin: cleanIAValue(a.type_prestataire_soin) || '',
+                    nb_jour: Number(a.nb_jour) || null
                 })) : prev.actes,
                 montant_total: Number(aiData.montant_total) || prev.montant_total,
                 resultat_analyse: cleanIAValue(aiData.resultat_analyse) || '',
@@ -428,7 +433,7 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
     const addActe = useCallback(() => {
         setFormData(prev => ({
             ...prev,
-            actes: [...prev.actes, { date_acte: prev.date_soin, acte: '', cote: null, code_acte: '', numero_dent: '', honoraires: 0, identifiant_unique_mf: '', est_cachet: false, est_signature: false, date_cachet_signature: '', type_prestataire_soin: '' }]
+            actes: [...prev.actes, { date_acte: prev.date_soin, acte: '', cote: null, code_acte: '', numero_dent: '', honoraires: 0, identifiant_unique_mf: '', est_cachet: false, est_signature: false, date_cachet_signature: '', type_prestataire_soin: '', nb_jour: null }]
         }));
     }, []);
 

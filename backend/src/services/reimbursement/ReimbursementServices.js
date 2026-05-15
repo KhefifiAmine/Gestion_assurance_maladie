@@ -1,9 +1,22 @@
+const { Beneficiary, ActeMedical } = require('../../../models');
+const { Op } = require('sequelize');
+const rules = require('../../utils/reimbursementRules2026');
 const ConsumptionService = require('./ConsumptionService');
 const RulesEngine = require('./RulesEngine');
 
 class ReimbursementService {
 
-    
+    static calculateAge(ddn, dateRef) {
+        if (!ddn) return 0;
+        const birthDate = new Date(ddn);
+        const refDate = new Date(dateRef);
+        let age = refDate.getFullYear() - birthDate.getFullYear();
+        const m = refDate.getMonth() - birthDate.getMonth();
+        if (m < 0 || (m === 0 && refDate.getDate() < birthDate.getDate())) {
+            age--;
+        }
+        return age;
+    }
 
     static getAnnee(date_soin) {
         const dateSoin = new Date(date_soin);
@@ -17,15 +30,56 @@ class ReimbursementService {
     static async calculePlafondActe(maldieId, acte, date_soin) {
 
         try {
+            const beneficiary = await Beneficiary.findByPk(maldieId);
+            if (!beneficiary) throw new Error('Bénéficiaire introuvable');
+
+            const age = ReimbursementService.calculateAge(beneficiary.ddn, date_soin);
+
+            // 1. Règle ODF (Orthopédie Dento-Faciale)
+            if (acte.acte === 'Dentaire' && acte.cote === 'Orthopedie Dento Faciale') {
+                if (age > rules.dentaire.orthopedie_dento_faciale.conditions.age_max) {
+                    return { amount: 0, message: "ODF non remboursable après 18 ans." };
+                }
+            }
+
+            // 2. Règle Optique (Monture) - Renouvellement
+            if (acte.acte === 'Optique' && acte.cote === 'Monture') {
+                const limitYears = age < 16 
+                    ? rules.optique.monture.renouvellement.enfant_moins_16_ans 
+                    : rules.optique.monture.renouvellement.adulte_ans;
+
+                // Trouver le dernier acte de monture remboursé
+                const lastMonture = await ActeMedical.findOne({
+                    where: {
+                        beneficiaireId: maldieId,
+                        acte: 'Optique',
+                        cote: 'Monture',
+                        statut: 1, // Accepté
+                        id: { [Op.ne]: acte.id || 0 } // Exclure l'acte actuel si on est en train de l'updater
+                    },
+                    order: [['date_acte', 'DESC']]
+                });
+
+                if (lastMonture) {
+                    const lastDate = new Date(lastMonture.date_acte);
+                    const currentDate = new Date(date_soin);
+                    
+                    const diffTime = Math.abs(currentDate - lastDate);
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                    
+                    if (diffDays < (limitYears * 365)) {
+                        return { amount: 0, message: `Renouvellement monture non autorisé avant ${limitYears} an(s).` };
+                    }
+                }
+            }
+
             const annee = ReimbursementService.getAnnee(date_soin);
 
             // 1. Charger les consommations actuelles
-
             const consommations = await ConsumptionService.getConsumptions(maldieId, annee);
             const globalConsommé = consommations['GLOBAL'] || 0;
             const globalPlafond = RulesEngine.getGlobalPlafond();
             let resteGlobal = Math.max(0, globalPlafond - globalConsommé);
-
 
             const cat = RulesEngine.getPlafondCategory(acte);
             const plafondCat = RulesEngine.getPlafondValue(cat);
@@ -33,17 +87,25 @@ class ReimbursementService {
             const dejaConsomméCat = (consommations[cat] || 0);
             const resteCat = Math.max(0, plafondCat - dejaConsomméCat);
 
-            const remboursementReel = Number(Math.min(acte.montant_remboursement, resteCat, resteGlobal).toFixed(3));
+            let amount = Number(acte.montant_remboursement || 0);
+            let message = "";
 
-            // 8. Mettre à jour les consommations (Seulement si le bulletin est validé ? non, l'user a dit "Sauvegarde du bulletin -> Mise à jour des consommations")
-            // Note: Normalement on met à jour les consommations seulement quand le bulletin est validé (statut 2).
-            // Mais si on veut que le prochain bulletin voit la conso du bulletin en attente, on le fait ici.
-            // Vu l'objectif de "gestion des plafonds en temps réel", on va mettre à jour.
-            if (remboursementReel > 0) {
-                await ConsumptionService.addConsumption(maldieId, annee, cat, remboursementReel);
+            if (amount > resteCat) {
+                amount = resteCat;
+                message = `Plafond annuel de la catégorie atteint (${plafondCat} TND).`;
             }
 
-            return remboursementReel;
+            if (amount > resteGlobal) {
+                amount = resteGlobal;
+                message = `Plafond annuel global atteint (${globalPlafond} TND).`;
+            }
+
+            // 8. Mettre à jour les consommations
+            if (amount > 0) {
+                await ConsumptionService.addConsumption(maldieId, annee, cat, amount);
+            }
+
+            return { amount: Number(amount.toFixed(3)), message };
 
         } catch (error) {
             throw error;
@@ -65,18 +127,26 @@ class ReimbursementService {
             const plafondCat = RulesEngine.getPlafondValue(cat);
             const dejaConsomméCat = (consommations[cat] || 0)
             let resteCat = Math.max(0, plafondCat - dejaConsomméCat);
-            let montantRembourse = Number(medicament.montant_remboursement || 0);
-            montantRembourse = Math.min(montantRembourse, resteCat, resteGlobal);
+            
+            let amount = Number(medicament.montant_remboursement || 0);
+            let message = "";
 
-            // 8. Mettre à jour les consommations (Seulement si le bulletin est validé ? non, l'user a dit "Sauvegarde du bulletin -> Mise à jour des consommations")
-            // Note: Normalement on met à jour les consommations seulement quand le bulletin est validé (statut 2).
-            // Mais si on veut que le prochain bulletin voit la conso du bulletin en attente, on le fait ici.
-            // Vu l'objectif de "gestion des plafonds en temps réel", on va mettre à jour.
-            if (montantRembourse > 0) {
-                await ConsumptionService.addConsumption(maldieId, annee, cat, montantRembourse);
+            if (amount > resteCat) {
+                amount = resteCat;
+                message = `Plafond annuel pharmacie atteint (${plafondCat} TND).`;
             }
 
-            return montantRembourse;
+            if (amount > resteGlobal) {
+                amount = resteGlobal;
+                message = `Plafond annuel global atteint (${globalPlafond} TND).`;
+            }
+
+            // 8. Mettre à jour les consommations
+            if (amount > 0) {
+                await ConsumptionService.addConsumption(maldieId, annee, cat, amount);
+            }
+
+            return { amount: Number(amount.toFixed(3)), message };
 
         } catch (error) {
             throw error;

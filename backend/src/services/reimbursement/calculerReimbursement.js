@@ -60,8 +60,6 @@ function calculeRemboursementPharmacie(pharmacie = null, pharmacie_detecte = fal
         }
 
         return {
-            actes: actesTraites,
-
             pharmacie: pharmacieTraitee,
 
             totalPharmacieRemboursement: Number(
