@@ -53,7 +53,7 @@ import {
     RotateCcw
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { getBulletinById, updateBulletinStatus, updateStatutActeMedical, updateStatutPharmacie } from '../services/bulletinService';
+import { getBulletinById, updateBulletinStatus, updateStatutActeMedical } from '../services/bulletinService';
 import { useToast } from '../context/ToastContext';
 import {
     getPatientDisplayName,
@@ -198,16 +198,16 @@ const MedicalActCard = ({ acte, index, isAdmin, onProcess, onSave }) => {
                                     <span className="text-[10px] font-bold text-red-500 uppercase">Rejeté</span>
                                 </div>
                             ) : null}
-                                <div className="flex flex-col items-end gap-1 mt-1">
-                                    <span className="text-sm font-bold text-emerald-500">
-                                        remb. {formatMontantTnd(acte.montant_remboursement)}
+                            <div className="flex flex-col items-end gap-1 mt-1">
+                                <span className="text-sm font-bold text-emerald-500">
+                                    remb. {formatMontantTnd(acte.montant_remboursement)}
+                                </span>
+                                {acte.message_remboursement && (
+                                    <span className="text-[7px] font-black text-amber-600 uppercase tracking-tighter text-right leading-none max-w-[120px]">
+                                        {acte.message_remboursement}
                                     </span>
-                                    {acte.message_remboursement && (
-                                        <span className="text-[7px] font-black text-amber-600 uppercase tracking-tighter text-right leading-none max-w-[120px]">
-                                            {acte.message_remboursement}
-                                        </span>
-                                    )}
-                                </div>
+                                )}
+                            </div>
                         </div>
                         <ChevronRight
                             size={18}
@@ -226,6 +226,48 @@ const MedicalActCard = ({ acte, index, isAdmin, onProcess, onSave }) => {
                         className="border-t border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/30"
                     >
                         <div className="p-5 space-y-3">
+                            {acte.prestataire && (
+                                <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-700/50 shadow-sm mb-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                                    <div className="flex items-center justify-between mb-3">
+                                        <p className="text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest flex items-center gap-2">
+                                            <Building2 size={12} />
+                                            Prestataire de santé
+                                        </p>
+                                        {acte.prestataire.identifiant_unique_mf && (
+                                            <span className="px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-[9px] font-mono font-bold text-slate-500">
+                                                MF: {acte.prestataire.identifiant_unique_mf}
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="space-y-1">
+                                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Nom / Établissement</p>
+                                            <p className="text-xs font-black text-slate-800 dark:text-slate-200">{acte.prestataire.nom || 'Non spécifié'}</p>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Coordonnées</p>
+                                            <div className="flex items-center gap-3 text-xs font-bold text-slate-600 dark:text-slate-400">
+                                                {acte.prestataire.telephone && (
+                                                    <span className="flex items-center gap-1">
+                                                        <Phone size={10} className="text-slate-400" />
+                                                        {acte.prestataire.telephone}
+                                                    </span>
+                                                )}
+                                                {!acte.prestataire.telephone && <span>Pas de téléphone</span>}
+                                            </div>
+                                        </div>
+                                        {acte.prestataire.adresse && (
+                                            <div className="md:col-span-2 space-y-1 pt-1 border-t border-slate-50 dark:border-slate-800/50">
+                                                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Adresse</p>
+                                                <p className="text-xs font-medium text-slate-600 dark:text-slate-400 flex items-center gap-1">
+                                                    <MapPin size={10} className="text-slate-400" />
+                                                    {acte.prestataire.adresse}
+                                                </p>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
                             {(acte.objet_rejet || acte.motif_rejet) && (
                                 <div className="p-3 rounded-xl bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-800/20">
                                     <p className="text-[9px] font-black text-red-600 uppercase mb-1">{acte.objet_rejet || 'Motif de rejet'}</p>
@@ -585,26 +627,6 @@ const BulletinDetailsPage = () => {
             setBulletin(data);
         } catch (error) {
             showToast(error.message || "Erreur lors de la mise à jour de l'acte", "error");
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleSinglePharmacieSave = async () => {
-        try {
-            setLoading(true);
-            await updateStatutPharmacie(bulletin.pharmacie.id, {
-                statut: bulletin.pharmacie.statut,
-                objet_rejet: bulletin.pharmacie.objet_rejet,
-                motif_rejet: bulletin.pharmacie.motif_rejet,
-                montant_remboursement: bulletin.pharmacie.montant_remboursement
-            });
-            showToast("Pharmacie mise à jour avec succès", "success");
-            // Refresh data
-            const data = await getBulletinById(id);
-            setBulletin(data);
-        } catch (error) {
-            showToast(error.message || "Erreur lors de la mise à jour de la pharmacie", "error");
         } finally {
             setLoading(false);
         }
@@ -1097,45 +1119,6 @@ const BulletinDetailsPage = () => {
                                                             </div>
                                                         )}
 
-                                                        {isAdmin && (
-                                                            <div className="space-y-4">
-                                                                <div className="flex gap-3">
-                                                                    <button
-                                                                        onClick={() => handlePharmacieProcessing('statut', 1)}
-                                                                        disabled={bulletin.pharmacie.statut !== 0}
-                                                                        className={`flex-1 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${bulletin.pharmacie.statut === 1
-                                                                            ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-500/30'
-                                                                            : bulletin.pharmacie.statut !== 0
-                                                                                ? 'bg-slate-100 text-slate-300 cursor-not-allowed'
-                                                                                : 'bg-slate-100 text-slate-400 hover:bg-emerald-50'
-                                                                            }`}
-                                                                    >
-                                                                        Accepter
-                                                                    </button>
-                                                                    <button
-                                                                        onClick={() => handlePharmacieProcessing('statut', 2)}
-                                                                        disabled={bulletin.pharmacie.statut !== 0}
-                                                                        className={`flex-1 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${bulletin.pharmacie.statut === 2
-                                                                            ? 'bg-rose-600 text-white shadow-lg shadow-rose-500/30'
-                                                                            : bulletin.pharmacie.statut !== 0
-                                                                                ? 'bg-slate-100 text-slate-300 cursor-not-allowed'
-                                                                                : 'bg-slate-100 text-slate-400 hover:bg-rose-50'
-                                                                            }`}
-                                                                    >
-                                                                        Rejeter
-                                                                    </button>
-                                                                </div>
-
-                                                                <button
-                                                                    onClick={handleSinglePharmacieSave}
-                                                                    disabled={bulletin.pharmacie.statut !== 0}
-                                                                    className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-black transition-all flex items-center justify-center gap-2 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-                                                                >
-                                                                    <Save size={16} />
-                                                                    Enregistrer Pharmacie
-                                                                </button>
-                                                            </div>
-                                                        )}
                                                     </div>
                                                 </div>
                                             )}

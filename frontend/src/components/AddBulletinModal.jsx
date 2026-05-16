@@ -150,7 +150,19 @@ const ActeItem = memo(({ acte, index, onUpdate, onRemove, structure }) => (
             </FormField>
 
             <FormField label="MF Médecin">
-                <input placeholder="MF" className="w-full p-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white" value={acte.identifiant_unique_mf || ''} onChange={e => onUpdate(index, { identifiant_unique_mf: e.target.value })} />
+                <input placeholder="MF" className="w-full p-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white" value={acte.prestataire?.identifiant_unique_mf || ''} onChange={e => onUpdate(index, { prestataire: { ...(acte.prestataire || {}), identifiant_unique_mf: e.target.value } })} />
+            </FormField>
+
+            <FormField label="Nom Prestataire">
+                <input placeholder="Nom" className="w-full p-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white" value={acte.prestataire?.nom || ''} onChange={e => onUpdate(index, { prestataire: { ...(acte.prestataire || {}), nom: e.target.value } })} />
+            </FormField>
+
+            <FormField label="Téléphone">
+                <input placeholder="Téléphone" className="w-full p-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white" value={acte.prestataire?.telephone || ''} onChange={e => onUpdate(index, { prestataire: { ...(acte.prestataire || {}), telephone: e.target.value } })} />
+            </FormField>
+
+            <FormField label="Adresse">
+                <input placeholder="Adresse" className="w-full p-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white" value={acte.prestataire?.adresse || ''} onChange={e => onUpdate(index, { prestataire: { ...(acte.prestataire || {}), adresse: e.target.value } })} />
             </FormField>
 
             <FormField label="Nb Jours">
@@ -405,7 +417,12 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
                     code_acte: cleanIAValue(a.code_acte) || '',
                     numero_dent: cleanIAValue(a.numero_dent) || '',
                     honoraires: Number(a.honoraires) || 0,
-                    identifiant_unique_mf: cleanIAValue(a.identifiant_unique_mf) || '',
+                    prestataire: {
+                        identifiant_unique_mf: cleanIAValue(a.identifiant_unique_mf) || '',
+                        nom: cleanIAValue(a.nom_prestataire) || '',
+                        telephone: cleanIAValue(a.telephone_prestataire) || '',
+                        adresse: cleanIAValue(a.adresse_prestataire) || ''
+                    },
                     est_cachet: !!a.est_cachet,
                     est_signature: !!a.est_signature,
                     date_cachet_signature: formatDateForInput(a.date_cachet_signature) || '',
@@ -433,7 +450,25 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
     const addActe = useCallback(() => {
         setFormData(prev => ({
             ...prev,
-            actes: [...prev.actes, { date_acte: prev.date_soin, acte: '', cote: null, code_acte: '', numero_dent: '', honoraires: 0, identifiant_unique_mf: '', est_cachet: false, est_signature: false, date_cachet_signature: '', type_prestataire_soin: '', nb_jour: null }]
+            actes: [...prev.actes, { 
+                date_acte: prev.date_soin, 
+                acte: '', 
+                cote: null, 
+                code_acte: '', 
+                numero_dent: '', 
+                honoraires: 0, 
+                prestataire: {
+                    identifiant_unique_mf: '',
+                    nom: '',
+                    telephone: '',
+                    adresse: ''
+                },
+                est_cachet: false, 
+                est_signature: false, 
+                date_cachet_signature: '', 
+                type_prestataire_soin: '', 
+                nb_jour: null 
+            }]
         }));
     }, []);
 

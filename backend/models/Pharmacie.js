@@ -49,18 +49,6 @@ const Pharmacie = sequelize.define('Pharmacie', {
         type: DataTypes.DATEONLY,
         allowNull: true
     },
-    statut: {
-        type: DataTypes.INTEGER,
-        defaultValue: 0 // 0: En attente, 1: Accepté, 2: Rejeté
-    },
-    objet_rejet: {
-        type: DataTypes.STRING,
-        allowNull: true
-    },
-    motif_rejet: {
-        type: DataTypes.TEXT,
-        allowNull: true
-    },
     montant_pharmacie: {
         type: DataTypes.DOUBLE,
         allowNull: false,

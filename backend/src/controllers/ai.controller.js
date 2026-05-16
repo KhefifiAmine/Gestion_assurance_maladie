@@ -259,7 +259,7 @@ const analyzeBulletin = async (req, res) => {
           "type_prestataire_soin": null,        // "dentaire" | "non dentaire"
           "prestataire_detecte": false,
           "nb_jour": null,           // Hospitalisation (tous les codes, couveuse : max 15 jours) et Divers (code cure thermale uniquement : max 21 jours) : calcul du montant limité au maximum autorisé
-          "prestataire": {
+          "prestataire": { 
             "identifiant_unique_mf": null,
             "nom": null,
             "telephone": null,

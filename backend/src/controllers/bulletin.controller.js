@@ -2,7 +2,7 @@ const path = require('path');
 const fs = require('fs');
 const { Op } = require('sequelize');
 const { PDFDocument, rgb } = require('pdf-lib');
-const { BulletinSoin, ActeMedical, Pharmacie, Medicament, User, DocumentJustificatif, Beneficiary, Notification, sequelize } = require('../../models');
+const { BulletinSoin, ActeMedical, Pharmacie, Medicament, User, DocumentJustificatif, Beneficiary, Notification, sequelize, Prestataire } = require('../../models');
 const { sendNotificationEmail } = require('../utils/emailService');
 const FraudService = require('../services/fraud.service');
 const { resolvePatientForBulletin } = require('../utils/validationPatientBulletin');
@@ -54,10 +54,10 @@ const createBulletin = async (req, res) => {
         const { beneficiaireId: resolvedBeneficiaireId, qualite_malade: resolvedQualite } = patient;
 
         const resultActe =
-            calculeRemboursementActe(actes);
+            calculeRemboursementActe(actes, resolvedBeneficiaireId, date_soin);
 
         const resultPharmacie =
-            calculeRemboursementPharmacie(pharmacie, pharmacie_detecte);
+            calculeRemboursementPharmacie(pharmacie, pharmacie_detecte, resolvedBeneficiaireId, date_soin);
 
         const { actes: actesCalcules, totalActeRemboursement } =
             resultActe;
@@ -89,10 +89,34 @@ const createBulletin = async (req, res) => {
         }, { transaction: t });
 
         for (const acte of actesCalcules) {
-            await ActeMedical.create({
-                ...acte,
-                bulletinId: bulletin.id
-            }, { transaction: t });
+
+            const identifiant_unique_mf =
+                acte.prestataire.identifiant_unique_mf;
+
+            let prestataire = await Prestataire.findOne({
+                where: { identifiant_unique_mf },
+                transaction: t
+            });
+
+            // Création si inexistant
+            if (!prestataire) {
+                prestataire = await Prestataire.create(
+                    {
+                        ...acte.prestataire
+                    },
+                    { transaction: t }
+                );
+            }
+
+            // Création de l'acte lié au prestataire
+            await ActeMedical.create(
+                {
+                    ...acte,
+                    bulletinId: bulletin.id,
+                    prestataireId: prestataire.id
+                },
+                { transaction: t }
+            );
         }
 
         if (pharmacieCalculee) {
@@ -126,7 +150,7 @@ const createBulletin = async (req, res) => {
 
         const loadedBulletin = await BulletinSoin.findByPk(bulletin.id, {
             include: [
-                { model: ActeMedical, as: 'actes' },
+                { model: ActeMedical, as: 'actes', include: [{ model: Prestataire, as: 'prestataire' }] },
                 { model: Pharmacie, as: 'pharmacie', include: [{ model: Medicament, as: 'medicaments' }] },
                 { model: DocumentJustificatif, as: 'documents' },
                 { model: Beneficiary, as: 'beneficiaire', required: false }
@@ -184,7 +208,7 @@ const updateBulletin = async (req, res) => {
             'numero_bulletin', 'code_cnam', 'date_soin', 'montant_total',
             'qualite_malade', 'nom_prenom_malade', 'est_apci', 'suivi_grossesse',
             'date_prevue_accouchement', 'soins_cadre', 'est_signe_adherent',
-            'pharmacie', 'actes', 'beneficiaireId', 'pharmacie_detecte '
+            'pharmacie', 'actes', 'beneficiaireId', 'pharmacie_detecte'
         ];
 
         const updateData = {};
@@ -330,7 +354,7 @@ const updateBulletin = async (req, res) => {
 
         const loadedBulletin = await BulletinSoin.findByPk(id, {
             include: [
-                { model: ActeMedical, as: 'actes' },
+                { model: ActeMedical, as: 'actes', include: [{ model: Prestataire, as: 'prestataire' }] },
                 { model: Pharmacie, as: 'pharmacie', include: [{ model: Medicament, as: 'medicaments' }] },
                 { model: DocumentJustificatif, as: 'documents' },
                 { model: Beneficiary, as: 'beneficiaire', required: false }
@@ -434,6 +458,7 @@ const getAllBulletins = async (req, res) => {
         });
         res.status(200).json(bulletins);
     } catch (error) {
+        console.log(error);
         res.status(500).json({ message: 'Erreur lors de la récupération de tous les bulletins', error: error.message });
     }
 };
@@ -448,7 +473,7 @@ const getBulletinById = async (req, res) => {
             include: [
                 { model: User, as: 'adherent' },
                 { model: User, as: 'admin', attributes: ['id', 'nom', 'prenom'] },
-                { model: ActeMedical, as: 'actes' },
+                { model: ActeMedical, as: 'actes', include: [{ model: Prestataire, as: 'prestataire' }] },
                 { model: Pharmacie, as: 'pharmacie', include: [{ model: Medicament, as: 'medicaments' }] },
                 { model: DocumentJustificatif, as: 'documents' },
                 { model: Beneficiary, as: 'beneficiaire', attributes: ['id', 'nom', 'prenom', 'relation', 'ddn', 'statut'], required: false },
@@ -636,21 +661,12 @@ const updateStatutActeMedical = async (req, res) => {
             return res.status(400).json({ message: `Le montant de remboursement (${montant_remboursement}) ne peut pas dépasser les honoraires (${acte.honoraires}).` });
         }
 
-        // Calcul et mise à jour du remboursement selon les plafonds
-        let message_remboursement = null;
-        if (statut === 1) {
-            const result = await ReimbursementService.calculePlafondActe(acte.beneficiaireId, acte, acte.date_soin);
-            montant_remboursement = Math.min(montant_remboursement, result.amount);
-            message_remboursement = result.message;
-        }
 
         await acte.update({
             statut,
             objet_rejet: statut === 2 ? objet_rejet : null,
             motif_rejet: statut === 2 ? motif_rejet : null,
-            montant_remboursement: statut === 1 ? montant_remboursement : 0,
-            nb_jour: req.body.nb_jour !== undefined ? req.body.nb_jour : acte.nb_jour,
-            message_remboursement
+            montant_remboursement: montant_remboursement,
         });
 
         // Mise à jour dynamique du montant_total_remboursé du bulletin
@@ -673,52 +689,6 @@ const updateStatutActeMedical = async (req, res) => {
     }
 };
 
-const updateStatutPharmacie = async (req, res) => {
-    try {
-        const { id } = req.params; // ID de la pharmacie
-        const { statut, objet_rejet, motif_rejet, montant_remboursement } = req.body;
-
-        const pharmacie = await Pharmacie.findByPk(id);
-        if (!pharmacie) {
-            return res.status(404).json({ message: 'Pharmacie non trouvée' });
-        }
-
-        // Contrainte : ne peut pas modifier une pharmacie déjà traitée
-        if (pharmacie.statut !== 0) {
-            return res.status(400).json({ message: 'Cet article de pharmacie a déjà été traité et ne peut plus être modifié.' });
-        }
-
-        // Contrainte : le montant de remboursement ne peut pas dépasser le montant engagé
-        if (statut === 1 && montant_remboursement > pharmacie.montant_pharmacie) {
-            return res.status(400).json({ message: `Le montant de remboursement (${montant_remboursement}) ne peut pas dépasser le montant engagé (${pharmacie.montant_pharmacie}).` });
-        }
-
-        await pharmacie.update({
-            statut,
-            objet_rejet: statut === 2 ? objet_rejet : null,
-            motif_rejet: statut === 2 ? motif_rejet : null,
-            montant_remboursement: statut === 1 ? montant_remboursement : 0
-        });
-
-        // Mise à jour dynamique du montant_total_remboursé du bulletin
-        const bulletin = await BulletinSoin.findByPk(pharmacie.bulletinId);
-        if (bulletin) {
-            const [totalActes, totalPharmacie] = await Promise.all([
-                ActeMedical.sum('montant_remboursement', { where: { bulletinId: bulletin.id } }),
-                Pharmacie.sum('montant_remboursement', { where: { bulletinId: bulletin.id } })
-            ]);
-
-            await bulletin.update({
-                montant_total_remboursé: (totalActes) + (totalPharmacie)
-            });
-        }
-
-        res.status(200).json(pharmacie);
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Erreur lors de la mise à jour de la pharmacie', error: error.message });
-    }
-};
 
 const updateStatutMedicament = async (req, res) => {
     try {
@@ -734,23 +704,13 @@ const updateStatutMedicament = async (req, res) => {
             return res.status(400).json({ message: 'Ce médicament a déjà été traité.' });
         }
 
-        let message_remboursement = null;
-        if (statut === 1) {
-            const result = await ReimbursementService.calculePlafondPharmacie(med.beneficiaireId, med, med.date_soin);
-            montant_remboursement = Math.min(montant_remboursement, result.amount);
-            message_remboursement = result.message;
-        }
 
         await med.update({
             statut,
             objet_rejet: statut === 2 ? objet_rejet : null,
             motif_rejet: statut === 2 ? motif_rejet : null,
-            montant_remboursement: statut === 1 ? montant_remboursement : 0,
-            message_remboursement
+            montant_remboursement: montant_remboursement,
         });
-
-        // Optionnel: recalculer le montant total remboursé du bulletin si nécessaire
-        // Mais généralement on le fait via la pharmacie parente ou globalement.
 
         res.status(200).json(med);
     } catch (error) {
@@ -766,7 +726,6 @@ module.exports = {
     getBulletinById,
     updateBulletinStatus,
     updateStatutActeMedical,
-    updateStatutPharmacie,
     updateStatutMedicament,
     updateBulletin,
     deleteBulletin,
