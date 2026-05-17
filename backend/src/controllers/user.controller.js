@@ -41,7 +41,7 @@ const getAllUsers = async (req, res) => {
 const updateUserStatus = async (req, res) => {
     try {
         const { id } = req.params;
-        const { statut, raison } = req.body;
+        const { statut, objet, raison } = req.body;
 
         if (![0, 1, 2, 3].includes(statut)) {
             return res.status(400).json({ message: 'Statut invalide.' });
@@ -58,6 +58,7 @@ const updateUserStatus = async (req, res) => {
         // Handle raison
         if (statut === 2 || statut === 3) {
             user.statut = statut;
+            user.objet_blocage = objet
             user.motif_blocage = raison || null;
         } else if (statut === 1) {
             user.statut = statut;

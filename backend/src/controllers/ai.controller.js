@@ -70,7 +70,7 @@ const analyzeBulletin = async (req, res) => {
       spécialisé dans la détection de fraude documentaire et la vérification de conformité.
 
       Tu analyses entre 1 et 5 documents (images ou PDFs) transmis simultanément.
-      Pour chaque document, produis un objet JSON indépendant dans un tableau racine.
+      Pour tout les documents, produis un seul et unique objet JSON.
 
       ========================
       📌 RÈGLES FONDAMENTALES
@@ -182,7 +182,7 @@ const analyzeBulletin = async (req, res) => {
       📦 FORMAT JSON OBLIGATOIRE
       ========================
 
-      const ACTE_STRUCTURE = {
+      const ACTE_STRUCTURE = {  //le structure est comme ca acte[cote]
         "Consultation": ["C1", "C2", "C3", "V1", "V2", "V3"],
         "Analyses": ["B"],
         "Actes médicaux courants": ["PC", "AMM", "AMO", "AMY"],
@@ -201,87 +201,79 @@ const analyzeBulletin = async (req, res) => {
 
       // Réponse
       {
-      "Numero_de_fichier_analyser": 1,         // Index 1-based, obligatoire
       "erreur": null,                           // "document_illisible" | "non_medical" | null
 
       "est_document_medical": true,
 
-      "numero_bulletin": null,
-      "code_cnam": null,
-      "matricule_adherent": null,               // format XX-NNNNN
-      "nom_prenom_adherent": null,
-      "adresse_adherent": null,
-      "client": null,
+      "numero_bulletin": ",
+      "code_cnam": "",
+      "matricule_adherent": "",               // format XX-NNNNN
+      "nom_prenom_adherent": "",
+      "adresse_adherent": "",
+      "client": "",
 
-      "nom_prenom_malade": null,
-      "qualite_malade": null,                   // "Titulaire" | "Conjoint" | "Enfant"
-      "date_naissance_malade": null,
+      "nom_prenom_malade": "",
+      "qualite_malade": "",                   // "Titulaire" | "Conjoint" | "Enfant"
+      "date_naissance_malade": "",
 
-      "date_soin": null,                        // Date du DERNIER acte — YYYY-MM-DD
-
-      "est_apci": false,
-      "suivi_grossesse": false,
-      "date_prevue_accouchement": null,         // Uniquement si suivi_grossesse = true
-      "soins_cadre": null,                      // "APCI" | "Suivi de la grossesse" | "Autres"
+      "date_soin": "", // mentioné dans le resultat_analyse si la date de soin est dépassé de plus de 60 jours dans le passé.
+      "est_apci": "",
+      "suivi_grossesse": "",
+      "date_prevue_accouchement": "",         // Uniquement si suivi_grossesse = true
+      "soins_cadre": "",                      // "APCI" | "Suivi de la grossesse" | "Autres"
 
       "pharmacie_detecte": false,               // ⚠️ Corrigé : "detecté" → "detecte" (ASCII safe)
       "pharmacie": {
-        "identifiant_unique_mf": null,
+        "identifiant_unique_mf": "",
         "est_cachet": false,
         "est_signature": false,
-        "date": null,
-        "montant_pharmacie": null, // Récupérer le montant depuis la section pharmacie ou calculer le total des médicaments
-        "nom": null,
-        "telephone": null,
-        "adresse": null,
+        "date": "",
+        "montant_pharmacie": 0, // Récupérer le montant depuis la section pharmacie ou calculer le total des médicaments
+        "nom": "",
+        "telephone": "",
+        "adresse": "",
         "medicaments": [
           {
-            "nom_medicament": null,
-            "dosage": null,
-            "quantite": null,
-            "prix_unitaire": null,
-            "montant_total": null
+            "nom_medicament": "",
+            "dosage": "",
+            "quantite": 0,
+            "prix_unitaire": 0,
+            "montant_total": 0
           }
         ]
       },
 
       "actes": [
         {
-          "date_acte": null,
-          "acte": null,                         // Valeur de ACTE_STRUCTURE (clé)
-          "cote": null,                         // Valeur de cote (valeur dans le tableau)
-          "code_acte": null,                    // Dentaire uniquement
-          "numero_dent": null,                  // Dentaire uniquement
-          "honoraires": null,
+          "date_acte": "",
+          "acte": "",                         // Valeur de ACTE_STRUCTURE (clé)
+          "cote": "",                         // Valeur de ACTE_STRUCTURE[cote] (valeur dans le tableau)
+          "code_acte": "",                    // Dentaire uniquement
+          "numero_dent": 0,                  // Dentaire uniquement
+          "honoraires": 0,
+          "identifiant_unique_mf": "",
           "est_cachet": false,
           "est_signature": false,
-          "date_cachet_signature": null,
-          "type_prestataire_soin": null,        // "dentaire" | "non dentaire"
-          "prestataire_detecte": false,
-          "nb_jour": null,           // Hospitalisation (tous les codes, couveuse : max 15 jours) et Divers (code cure thermale uniquement : max 21 jours) : calcul du montant limité au maximum autorisé
-          "prestataire": { 
-            "identifiant_unique_mf": null,
-            "nom": null,
-            "telephone": null,
-            "adresse": null
+          "date_cachet_signature": "",
+          "nb_jour": 0,           // Hospitalisation (tous les codes, couveuse : max 15 jours) et Divers (code cure thermale uniquement : max 21 jours) : calcul du montant limité au maximum autorisé
+          "prestataire": { // null si n'est pas detecté
+            "identifiant_unique_mf": "",
+            "nom": "",
+            "telephone": "",
+            "adresse": ""
           }
         }
       ],
 
       "est_signe_adherent": false,
 
-      "montant_total": null,                    // Calculé = somme des honoraires
+      "montant_total": 0,                    // Calculé = somme des honoraires et pharmacie
 
-      "confiance_score": null,                  // Float 0.0 à 1.0
-      "confiance_details": {                    // ⬅ NOUVEAU
-        "lisibilite": null,                     // "bonne" | "moyenne" | "faible"
-        "completude": null,                     // % de champs non-null
-        "coherence": null                       // "cohérent" | "anomalie détectée"
-      },
+      "confiance_score": 100,                  // Float 0 à 100
 
       "suspicion_locale": false,
-      "niveau_risque": null,                    // ⬅ NOUVEAU : "faible" | "moyen" | "élevé"
-      "resultat_analyse": null,
+      "niveau_risque": "faible",                    // ⬅ NOUVEAU : "faible" | "moyen" | "élevé"
+      "resultat_analyse": "",
       "champs_manquants": []
       }
     `;

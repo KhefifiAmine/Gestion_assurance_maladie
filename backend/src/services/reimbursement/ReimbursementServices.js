@@ -1,4 +1,4 @@
-const { Beneficiary, ActeMedical } = require('../../../models');
+const { Beneficiary, ActeMedical, BulletinSoin } = require('../../../models');
 const { Op } = require('sequelize');
 const rules = require('./reimbursementRules2026');
 const ConsumptionService = require('./ConsumptionService');
@@ -50,8 +50,11 @@ class ReimbursementService {
 
                 // Trouver le dernier acte de monture remboursé
                 const lastMonture = await ActeMedical.findOne({
+                    include: [{
+                        model: BulletinSoin,
+                        where: { beneficiaireId: maldieId }
+                    }],
                     where: {
-                        beneficiaireId: maldieId,
                         acte: 'Optique',
                         cote: 'Monture',
                         statut: 1, // Accepté

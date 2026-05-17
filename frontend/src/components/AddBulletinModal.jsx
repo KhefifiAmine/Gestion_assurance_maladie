@@ -107,14 +107,7 @@ const ActeItem = memo(({ acte, index, onUpdate, onRemove, structure }) => (
                 <select 
                     className="w-full p-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white font-bold" 
                     value={acte.acte || ''} 
-                    onChange={e => {
-                        const val = e.target.value;
-                        const updates = { acte: val };
-                        if (val === 'Dentaire') updates.type_prestataire_soin = 'Soin Dentaire';
-                        else if (val === 'Pharmacie') updates.type_prestataire_soin = 'Pharmacie';
-                        else updates.type_prestataire_soin = '';
-                        onUpdate(index, updates);
-                    }}
+                    onChange={e => onUpdate(index, { acte: e.target.value })}
                 >
                     <option value="">Sélectionner...</option>
                     {Object.keys(structure).map(k => <option key={k} value={k}>{k}</option>)}
@@ -125,22 +118,28 @@ const ActeItem = memo(({ acte, index, onUpdate, onRemove, structure }) => (
                 <select 
                     className="w-full p-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white font-bold" 
                     value={acte.cote || ''} 
-                    onChange={e => onUpdate(index, { cote: e.target.value, code_acte: e.target.value })}
+                    onChange={e => onUpdate(index, { cote: e.target.value })}
                 >
                     <option value="">Cote...</option>
                     {acte.acte && structure[acte.acte]?.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
             </FormField>
-
-            <FormField label="Valeur/Coeff">
-                <input 
-                    placeholder="Code ou Coeff" 
-                    className="w-full p-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white font-black" 
-                    value={acte.code_acte || ''} 
-                    onChange={e => onUpdate(index, { code_acte: e.target.value })} 
-                />
-            </FormField>
-
+            {acte.acte === "Dentaire" ? (
+                <>
+                    <FormField label="Code acte">
+                        <input 
+                            placeholder="Code de l'acte" 
+                            className="w-full p-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white font-black" 
+                            value={acte.code_acte || ''} 
+                            onChange={e => onUpdate(index, { code_acte: e.target.value })} 
+                        />
+                    </FormField>
+                    
+                    <FormField label="N° Dent">
+                        <input placeholder="Ex: 14" className="w-full p-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white" value={acte.numero_dent || ''} onChange={e => onUpdate(index, { numero_dent: e.target.value })} />
+                    </FormField>
+                </>
+            ) : <></>}
             <FormField label="Date">
                 <input type="date" className="w-full p-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white" value={acte.date_acte || ''} onChange={e => onUpdate(index, { date_acte: e.target.value })} />
             </FormField>
@@ -169,21 +168,6 @@ const ActeItem = memo(({ acte, index, onUpdate, onRemove, structure }) => (
                 <input type="number" placeholder="Ex: 5" className="w-full p-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white" value={acte.nb_jour || ''} onChange={e => onUpdate(index, { nb_jour: Number(e.target.value) })} />
             </FormField>
 
-            <FormField label="N° Dent">
-                <input placeholder="Ex: 14" className="w-full p-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white" value={acte.numero_dent || ''} onChange={e => onUpdate(index, { numero_dent: e.target.value })} />
-            </FormField>
-
-            <FormField label="Type Prestataire">
-                <select
-                    className="w-full p-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white font-bold"
-                    value={acte.type_prestataire_soin || ''}
-                    onChange={e => onUpdate(index, { type_prestataire_soin: e.target.value })}
-                >
-                    <option value="">Standard</option>
-                    <option value="Soin Dentaire">Soin Dentaire</option>
-                    <option value="Autre">Autre</option>
-                </select>
-            </FormField>
             
             <div className="flex items-center gap-2 mt-2">
                 <input type="checkbox" id={`cachet-${index}`} className="w-3 h-3 rounded text-purple-600" checked={!!acte.est_cachet} onChange={e => onUpdate(index, { est_cachet: e.target.checked })} />
@@ -203,7 +187,7 @@ const MedicamentItem = memo(({ med, index, onUpdate, onRemove }) => (
             <X size={14} />
         </button>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
-            <FormField label="Nom" className="lg:col-span-2">
+            <FormField label="Nom" className="lg:col-span-1">
                 <input 
                     placeholder="Ex: Doliprane" 
                     className="w-full p-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white font-bold" 
@@ -219,6 +203,9 @@ const MedicamentItem = memo(({ med, index, onUpdate, onRemove }) => (
             </FormField>
             <FormField label="P.U (TND)">
                 <input type="number" step="0.001" className="w-full p-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white font-black text-blue-600" value={med.prix_unitaire || 0} onChange={e => onUpdate(index, { prix_unitaire: Number(e.target.value) })} />
+            </FormField>
+            <FormField label="M.T (TND)">
+                <input type="number" step="0.001" className="w-full p-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white font-black text-blue-600 cursor-not-allowed" value={med.montant_total} readOnly/>
             </FormField>
         </div>
     </div>
@@ -314,20 +301,30 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
         if (isOpen) {
             document.body.style.overflow = 'hidden';
             fetchBeneficiaries();
-            if (isEdit) {
-                setFormData({
+            if (isEdit && initialData) {
+                const mappedData = {
                     ...initialFormState,
                     ...initialData,
+                    pharmacie_detecte: !!initialData.pharmacie,
                     pharmacie: initialData.pharmacie ? {
-                        ...initialData.pharmacie,
-                        date: formatDateForInput(initialData.pharmacie.date || initialData.pharmacie.date_achat),
-                        montant_pharmacie: Number(initialData.pharmacie.montant_pharmacie || initialData.pharmacie.montant || 0),
+                        identifiant_unique_mf: initialData.pharmacie.identifiant_unique_mf || '',
+                        est_cachet: !!initialData.pharmacie.est_cachet,
+                        est_signature: !!initialData.pharmacie.est_signature,
+                        date: initialData.pharmacie.date || initialData.pharmacie.date_achat || '',
+                        montant_pharmacie: initialData.pharmacie.montant_pharmacie || initialData.pharmacie.montant || 0,
                         medicaments: initialData.pharmacie.medicaments || []
-                    } : initialFormState.pharmacie,
-                    fichiers: initialData.documents || [],
-                    showPreview: !!initialData.documents?.length,
-                    pharmacie_detecte: !!initialData.pharmacie?.medicaments?.length || !!initialData.pharmacie?.montant_pharmacie
-                });
+                    } : {
+                        identifiant_unique_mf: '',
+                        est_cachet: false,
+                        est_signature: false,
+                        date: '',
+                        montant_pharmacie: 0,
+                        medicaments: []
+                    },
+                    actes: initialData.actes || [],
+                    fichiers: initialData.documents || initialData.fichiers || []
+                };
+                setFormData(mappedData);
                 setStep(2);
             } else {
                 setFormData(initialFormState);
@@ -344,12 +341,12 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
     // Auto-calculate total
     useEffect(() => {
         const actesTotal = formData.actes.reduce((sum, a) => sum + (Number(a.honoraires) || 0), 0);
-        const pharmacieTotal = formData.pharmacie_detecte ? (Number(formData.pharmacie.montant_pharmacie) || 0) : 0;
+        const pharmacieTotal = formData.pharmacie_detecte ? Number(formData.pharmacie.montant_pharmacie) : 0;
         const total = Number((actesTotal + pharmacieTotal).toFixed(3));
         if (total !== formData.montant_total) {
             setFormData(prev => ({ ...prev, montant_total: total }));
         }
-    }, [formData.actes, formData.pharmacie.montant_pharmacie, formData.montant_total, formData.hasPharmacy]);
+    }, [formData.actes, formData.pharmacie.montant_pharmacie, formData.montant_total, formData.pharmacie_detecte]);
 
     // Handlers
     const handleManualFileUpload = useCallback((e) => {
@@ -375,38 +372,39 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
                 return;
             }
 
+            console.log(aiData);
             setSelectedFiles(files);
             setFormData(prev => ({
                 ...prev,
-                numero_bulletin: cleanIAValue(aiData.numero_bulletin) || prev.numero_bulletin,
-                code_cnam: cleanIAValue(aiData.code_cnam) || prev.code_cnam,
-                matricule_adherent: cleanIAValue(aiData.matricule_adherent) || user?.matricule || prev.matricule_adherent,
-                nom_prenom_adherent: cleanIAValue(aiData.nom_prenom_adherent) || prev.nom_prenom_adherent,
-                adresse_adherent: cleanIAValue(aiData.adresse_adherent) || prev.adresse_adherent,
-                client: cleanIAValue(aiData.client) || prev.client,
-                nom_prenom_malade: cleanIAValue(aiData.nom_prenom_malade) || prev.nom_prenom_malade,
-                qualite_malade: cleanIAValue(aiData.qualite_malade) || prev.qualite_malade,
-                date_naissance_malade: formatDateForInput(aiData.date_naissance_malade) || prev.date_naissance_malade,
-                date_soin: formatDateForInput(aiData.date_soin) || prev.date_soin,
+                numero_bulletin: cleanIAValue(aiData.numero_bulletin),
+                code_cnam: cleanIAValue(aiData.code_cnam),
+                matricule_adherent: cleanIAValue(aiData.matricule_adherent) || user?.matricule,
+                nom_prenom_adherent: cleanIAValue(aiData.nom_prenom_adherent),
+                adresse_adherent: cleanIAValue(aiData.adresse_adherent),
+                client: cleanIAValue(aiData.client),
+
+                nom_prenom_malade: cleanIAValue(aiData.nom_prenom_malade),
+                qualite_malade: cleanIAValue(aiData.qualite_malade),
+                date_naissance_malade: formatDateForInput(aiData.date_naissance_malade),
+                date_soin: formatDateForInput(aiData.date_soin),
                 est_apci: aiData.est_apci ?? prev.est_apci,
                 suivi_grossesse: aiData.suivi_grossesse ?? prev.suivi_grossesse,
-                date_prevue_accouchement: formatDateForInput(aiData.date_prevue_accouchement) || prev.date_prevue_accouchement,
-                soins_cadre: cleanIAValue(aiData.soins_cadre) || prev.soins_cadre,
+                date_prevue_accouchement: formatDateForInput(aiData.date_prevue_accouchement),
+                soins_cadre: cleanIAValue(aiData.soins_cadre),
                 pharmacie: aiData.pharmacie ? (() => {
                     const meds = Array.isArray(aiData.pharmacie.medicaments) ? aiData.pharmacie.medicaments.map(m => ({
                         nom_medicament: cleanIAValue(m.nom_medicament) || '',
                         dosage: cleanIAValue(m.dosage) || '',
                         quantite: Number(m.quantite) || 1,
-                        prix_unitaire: Number(m.prix_unitaire) || 0,
+                        prix_unitaire: Number(m.prix_unitaire),
                         montant_total: Number(( (Number(m.quantite) || 1) * (Number(m.prix_unitaire) || 0) ).toFixed(3))
                     })) : [];
-                    const calculatedTotal = meds.reduce((sum, m) => sum + m.montant_total, 0);
                     return {
                         identifiant_unique_mf: cleanIAValue(aiData.pharmacie.identifiant_unique_mf) || '',
                         est_cachet: !!aiData.pharmacie.est_cachet,
                         est_signature: !!aiData.pharmacie.est_signature,
                         date: formatDateForInput(aiData.pharmacie.date) || '',
-                        montant_pharmacie: Number(calculatedTotal.toFixed(3)),
+                        montant_pharmacie: Number(aiData.pharmacie.montant_pharmacie),
                         medicaments: meds
                     };
                 })() : prev.pharmacie,
@@ -426,17 +424,16 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
                     est_cachet: !!a.est_cachet,
                     est_signature: !!a.est_signature,
                     date_cachet_signature: formatDateForInput(a.date_cachet_signature) || '',
-                    type_prestataire_soin: cleanIAValue(a.type_prestataire_soin) || '',
                     nb_jour: Number(a.nb_jour) || null
                 })) : prev.actes,
                 montant_total: Number(aiData.montant_total) || prev.montant_total,
                 resultat_analyse: cleanIAValue(aiData.resultat_analyse) || '',
                 confiance_score: aiData.confiance_score || 0,
+                niveau_risque: aiData.niveau_risque || 'faible',
+                suspicion_locale: aiData.suspicion_locale || false,
                 est_signe_adherent: !!aiData.est_signe_adherent,
-                beneficiaireId: aiData.beneficiaireId ?? null,
-                alerte_beneficiaire: aiData.alerte_beneficiaire || null,
                 showPreview: true,
-                pharmacie_detecte: !!aiData.pharmacie?.medicaments?.length || !!aiData.pharmacie?.montant_pharmacie || !!aiData.pharmacie?.identifiant_unique_mf
+                pharmacie_detecte: !!aiData.pharmacie_detecte
             }));
             setStep(2);
         } catch (error) {
@@ -466,7 +463,6 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
                 est_cachet: false, 
                 est_signature: false, 
                 date_cachet_signature: '', 
-                type_prestataire_soin: '', 
                 nb_jour: null 
             }]
         }));
@@ -517,6 +513,56 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
         if (!formData.numero_bulletin) {
             showToast("Le numéro du bulletin est requis", "error");
             return;
+        }
+
+        // Validation des actes médicaux
+        if (formData.actes && formData.actes.length > 0) {
+            for (let i = 0; i < formData.actes.length; i++) {
+                const acte = formData.actes[i];
+                if (!acte.acte) {
+                    showToast(`Acte médical #${i+1} : La nature de l'acte est requise`, "error");
+                    return;
+                }
+                if (!acte.cote && !acte.code_acte) {
+                    showToast(`Acte médical #${i+1} : La cote ou le code acte est requis`, "error");
+                    return;
+                }
+                if (!acte.date_acte) {
+                    showToast(`Acte médical #${i+1} : La date de l'acte est requise`, "error");
+                    return;
+                }
+                if (!acte.honoraires || Number(acte.honoraires) <= 0) {
+                    showToast(`Acte médical #${i+1} : Les honoraires sont requis`, "error");
+                    return;
+                }
+                if (!acte.est_cachet && !acte.est_signature) {
+                    showToast(`Acte médical #${i+1} : Le cachet ou la signature est requis`, "error");
+                    return;
+                }
+                if (!acte.prestataire?.identifiant_unique_mf) {
+                    showToast(`Acte médical #${i+1} : Le matricule fiscal (MF) du médecin est requis`, "error");
+                    return;
+                }
+            }
+        }
+
+        // Validation pharmacie
+        if (formData.pharmacie_detecte) {
+            if (!formData.pharmacie.identifiant_unique_mf) {
+                showToast("Pharmacie : Le matricule fiscal (MF) de la pharmacie est requis", "error");
+                return;
+            }
+            if (!formData.pharmacie.medicaments || formData.pharmacie.medicaments.length === 0) {
+                showToast("Pharmacie : Au moins un médicament est requis", "error");
+                return;
+            }
+            for (let i = 0; i < formData.pharmacie.medicaments.length; i++) {
+                const med = formData.pharmacie.medicaments[i];
+                if (!med.nom_medicament || !med.quantite || !med.prix_unitaire) {
+                    showToast(`Médicament #${i+1} : Tous les champs (nom, quantité, prix unitaire) sont obligatoires`, "error");
+                    return;
+                }
+            }
         }
 
         try {
@@ -707,38 +753,55 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
                                                 <div className="col-span-full relative">
                                                     <FormField label="Nom du Malade (Bénéficiaire)" icon={User}>
                                                         <div className="relative">
-                                                            <input 
-                                                                className="w-full p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl font-black text-sm dark:text-white pr-10" 
-                                                                value={formData.nom_prenom_malade} 
-                                                                onChange={e => setFormData({ ...formData, nom_prenom_malade: e.target.value })} 
-                                                                onFocus={() => setIsBeneficiaryDropdownOpen(true)}
-                                                            />
-                                                            <button type="button" onClick={() => setIsBeneficiaryDropdownOpen(!isBeneficiaryDropdownOpen)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" aria-label="Ouvrir la liste des bénéficiaires"><ChevronDown size={18} /></button>
-                                                        </div>
-                                                    </FormField>
-                                                    {isBeneficiaryDropdownOpen && (
-                                                        <div className="absolute z-50 w-full mt-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-                                                            <div className="p-2 bg-slate-50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-700"><p className="text-[10px] font-black text-slate-400 uppercase px-2">Choisissez un bénéficiaire</p></div>
-                                                            <div className="max-h-60 overflow-y-auto">
-                                                                <button type="button" className="w-full p-3 text-left hover:bg-purple-50 dark:hover:bg-purple-900/20 flex items-center gap-3 transition-colors border-b border-slate-50 dark:border-slate-700/50" onClick={() => { setFormData({ ...formData, nom_prenom_malade: `${user.prenom} ${user.nom}`, qualite_malade: 'Titulaire', beneficiaireId: null }); setIsBeneficiaryDropdownOpen(false); }}>
-                                                                    <div className="p-2 bg-purple-100 dark:bg-purple-900 text-purple-600 rounded-lg"><User size={14} /></div>
-                                                                    <div><p className="text-sm font-bold dark:text-white">{user.prenom} {user.nom}</p><p className="text-[10px] text-slate-500 uppercase font-bold">Titulaire (Adhérent)</p></div>
-                                                                </button>
-                                                                {beneficiaries.map(b => (
-                                                                    <button key={b.id} type="button" className="w-full p-3 text-left hover:bg-purple-50 dark:hover:bg-purple-900/20 flex items-center gap-3 transition-colors border-b border-slate-50 dark:border-slate-700/50" onClick={() => { setFormData({ ...formData, nom_prenom_malade: b.nom_prenom, qualite_malade: b.lien_parente, beneficiaireId: b.id }); setIsBeneficiaryDropdownOpen(false); }}>
-                                                                        <div className="p-2 bg-blue-100 dark:bg-blue-900 text-blue-600 rounded-lg"><Users size={14} /></div>
-                                                                        <div><p className="text-sm font-bold dark:text-white">{b.nom_prenom}</p><p className="text-[10px] text-slate-500 uppercase font-bold">{b.lien_parente}</p></div>
-                                                                    </button>
-                                                                ))}
+                                                                <input 
+                                                                    className="w-full p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl font-black text-sm dark:text-white pr-10" 
+                                                                    value={formData.nom_prenom_malade} 
+                                                                    onChange={e => {
+                                                                        const value = e.target.value;
+                                                                        const lowerValue = value.toLowerCase().trim();
+                                                                        const matchedBeneficiary = beneficiaries.find(b => `${b.prenom} ${b.nom}`.toLowerCase() === lowerValue);
+                                                                        const isTitulaire = user && `${user.prenom} ${user.nom}`.toLowerCase() === lowerValue;
+                                                                        
+                                                                        if (matchedBeneficiary) {
+                                                                            setFormData({ ...formData, nom_prenom_malade: value, qualite_malade: matchedBeneficiary.relation, beneficiaireId: matchedBeneficiary.id });
+                                                                        } else if (isTitulaire) {
+                                                                            setFormData({ ...formData, nom_prenom_malade: value, qualite_malade: 'Titulaire', beneficiaireId: null });
+                                                                        } else {
+                                                                            setFormData({ ...formData, nom_prenom_malade: value });
+                                                                        }
+                                                                    }} 
+                                                                    onFocus={() => setIsBeneficiaryDropdownOpen(true)}
+                                                                />
+                                                                <button type="button" onClick={() => setIsBeneficiaryDropdownOpen(!isBeneficiaryDropdownOpen)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" aria-label="Ouvrir la liste des bénéficiaires"><ChevronDown size={18} /></button>
                                                             </div>
-                                                        </div>
-                                                    )}
+                                                        </FormField>
+                                                        {isBeneficiaryDropdownOpen && (
+                                                            <div className="absolute z-50 w-full mt-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                                                                <div className="p-2 bg-slate-50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-700"><p className="text-[10px] font-black text-slate-400 uppercase px-2">Choisissez un bénéficiaire</p></div>
+                                                                <div className="max-h-60 overflow-y-auto">
+                                                                    <button type="button" className="w-full p-3 text-left hover:bg-purple-50 dark:hover:bg-purple-900/20 flex items-center gap-3 transition-colors border-b border-slate-50 dark:border-slate-700/50" onClick={() => { setFormData({ ...formData, nom_prenom_malade: `${user.prenom} ${user.nom}`, qualite_malade: 'Titulaire', beneficiaireId: null }); setIsBeneficiaryDropdownOpen(false); }}>
+                                                                        <div className="p-2 bg-purple-100 dark:bg-purple-900 text-purple-600 rounded-lg"><User size={14} /></div>
+                                                                        <div><p className="text-sm font-bold dark:text-white">{user.prenom} {user.nom}</p><p className="text-[10px] text-slate-500 uppercase font-bold">Titulaire (Adhérent)</p></div>
+                                                                    </button>
+                                                                    {beneficiaries.map(b => (
+                                                                        <button key={b.id} type="button" className="w-full p-3 text-left hover:bg-purple-50 dark:hover:bg-purple-900/20 flex items-center gap-3 transition-colors border-b border-slate-50 dark:border-slate-700/50" onClick={() => { setFormData({ ...formData, nom_prenom_malade: `${b.prenom} ${b.nom}`, qualite_malade: b.relation, beneficiaireId: b.id }); setIsBeneficiaryDropdownOpen(false); }}>
+                                                                            <div className="p-2 bg-blue-100 dark:bg-blue-900 text-blue-600 rounded-lg"><Users size={14} /></div>
+                                                                            <div><p className="text-sm font-bold dark:text-white">{b.prenom} {b.nom}</p><p className="text-[10px] text-slate-500 uppercase font-bold">{b.relation}</p></div>
+                                                                        </button>
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+                                                        )}
                                                 </div>
 
                                                 <FormField label="Qualité">
                                                     <input className="w-full p-3 bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-sm dark:text-slate-400" value={formData.qualite_malade} readOnly />
                                                 </FormField>
-                                                
+
+                                                <FormField label="Date de naissance">
+                                                    <input type="date" className="w-full p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-sm dark:text-white" value={formData.date_naissance_malade} onChange={e => setFormData({ ...formData, date_naissance_malade: e.target.value })} />
+                                                </FormField>
+
                                                 <FormField label="Date de Soin">
                                                     <input type="date" className="w-full p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-sm dark:text-white" value={formData.date_soin} onChange={e => setFormData({ ...formData, date_soin: e.target.value })} />
                                                 </FormField>
@@ -810,14 +873,14 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
                                                 </div>
                                                 <div className="grid grid-cols-1 gap-2">
                                                     {selectedFiles.map((f, idx) => <FileItem key={`new-${idx}`} file={f} index={idx} isNew={true} onPreview={setPreviewIndex} onRemove={(i) => setSelectedFiles(prev => prev.filter((_, idx) => idx !== i))} />)}
-                                                    {formData.fichiers.map((f, idx) => (
+                                                    {(formData.fichiers || []).map((f, idx) => (
                                                         <FileItem 
                                                             key={`old-${idx}`} 
                                                             file={f} 
                                                             index={idx + selectedFiles.length} 
                                                             isNew={false} 
                                                             onPreview={setPreviewIndex} 
-                                                            onRemove={() => setFormData(prev => ({ ...prev, fichiers: prev.fichiers.filter((_, i) => i !== idx) }))}
+                                                            onRemove={() => setFormData(prev => ({ ...prev, fichiers: (prev.fichiers || []).filter((_, i) => i !== idx) }))}
                                                         />
                                                     ))}
                                                 </div>

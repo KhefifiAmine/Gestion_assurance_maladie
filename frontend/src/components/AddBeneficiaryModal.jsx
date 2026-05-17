@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-    X, Edit2, UserPlus, Sparkles, Info, ChevronDown, CheckCircle, XCircle, User, Eye,
+    X, Edit2, UserPlus, Sparkles, Info, ChevronDown, ChevronLeft, ChevronRight, CheckCircle, XCircle, User, Eye,
     Heart, Check, Calendar, ShieldCheck, FileText, Camera, UploadCloud, Loader2, CheckCircle2, PlusCircle
 } from 'lucide-react';
 
@@ -26,6 +26,20 @@ const AddBeneficiaryModal = ({
     handleAddBeneficiary,
     isSaving
 }) => {
+    const [currentPreviewIndex, setCurrentPreviewIndex] = useState(0);
+
+    useEffect(() => {
+        if (!isOpen) {
+            setCurrentPreviewIndex(0);
+        }
+    }, [isOpen]);
+
+    useEffect(() => {
+        if (documentPreviewUrls && currentPreviewIndex >= documentPreviewUrls.length) {
+            setCurrentPreviewIndex(Math.max(0, documentPreviewUrls.length - 1));
+        }
+    }, [documentPreviewUrls, currentPreviewIndex]);
+
     if (!isOpen) return null;
 
     return createPortal(
@@ -489,24 +503,56 @@ const AddBeneficiaryModal = ({
                                             </div>
                                         </div>
 
-                                        <div className="flex-1 space-y-8 overflow-y-auto custom-scrollbar pr-4">
-                                            {documentPreviewUrls.map((url, idx) => (
-                                                <div key={idx} className="space-y-3">
+                                        <div className="flex-1 flex flex-col justify-center pb-4">
+                                            {documentPreviewUrls.length > 0 && (
+                                                <div className="space-y-4">
                                                     <div className="flex items-center justify-between px-2">
-                                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Document #{idx + 1}</p>
+                                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                                            Document {currentPreviewIndex + 1} / {documentPreviewUrls.length}
+                                                        </p>
                                                         <span className="text-[10px] font-bold text-purple-500 bg-purple-50 dark:bg-purple-900/20 px-2 py-0.5 rounded-md">
-                                                            {url.toLowerCase().includes('pdf') ? 'PDF' : 'IMAGE'}
+                                                            {documentPreviewUrls[currentPreviewIndex].toLowerCase().includes('pdf') || (documentFiles[currentPreviewIndex] && documentFiles[currentPreviewIndex].type === 'application/pdf') ? 'PDF' : 'IMAGE'}
                                                         </span>
                                                     </div>
+                                                    
                                                     <div className="w-full aspect-[3/4] rounded-[32px] overflow-hidden border-4 border-white dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xl relative group">
-                                                        {url.toLowerCase().includes('pdf') || (documentFiles[idx] && documentFiles[idx].type === 'application/pdf') ? (
-                                                            <iframe src={url} className="w-full h-full border-none" title={`Preview ${idx}`} />
+                                                        {documentPreviewUrls[currentPreviewIndex].toLowerCase().includes('pdf') || (documentFiles[currentPreviewIndex] && documentFiles[currentPreviewIndex].type === 'application/pdf') ? (
+                                                            <iframe src={documentPreviewUrls[currentPreviewIndex]} className="w-full h-full border-none" title={`Preview ${currentPreviewIndex}`} />
                                                         ) : (
-                                                            <img src={url} alt={`Preview ${idx}`} className="w-full h-full object-contain" />
+                                                            <img src={documentPreviewUrls[currentPreviewIndex]} alt={`Preview ${currentPreviewIndex}`} className="w-full h-full object-contain" />
+                                                        )}
+
+                                                        {documentPreviewUrls.length > 1 && (
+                                                            <>
+                                                                <button
+                                                                    onClick={() => setCurrentPreviewIndex((prev) => (prev > 0 ? prev - 1 : documentPreviewUrls.length - 1))}
+                                                                    className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 dark:bg-slate-800/90 backdrop-blur-md rounded-full shadow-lg flex items-center justify-center text-slate-700 dark:text-slate-200 hover:bg-white dark:hover:bg-slate-700 transition-colors z-20"
+                                                                >
+                                                                    <ChevronLeft size={20} />
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => setCurrentPreviewIndex((prev) => (prev < documentPreviewUrls.length - 1 ? prev + 1 : 0))}
+                                                                    className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 dark:bg-slate-800/90 backdrop-blur-md rounded-full shadow-lg flex items-center justify-center text-slate-700 dark:text-slate-200 hover:bg-white dark:hover:bg-slate-700 transition-colors z-20"
+                                                                >
+                                                                    <ChevronRight size={20} />
+                                                                </button>
+                                                            </>
                                                         )}
                                                     </div>
+
+                                                    {documentPreviewUrls.length > 1 && (
+                                                        <div className="flex justify-center gap-2 mt-4">
+                                                            {documentPreviewUrls.map((_, idx) => (
+                                                                <button
+                                                                    key={idx}
+                                                                    onClick={() => setCurrentPreviewIndex(idx)}
+                                                                    className={`h-2 rounded-full transition-all ${currentPreviewIndex === idx ? 'bg-purple-600 w-6' : 'bg-slate-300 dark:bg-slate-700 w-2'}`}
+                                                                />
+                                                            ))}
+                                                        </div>
+                                                    )}
                                                 </div>
-                                            ))}
+                                            )}
                                         </div>
                                     </div>
                                 </div>

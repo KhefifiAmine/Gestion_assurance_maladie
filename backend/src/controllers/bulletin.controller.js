@@ -2,13 +2,12 @@ const path = require('path');
 const fs = require('fs');
 const { Op } = require('sequelize');
 const { PDFDocument, rgb } = require('pdf-lib');
-const { BulletinSoin, ActeMedical, Pharmacie, Medicament, User, DocumentJustificatif, Beneficiary, Notification, sequelize, Prestataire } = require('../../models');
+const { BulletinSoin, ActeMedical, Pharmacie, Medicament, User, DocumentJustificatif, Beneficiary, Notification, sequelize, Prestataire, FraudAlert } = require('../../models');
 const { sendNotificationEmail } = require('../utils/emailService');
 const FraudService = require('../services/fraud.service');
 const { resolvePatientForBulletin } = require('../utils/validationPatientBulletin');
 const { calculeRemboursementActe, calculeRemboursementPharmacie } = require('../services/reimbursement/calculerReimbursement');
-const ReimbursementService = require('../services/reimbursement/ReimbursementServices');
-
+const { verifyBulletinWithAI } = require('../services/ai.service');
 
 const createBulletin = async (req, res) => {
 
@@ -40,6 +39,19 @@ const createBulletin = async (req, res) => {
             pharmacie_detecte
         } = payload;
 
+        const date60DaysAgo = new Date();
+        date60DaysAgo.setDate(date60DaysAgo.getDate() - 60);
+
+        const soinDate = new Date(date_soin);
+
+        if (soinDate < date60DaysAgo) {
+            await t.rollback();
+
+            return res.status(400).json({
+                message: 'Tu as passé la limite de dépôt de bulletin',
+            });
+        }
+
         const fileHashes = req.fileHashes;
         const userId = req.userId;
 
@@ -51,13 +63,14 @@ const createBulletin = async (req, res) => {
                 .json({ message: patient.error.message });
         }
 
+
         const { beneficiaireId: resolvedBeneficiaireId, qualite_malade: resolvedQualite } = patient;
 
         const resultActe =
-            calculeRemboursementActe(actes, resolvedBeneficiaireId, date_soin);
+            await calculeRemboursementActe(actes, resolvedBeneficiaireId, date_soin);
 
         const resultPharmacie =
-            calculeRemboursementPharmacie(pharmacie, pharmacie_detecte, resolvedBeneficiaireId, date_soin);
+            await calculeRemboursementPharmacie(pharmacie, pharmacie_detecte, resolvedBeneficiaireId, date_soin);
 
         const { actes: actesCalcules, totalActeRemboursement } =
             resultActe;
@@ -66,6 +79,9 @@ const createBulletin = async (req, res) => {
             resultPharmacie;
 
         const montant_total_remboursé = totalActeRemboursement + totalPharmacieRemboursement;
+
+        const initialNiveauRisque = payload.niveau_risque || 'faible';
+        const initialResultatAnalyse = payload.resultat_analyse || 'Analyse en cours...';
 
         const bulletin = await BulletinSoin.create({
             numero_bulletin,
@@ -79,11 +95,11 @@ const createBulletin = async (req, res) => {
             soins_cadre,
             date_soin,
             montant_total_remboursé,
-            niveauRisque: payload.niveauRisque,
+            niveauRisque: initialNiveauRisque,
             suspicion_locale: !!suspicion_locale,
             confiance_score,
             est_signe_adherent,
-            resultat_analyse: payload.resultat_analyse,
+            resultat_analyse: initialResultatAnalyse,
             userId,
             beneficiaireId: resolvedBeneficiaireId
         }, { transaction: t });
@@ -146,7 +162,29 @@ const createBulletin = async (req, res) => {
 
         await t.commit();
 
-        await FraudService.calculateFraudScore(bulletin.id);
+        // Lancement en arrière-plan de l'analyse IA et de la détection de fraude
+        const filesForAi = req.files || [];
+        (async () => {
+            try {
+                const aiVerification = await verifyBulletinWithAI(filesForAi, payload);
+                const finalNiveauRisque = aiVerification.niveau_risque || payload.niveau_risque || 'faible';
+                const finalResultatAnalyse = payload.resultat_analyse
+                    ? `${payload.resultat_analyse} | Vérification IA: ${aiVerification.resultat_analyse}`
+                    : `Vérification IA: ${aiVerification.resultat_analyse}`;
+
+                await BulletinSoin.update({
+                    niveauRisque: finalNiveauRisque,
+                    resultat_analyse: finalResultatAnalyse
+                }, {
+                    where: { id: bulletin.id }
+                });
+
+                // Calculer le score de fraude une fois que l'IA a écrit les résultats
+                await FraudService.calculateFraudScore(bulletin.id);
+            } catch (bgError) {
+                console.error("Erreur lors de la vérification IA en arrière-plan :", bgError);
+            }
+        })();
 
         const loadedBulletin = await BulletinSoin.findByPk(bulletin.id, {
             include: [
@@ -164,6 +202,7 @@ const createBulletin = async (req, res) => {
 
     } catch (error) {
         await t.rollback();
+
         console.error(error);
 
         res.status(500).json({
@@ -203,6 +242,18 @@ const updateBulletin = async (req, res) => {
             resolvedQualite = patient.qualite_malade;
         }
 
+        let filesToVerify = req.files || [];
+        if (filesToVerify.length === 0) {
+            const existingDocs = await DocumentJustificatif.findAll({ where: { bulletinId: bulletin.id }, transaction: t });
+            filesToVerify = existingDocs.map(doc => {
+                const filename = doc.hash_fichier ? `${doc.hash_fichier}.pdf` : doc.fichier;
+                return {
+                    path: path.join(__dirname, '../../uploads', filename),
+                    mimetype: filename && filename.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'image/jpeg'
+                };
+            }).filter(f => f.path && fs.existsSync(f.path) && fs.lstatSync(f.path).isFile());
+        }
+
         // Préparer les données à mettre à jour
         const allowedFields = [
             'numero_bulletin', 'code_cnam', 'date_soin', 'montant_total',
@@ -222,6 +273,11 @@ const updateBulletin = async (req, res) => {
             updateData.beneficiaireId = resolvedBeneficiaireId;
             updateData.qualite_malade = resolvedQualite;
         }
+
+        updateData.niveauRisque = payload.niveau_risque || bulletin.niveauRisque || 'faible';
+        updateData.resultat_analyse = payload.resultat_analyse
+            ? `${payload.resultat_analyse} | Mise à jour de l'analyse en cours...`
+            : 'Mise à jour de l\'analyse en cours...';
 
 
         // Gérer le recalcul du remboursement si actes ou pharmacie changent
@@ -350,7 +406,27 @@ const updateBulletin = async (req, res) => {
         await bulletin.update(updateData, { transaction: t });
         await t.commit();
 
-        await FraudService.calculateFraudScore(id);
+        // Lancement en arrière-plan de la vérification IA et du recalcul du score de fraude
+        (async () => {
+            try {
+                const aiVerification = await verifyBulletinWithAI(filesToVerify, payload);
+                const finalNiveauRisque = aiVerification.niveau_risque || payload.niveau_risque || bulletin.niveauRisque || 'faible';
+                const finalResultatAnalyse = payload.resultat_analyse
+                    ? `${payload.resultat_analyse} | Vérification IA: ${aiVerification.resultat_analyse}`
+                    : `Vérification IA: ${aiVerification.resultat_analyse}`;
+
+                await BulletinSoin.update({
+                    niveauRisque: finalNiveauRisque,
+                    resultat_analyse: finalResultatAnalyse
+                }, {
+                    where: { id }
+                });
+
+                await FraudService.calculateFraudScore(id);
+            } catch (bgError) {
+                console.error("Erreur lors de la vérification IA lors de la mise à jour (arrière-plan) :", bgError);
+            }
+        })();
 
         const loadedBulletin = await BulletinSoin.findByPk(id, {
             include: [
@@ -489,7 +565,20 @@ const getBulletinById = async (req, res) => {
             return res.status(403).json({ message: 'Accès non autorisé' });
         }
 
-        res.status(200).json(bulletin);
+        // Fetch active fraud alerts for the user
+        const fraudAlerts = await FraudAlert.findAll({
+            where: {
+                entity_type: 'adherent',
+                entity_id: bulletin.userId,
+                statut: 'active'
+            },
+            order: [['createdAt', 'DESC']]
+        });
+
+        const plainBulletin = bulletin.toJSON();
+        plainBulletin.fraudAlerts = fraudAlerts;
+
+        res.status(200).json(plainBulletin);
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Erreur lors de la récupération du bulletin', error: error.message });
@@ -515,11 +604,15 @@ const updateBulletinStatus = async (req, res) => {
             return res.status(400).json({ message: 'Le bulletin doit être "En cours de traitement" pour être marqué comme "Traité".' });
         }
 
+        const phar = await Pharmacie.findOne({
+            where: { bulletinId: id },
+        });
+
         // Contrainte : ne pouvez pas modifier le statut bulletin au traité si des actes ou pharmacie sont en attente
         if (statut === 2) {
             const itemsEnAttente = await Promise.all([
                 ActeMedical.count({ where: { bulletinId: id, statut: 0 } }),
-                Pharmacie.count({ where: { bulletinId: id, statut: 0 } })
+                Medicament.count({ where: { pharmacieId: phar.id, statut: 0 } })
             ]);
 
             if (itemsEnAttente[0] > 0 || itemsEnAttente[1] > 0) {
@@ -669,7 +762,7 @@ const updateStatutActeMedical = async (req, res) => {
             montant_remboursement: montant_remboursement,
         });
 
-        // Mise à jour dynamique du montant_total_remboursé du bulletin
+        // Mise à jour dynamique du montant_total_remboursé du bulletin et du statut
         const bulletin = await BulletinSoin.findByPk(acte.bulletinId);
         if (bulletin) {
             const [totalActes, totalPharmacie] = await Promise.all([
@@ -677,9 +770,17 @@ const updateStatutActeMedical = async (req, res) => {
                 Pharmacie.sum('montant_remboursement', { where: { bulletinId: bulletin.id } })
             ]);
 
-            await bulletin.update({
-                montant_total_remboursé: (totalActes) + (totalPharmacie)
-            });
+            const updates = {
+                montant_total_remboursé: (totalActes || 0) + (totalPharmacie || 0)
+            };
+
+            if (bulletin.statut === 0) {
+                updates.statut = 1;
+                updates.adminId = req.userId;
+                updates.date_traitement = new Date();
+            }
+
+            await bulletin.update(updates);
         }
 
         res.status(200).json(acte);
@@ -711,6 +812,30 @@ const updateStatutMedicament = async (req, res) => {
             motif_rejet: statut === 2 ? motif_rejet : null,
             montant_remboursement: montant_remboursement,
         });
+
+        // Mise à jour dynamique du montant_total_remboursé du bulletin et du statut
+        const pharmacie = await Pharmacie.findByPk(med.pharmacieId);
+        if (pharmacie) {
+            const bulletin = await BulletinSoin.findByPk(pharmacie.bulletinId);
+            if (bulletin) {
+                const [totalActes, totalPharmacie] = await Promise.all([
+                    ActeMedical.sum('montant_remboursement', { where: { bulletinId: bulletin.id } }),
+                    Pharmacie.sum('montant_remboursement', { where: { bulletinId: bulletin.id } })
+                ]);
+
+                const updates = {
+                    montant_total_remboursé: (totalActes || 0) + (totalPharmacie || 0)
+                };
+
+                if (bulletin.statut === 0) {
+                    updates.statut = 1;
+                    updates.adminId = req.userId;
+                    updates.date_traitement = new Date();
+                }
+
+                await bulletin.update(updates);
+            }
+        }
 
         res.status(200).json(med);
     } catch (error) {
