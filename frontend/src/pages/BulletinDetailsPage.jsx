@@ -53,7 +53,7 @@ import {
     RotateCcw
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { getBulletinById, updateBulletinStatus, updateStatutActeMedical, updateStatutPharmacie } from '../services/bulletinService';
+import { getBulletinById, updateBulletinStatus, updateStatutActeMedical } from '../services/bulletinService';
 import { useToast } from '../context/ToastContext';
 import {
     getPatientDisplayName,
@@ -166,6 +166,31 @@ const MedicalActCard = ({ acte, index, isAdmin, onProcess, onSave }) => {
                                         {acte.nb_jour} jours
                                     </span>
                                 )}
+                                {acte.cote && (
+                                    <span className="px-2 py-0.5 rounded-md bg-purple-100 dark:bg-purple-900/30 text-[9px] font-bold text-purple-600">
+                                        Cote: {acte.cote}
+                                    </span>
+                                )}
+                                {acte.num_dent && (
+                                    <span className="px-2 py-0.5 rounded-md bg-teal-100 dark:bg-teal-900/30 text-[9px] font-bold text-teal-600">
+                                        Dent N°{acte.num_dent}
+                                    </span>
+                                )}
+                                {acte.type_intervention && (
+                                    <span className="px-2 py-0.5 rounded-md bg-amber-100 dark:bg-amber-900/30 text-[9px] font-bold text-amber-600">
+                                        Int: {acte.type_intervention}
+                                    </span>
+                                )}
+                                {acte.app_appareillage && (
+                                    <span className="px-2 py-0.5 rounded-md bg-pink-100 dark:bg-pink-900/30 text-[9px] font-bold text-pink-600">
+                                        {acte.app_appareillage}
+                                    </span>
+                                )}
+                                {acte.nb_seance && (
+                                    <span className="px-2 py-0.5 rounded-md bg-orange-100 dark:bg-orange-900/30 text-[9px] font-bold text-orange-600">
+                                        {acte.nb_seance} séance(s)
+                                    </span>
+                                )}
                             </div>
                             <div className="flex flex-wrap gap-3 text-[10px] font-bold text-slate-400 uppercase">
                                 <span className="flex items-center gap-1">
@@ -198,16 +223,16 @@ const MedicalActCard = ({ acte, index, isAdmin, onProcess, onSave }) => {
                                     <span className="text-[10px] font-bold text-red-500 uppercase">Rejeté</span>
                                 </div>
                             ) : null}
-                                <div className="flex flex-col items-end gap-1 mt-1">
-                                    <span className="text-sm font-bold text-emerald-500">
-                                        remb. {formatMontantTnd(acte.montant_remboursement)}
+                            <div className="flex flex-col items-end gap-1 mt-1">
+                                <span className="text-sm font-bold text-emerald-500">
+                                    remb. {formatMontantTnd(acte.montant_remboursement)}
+                                </span>
+                                {acte.message_remboursement && (
+                                    <span className="text-[7px] font-black text-amber-600 uppercase tracking-tighter text-right leading-none max-w-[120px]">
+                                        {acte.message_remboursement}
                                     </span>
-                                    {acte.message_remboursement && (
-                                        <span className="text-[7px] font-black text-amber-600 uppercase tracking-tighter text-right leading-none max-w-[120px]">
-                                            {acte.message_remboursement}
-                                        </span>
-                                    )}
-                                </div>
+                                )}
+                            </div>
                         </div>
                         <ChevronRight
                             size={18}
@@ -226,6 +251,48 @@ const MedicalActCard = ({ acte, index, isAdmin, onProcess, onSave }) => {
                         className="border-t border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/30"
                     >
                         <div className="p-5 space-y-3">
+                            {acte.prestataire && (
+                                <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-700/50 shadow-sm mb-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                                    <div className="flex items-center justify-between mb-3">
+                                        <p className="text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest flex items-center gap-2">
+                                            <Building2 size={12} />
+                                            Prestataire de santé
+                                        </p>
+                                        {acte.prestataire.identifiant_unique_mf && (
+                                            <span className="px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-[9px] font-mono font-bold text-slate-500">
+                                                MF: {acte.prestataire.identifiant_unique_mf}
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="space-y-1">
+                                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Nom / Établissement</p>
+                                            <p className="text-xs font-black text-slate-800 dark:text-slate-200">{acte.prestataire.nom || 'Non spécifié'}</p>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Coordonnées</p>
+                                            <div className="flex items-center gap-3 text-xs font-bold text-slate-600 dark:text-slate-400">
+                                                {acte.prestataire.telephone && (
+                                                    <span className="flex items-center gap-1">
+                                                        <Phone size={10} className="text-slate-400" />
+                                                        {acte.prestataire.telephone}
+                                                    </span>
+                                                )}
+                                                {!acte.prestataire.telephone && <span>Pas de téléphone</span>}
+                                            </div>
+                                        </div>
+                                        {acte.prestataire.adresse && (
+                                            <div className="md:col-span-2 space-y-1 pt-1 border-t border-slate-50 dark:border-slate-800/50">
+                                                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Adresse</p>
+                                                <p className="text-xs font-medium text-slate-600 dark:text-slate-400 flex items-center gap-1">
+                                                    <MapPin size={10} className="text-slate-400" />
+                                                    {acte.prestataire.adresse}
+                                                </p>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
                             {(acte.objet_rejet || acte.motif_rejet) && (
                                 <div className="p-3 rounded-xl bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-800/20">
                                     <p className="text-[9px] font-black text-red-600 uppercase mb-1">{acte.objet_rejet || 'Motif de rejet'}</p>
@@ -304,16 +371,6 @@ const MedicalActCard = ({ acte, index, isAdmin, onProcess, onSave }) => {
                                                     onProcess(acte.id, 'montant_remboursement', val);
                                                 }}
                                                 className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-xs font-black text-emerald-600 focus:ring-2 focus:ring-emerald-500 outline-none transition-all disabled:opacity-50"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="text-[9px] font-black uppercase text-slate-400 mb-1 block ml-1">Nombre de jours</label>
-                                            <input
-                                                type="number"
-                                                disabled={isAlreadyProcessed}
-                                                value={acte.nb_jour || ''}
-                                                onChange={(e) => onProcess(acte.id, 'nb_jour', parseInt(e.target.value) || null)}
-                                                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-xs font-bold focus:ring-2 focus:ring-purple-500 outline-none transition-all disabled:opacity-50"
                                             />
                                         </div>
                                     </div>
@@ -532,7 +589,8 @@ const BulletinDetailsPage = () => {
             setBulletin(updatedData);
         } catch (error) {
             console.error(error);
-            showToast("Erreur lors de la mise à jour du statut", "error");
+            const errorMessage = error.response?.data?.message || error.message || "Erreur lors de la mise à jour du statut";
+            showToast(errorMessage, "error");
         } finally {
             setLoading(false);
             setConfirmData(prev => ({ ...prev, isOpen: false }));
@@ -585,26 +643,6 @@ const BulletinDetailsPage = () => {
             setBulletin(data);
         } catch (error) {
             showToast(error.message || "Erreur lors de la mise à jour de l'acte", "error");
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleSinglePharmacieSave = async () => {
-        try {
-            setLoading(true);
-            await updateStatutPharmacie(bulletin.pharmacie.id, {
-                statut: bulletin.pharmacie.statut,
-                objet_rejet: bulletin.pharmacie.objet_rejet,
-                motif_rejet: bulletin.pharmacie.motif_rejet,
-                montant_remboursement: bulletin.pharmacie.montant_remboursement
-            });
-            showToast("Pharmacie mise à jour avec succès", "success");
-            // Refresh data
-            const data = await getBulletinById(id);
-            setBulletin(data);
-        } catch (error) {
-            showToast(error.message || "Erreur lors de la mise à jour de la pharmacie", "error");
         } finally {
             setLoading(false);
         }
@@ -828,6 +866,7 @@ const BulletinDetailsPage = () => {
                                 {[
                                     { id: 'details', label: 'Patient & Documents', icon: User },
                                     { id: 'medical', label: 'Actes Médicaux', icon: Stethoscope },
+                                    ...(bulletin.pharmacie ? [{ id: 'pharmacie', label: 'Pharmacie', icon: Pill }] : []),
                                     { id: 'analysis', label: 'Score Risque', icon: ShieldAlert },
                                 ].map(tab => {
                                     const TabIcon = tab.icon;
@@ -872,10 +911,35 @@ const BulletinDetailsPage = () => {
                                                     <h2 className="text-2xl font-black text-slate-800 dark:text-white mb-2">
                                                         {patientDisplayName}
                                                     </h2>
-                                                    <div className="flex flex-wrap gap-2">
+                                                    <div className="flex flex-wrap gap-2 mt-2">
                                                         <span className="px-3 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-[10px] font-bold text-slate-600">
                                                             CNAM: {bulletin.code_cnam || 'N/A'}
                                                         </span>
+                                                        {(bulletin.date_naissance_malade || (bulletin.beneficiaire && bulletin.beneficiaire.date_naissance)) && (
+                                                            <span className="px-3 py-1 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 text-[10px] font-bold text-emerald-600">
+                                                                Né(e) le: {formatDateFr(bulletin.date_naissance_malade || bulletin.beneficiaire.date_naissance)}
+                                                            </span>
+                                                        )}
+                                                        {bulletin.est_apci && (
+                                                            <span className="px-3 py-1 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 text-[10px] font-bold text-indigo-600">
+                                                                APCI
+                                                            </span>
+                                                        )}
+                                                        {bulletin.soins_cadre && (
+                                                            <span className="px-3 py-1 rounded-lg bg-blue-100 dark:bg-blue-900/30 text-[10px] font-bold text-blue-600">
+                                                                Cadre: {bulletin.soins_cadre}
+                                                            </span>
+                                                        )}
+                                                        {bulletin.suivi_grossesse && (
+                                                            <span className="px-3 py-1 rounded-lg bg-pink-100 dark:bg-pink-900/30 text-[10px] font-bold text-pink-600">
+                                                                Grossesse
+                                                            </span>
+                                                        )}
+                                                        {bulletin.date_prevue_accouchement && (
+                                                            <span className="px-3 py-1 rounded-lg bg-purple-100 dark:bg-purple-900/30 text-[10px] font-bold text-purple-600">
+                                                                DPA: {formatDateFr(bulletin.date_prevue_accouchement)}
+                                                            </span>
+                                                        )}
                                                     </div>
                                                 </div>
                                             </div>
@@ -950,7 +1014,7 @@ const BulletinDetailsPage = () => {
                                     )}
 
                                     {/* Medical Acts Tab */}
-                                    {activeTab === 'medical' && bulletin.actes && bulletin.actes.length > 0 && (
+                                    {activeTab === 'medical' && (
                                         <motion.div
                                             key="medical"
                                             initial={{ opacity: 0, y: 20 }}
@@ -958,24 +1022,43 @@ const BulletinDetailsPage = () => {
                                             exit={{ opacity: 0, y: -20 }}
                                             className="space-y-4"
                                         >
-                                            <div className="flex items-center justify-between mb-4">
-                                                <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">
-                                                    {bulletin.actes.length} acte(s) médical(aux)
-                                                </p>
-                                            </div>
-                                            {(bulletin.actes).map((acte, idx) => (
-                                                <MedicalActCard
-                                                    key={acte.id || idx}
-                                                    acte={acte}
-                                                    index={idx}
-                                                    isAdmin={isAdmin}
-                                                    onProcess={handleActProcessing}
-                                                    onSave={handleSingleActSave}
-                                                />
-                                            ))}
+                                            {bulletin.actes && bulletin.actes.length > 0 ? (
+                                                <>
+                                                    <div className="flex items-center justify-between mb-4">
+                                                        <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+                                                            {bulletin.actes.length} acte(s) médical(aux)
+                                                        </p>
+                                                    </div>
+                                                    {(bulletin.actes).map((acte, idx) => (
+                                                        <MedicalActCard
+                                                            key={acte.id || idx}
+                                                            acte={acte}
+                                                            index={idx}
+                                                            isAdmin={isAdmin}
+                                                            onProcess={handleActProcessing}
+                                                            onSave={handleSingleActSave}
+                                                        />
+                                                    ))}
+                                                </>
+                                            ) : (
+                                                <div className="p-8 text-center bg-slate-50 dark:bg-slate-800/30 rounded-2xl border border-slate-100 dark:border-slate-700">
+                                                    <Stethoscope size={32} className="mx-auto text-slate-300 dark:text-slate-600 mb-3" />
+                                                    <p className="text-sm font-bold text-slate-500">Aucun acte médical renseigné pour ce bulletin.</p>
+                                                </div>
+                                            )}
+                                        </motion.div>
+                                    )}
 
-                                            {bulletin.pharmacie && (
-                                                <div className="mt-8 pt-8 border-t border-slate-100 dark:border-slate-700">
+                                    {/* Pharmacie Tab */}
+                                    {activeTab === 'pharmacie' && bulletin.pharmacie && (
+                                        <motion.div
+                                            key="pharmacie"
+                                            initial={{ opacity: 0, y: 20 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            exit={{ opacity: 0, y: -20 }}
+                                            className="space-y-4"
+                                        >
+                                            <div>
                                                     <div className="flex items-center justify-between mb-6">
                                                         <h3 className="text-xs font-black uppercase tracking-wider text-slate-500 flex items-center gap-2">
                                                             <Pill size={14} />
@@ -1097,48 +1180,8 @@ const BulletinDetailsPage = () => {
                                                             </div>
                                                         )}
 
-                                                        {isAdmin && (
-                                                            <div className="space-y-4">
-                                                                <div className="flex gap-3">
-                                                                    <button
-                                                                        onClick={() => handlePharmacieProcessing('statut', 1)}
-                                                                        disabled={bulletin.pharmacie.statut !== 0}
-                                                                        className={`flex-1 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${bulletin.pharmacie.statut === 1
-                                                                            ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-500/30'
-                                                                            : bulletin.pharmacie.statut !== 0
-                                                                                ? 'bg-slate-100 text-slate-300 cursor-not-allowed'
-                                                                                : 'bg-slate-100 text-slate-400 hover:bg-emerald-50'
-                                                                            }`}
-                                                                    >
-                                                                        Accepter
-                                                                    </button>
-                                                                    <button
-                                                                        onClick={() => handlePharmacieProcessing('statut', 2)}
-                                                                        disabled={bulletin.pharmacie.statut !== 0}
-                                                                        className={`flex-1 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${bulletin.pharmacie.statut === 2
-                                                                            ? 'bg-rose-600 text-white shadow-lg shadow-rose-500/30'
-                                                                            : bulletin.pharmacie.statut !== 0
-                                                                                ? 'bg-slate-100 text-slate-300 cursor-not-allowed'
-                                                                                : 'bg-slate-100 text-slate-400 hover:bg-rose-50'
-                                                                            }`}
-                                                                    >
-                                                                        Rejeter
-                                                                    </button>
-                                                                </div>
-
-                                                                <button
-                                                                    onClick={handleSinglePharmacieSave}
-                                                                    disabled={bulletin.pharmacie.statut !== 0}
-                                                                    className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-black transition-all flex items-center justify-center gap-2 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-                                                                >
-                                                                    <Save size={16} />
-                                                                    Enregistrer Pharmacie
-                                                                </button>
-                                                            </div>
-                                                        )}
                                                     </div>
                                                 </div>
-                                            )}
                                         </motion.div>
                                     )}
 
@@ -1179,6 +1222,48 @@ const BulletinDetailsPage = () => {
                                                     <p className="text-[10px] text-purple-500 mt-2">Score IA</p>
                                                 </div>
                                             </div>
+
+                                            {/* Section des Alertes Actives de Fraude */}
+                                            {bulletin.fraudAlerts && bulletin.fraudAlerts.length > 0 && (
+                                                <div className="p-6 rounded-2xl bg-gradient-to-br from-red-50 to-rose-100/50 dark:from-red-950/10 dark:to-rose-900/10 border border-red-200/60 shadow-md space-y-4">
+                                                    <div className="flex items-center gap-3">
+                                                        <AlertCircle className="text-red-600 dark:text-red-500 animate-pulse" size={20} />
+                                                        <h3 className="text-sm font-black uppercase tracking-wider text-red-700 dark:text-red-400">
+                                                            Alertes de Fraude et Anomalies Actives ({bulletin.fraudAlerts.length})
+                                                        </h3>
+                                                    </div>
+                                                    <div className="space-y-3">
+                                                        {bulletin.fraudAlerts.map((alert, idx) => (
+                                                            <div key={alert.id || idx} className="p-4 rounded-xl bg-white dark:bg-slate-900/90 border border-red-100 dark:border-red-950/40 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                                                <div className="space-y-2 flex-1">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className="px-2 py-0.5 rounded-lg bg-red-100 dark:bg-red-950/60 text-[9px] font-black text-red-600 dark:text-red-400 uppercase tracking-widest">
+                                                                            {alert.entity_type === 'adherent' ? 'Adhérent Suspect' : alert.entity_type}
+                                                                        </span>
+                                                                        <span className="text-[10px] text-slate-400 font-bold">
+                                                                            Détecté le {formatDateFr(alert.createdAt)}
+                                                                        </span>
+                                                                    </div>
+                                                                    <div className="space-y-1">
+                                                                        {alert.reason.split(' | ').map((subReason, subIdx) => (
+                                                                            <p key={subIdx} className="text-xs font-semibold text-slate-700 dark:text-slate-200 flex items-start gap-2">
+                                                                                <span className="text-red-500 mt-0.5">•</span>
+                                                                                {subReason}
+                                                                            </p>
+                                                                        ))}
+                                                                    </div>
+                                                                </div>
+                                                                <div className="flex items-center gap-3 self-end md:self-center">
+                                                                    <div className="text-center bg-red-50 dark:bg-red-950/30 px-3 py-1.5 rounded-xl border border-red-100 dark:border-red-950">
+                                                                        <p className="text-[8px] font-black text-red-500 uppercase tracking-widest">Gravité</p>
+                                                                        <p className="text-sm font-black text-red-600">{alert.score}%</p>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
 
                                             <div className="p-5 rounded-xl bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-800/50 dark:to-slate-800/30 border border-slate-200">
                                                 <div className="flex items-center gap-2 mb-3">

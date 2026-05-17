@@ -1,6 +1,7 @@
 const RulesEngine = require('./RulesEngine');
+const ReimbursementService = require('./ReimbursementServices');
 
-function calculeRemboursementActe(actes = []) {
+async function calculeRemboursementActe(actes = [], beneficiaireId, date_soin) {
 
     try {
         let totalActeRemboursement = 0;
@@ -10,8 +11,18 @@ function calculeRemboursementActe(actes = []) {
             for (const acte of actes) {
                 const theo = RulesEngine.calculateTheoreticalActe(acte);
                 const remboursement = Number(theo.toFixed(3));
-                actesTraites.push({ ...acte, montant_remboursement: remboursement });
-                totalActeRemboursement += remboursement;
+                acte.montant_remboursement = remboursement;
+                const result = await ReimbursementService.calculePlafondActe(beneficiaireId, acte, date_soin);
+                acte.montant_remboursement = result.amount;
+                acte.message_remboursement = result.message;
+                if (result.amount === 0) {
+                    acte.montant_remboursement = 0;
+                    acte.objet_rejet = "Attiendre plafond";
+                    acte.motif_rejet = result.message;
+                    acte.statut = 2;
+                }
+                actesTraites.push(acte);
+                totalActeRemboursement += result.amount;
             }
         }
 
@@ -28,28 +39,41 @@ function calculeRemboursementActe(actes = []) {
     }
 }
 
-function calculeRemboursementPharmacie(pharmacie = null, pharmacie_detecte = false) {
+async function calculeRemboursementPharmacie(pharmacie = null, pharmacie_detecte = false, beneficiaireId, date_soin) {
 
     try {
         let totalPharmacieRemboursement = 0;
 
         let pharmacieTraitee = null;
         if (pharmacie_detecte && pharmacie) {
-            const pharmacie = pharmacie;
-            const meds = (pharmacie.medicaments || []).map(med => {
+            const meds = [];
+            for (const med of (pharmacie.medicaments || [])) {
 
                 const remboursement = Number(
                     RulesEngine.calculateTheoreticalPharmacie(
                         med.montant_total
                     ).toFixed(3)
                 );
-
-                return {
-                    ...med,
-                    montant_remboursement: remboursement
-                };
-            });
+                med.montant_remboursement = remboursement;
+                const result = await ReimbursementService.calculePlafondPharmacie(beneficiaireId, med, date_soin);
+                if (result.amount === 0) {
+                    meds.push({
+                        ...med,
+                        montant_remboursement: result.amount,
+                        objet_rejet: "Attiendre plafond",
+                        motif_rejet: result.message,
+                        statut: 2
+                    });
+                } else {
+                    meds.push({
+                        ...med,
+                        montant_remboursement: result.amount,
+                        message_remboursement: result.message
+                    });
+                }
+            }
             const montantRembourse = Number(meds.reduce((sum, med) => sum + (med.montant_remboursement || 0), 0).toFixed(3));
+
             pharmacieTraitee = {
                 ...pharmacie,
                 montant_remboursement: montantRembourse,

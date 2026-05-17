@@ -42,6 +42,10 @@ const User = sequelize.define('User', {
         type: DataTypes.INTEGER,
         defaultValue: 0 // 1: Actif, 0: Inactif, 2: Refusé, 3: Bloqué
     },
+    objet_blocage: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
     motif_blocage: {
         type: DataTypes.STRING,
         allowNull: true
@@ -132,13 +136,13 @@ const User = sequelize.define('User', {
                     // On vérifie quand même si ce matricule n'existe pas déjà (sécurité supplémentaire)
                     let matriculeCandidate = `${prefix}${String(nextNumber).padStart(3, '0')}`;
                     let exists = await user.constructor.findOne({ where: { matricule: matriculeCandidate } });
-                    
+
                     while (exists) {
                         nextNumber++;
                         matriculeCandidate = `${prefix}${String(nextNumber).padStart(3, '0')}`;
                         exists = await user.constructor.findOne({ where: { matricule: matriculeCandidate } });
                     }
-                    
+
                     user.matricule = matriculeCandidate;
                 } catch (error) {
                     console.error("Erreur lors de la génération du matricule:", error);

@@ -57,13 +57,16 @@ const updateProfile = async (req, res) => {
             }
         });
 
-        await ben.update(
-            {
-                nom: nom || ben.nom,
-                prenom: prenom || ben.prenom,
-                ddn: ddn || ben.ddn,
-            }
-        );
+        if (!ben) {
+            await ben.update(
+                {
+                    nom: nom || ben.nom,
+                    prenom: prenom || ben.prenom,
+                    ddn: ddn || ben.ddn,
+                }
+            );
+        }
+        
 
         const updatedUser = user.toJSON();
         delete updatedUser.mot_de_passe;

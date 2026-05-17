@@ -77,7 +77,10 @@ async function resolvePatientForBulletin(userId, body) {
                 
             }
         })
-        return { beneficiaireId: ben.id, qualite_malade: 'Titulaire' };
+        if(ben) {
+            return { beneficiaireId: ben.id, qualite_malade: 'Titulaire' };
+        }
+        
     }
 
     const relation = kind === 'CONJOINT' ? 'Conjoint' : 'Enfant';

@@ -40,6 +40,7 @@ const ACTION_MAP = {
     
     // Bulletins
     'POST sur /api/bulletins': { label: 'Création Bulletin', icon: PlusCircle, color: 'text-purple-500', bg: 'bg-purple-50' },
+    'POST sur /api/ai/analyze-bulletin': { label: 'Analyse des Documents', icon: FileText, color: 'text-green-500', bg: 'bg-green-50' },
     'PUT sur /api/bulletins/:id': { label: 'Modif. Bulletin', icon: Edit, color: 'text-cyan-500', bg: 'bg-cyan-50' },
     'DELETE sur /api/bulletins/:id': { label: 'Suppr. Bulletin', icon: Trash2, color: 'text-red-500', bg: 'bg-red-50' },
     'PUT sur /api/bulletins/:id/status': { label: 'Statut Bulletin', icon: RefreshCw, color: 'text-amber-500', bg: 'bg-amber-50' },
@@ -52,7 +53,7 @@ const ACTION_MAP = {
     
     // Bénéficiaires
     'POST sur /api/beneficiaries': { label: 'Ajout Bénéficiaire', icon: UserIcon, color: 'text-emerald-500', bg: 'bg-emerald-50' },
-    'PUT sur /api/beneficiaries/:id': { label: 'Modif. Bénéficiaire', icon: Edit, color: 'text-teal-500', bg: 'bg-teal-50' },
+    'PUT sur /api/beneficiaries/:id/status': { label: 'Modif. Bénéficiaire', icon: Edit, color: 'text-teal-500', bg: 'bg-teal-50' },
     'DELETE sur /api/beneficiaries/:id': { label: 'Suppr. Bénéficiaire', icon: Trash2, color: 'text-red-500', bg: 'bg-red-50' },
     
     // Notifications

@@ -1,6 +1,6 @@
-const { Beneficiary, ActeMedical } = require('../../../models');
+const { Beneficiary, ActeMedical, BulletinSoin } = require('../../../models');
 const { Op } = require('sequelize');
-const rules = require('../../utils/reimbursementRules2026');
+const rules = require('./reimbursementRules2026');
 const ConsumptionService = require('./ConsumptionService');
 const RulesEngine = require('./RulesEngine');
 
@@ -44,14 +44,17 @@ class ReimbursementService {
 
             // 2. Règle Optique (Monture) - Renouvellement
             if (acte.acte === 'Optique' && acte.cote === 'Monture') {
-                const limitYears = age < 16 
-                    ? rules.optique.monture.renouvellement.enfant_moins_16_ans 
+                const limitYears = age < 16
+                    ? rules.optique.monture.renouvellement.enfant_moins_16_ans
                     : rules.optique.monture.renouvellement.adulte_ans;
 
                 // Trouver le dernier acte de monture remboursé
                 const lastMonture = await ActeMedical.findOne({
+                    include: [{
+                        model: BulletinSoin,
+                        where: { beneficiaireId: maldieId }
+                    }],
                     where: {
-                        beneficiaireId: maldieId,
                         acte: 'Optique',
                         cote: 'Monture',
                         statut: 1, // Accepté
@@ -63,10 +66,10 @@ class ReimbursementService {
                 if (lastMonture) {
                     const lastDate = new Date(lastMonture.date_acte);
                     const currentDate = new Date(date_soin);
-                    
+
                     const diffTime = Math.abs(currentDate - lastDate);
                     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                    
+
                     if (diffDays < (limitYears * 365)) {
                         return { amount: 0, message: `Renouvellement monture non autorisé avant ${limitYears} an(s).` };
                     }
@@ -127,7 +130,7 @@ class ReimbursementService {
             const plafondCat = RulesEngine.getPlafondValue(cat);
             const dejaConsomméCat = (consommations[cat] || 0)
             let resteCat = Math.max(0, plafondCat - dejaConsomméCat);
-            
+
             let amount = Number(medicament.montant_remboursement || 0);
             let message = "";
 

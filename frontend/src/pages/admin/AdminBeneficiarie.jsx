@@ -230,11 +230,6 @@ const AdminBeneficiarie = () => {
                                                 >
                                                     <Info size={18} />
                                                 </button>
-                                                {b.document && (
-                                                    <button onClick={() => setPreviewDocument(b.document)} title="Voir document" className="p-2.5 rounded-xl bg-slate-100 text-slate-600 hover:bg-purple-600 hover:text-white transition-all">
-                                                        <Eye size={18} />
-                                                    </button>
-                                                )}
                                                 {b.statut === 'En attente' && (
                                                     <>
                                                         <button onClick={() => handleStatusUpdate(b.id, 'Validé')} title="Valider" className="p-2.5 rounded-xl bg-emerald-100 text-emerald-600 hover:bg-emerald-600 hover:text-white transition-all"><CheckCircle size={18} /></button>

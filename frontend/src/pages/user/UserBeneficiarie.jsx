@@ -102,11 +102,12 @@ const UserBeneficiarie = () => {
             showToast("Veuillez remplir tous les champs obligatoires et joindre au moins un document", "error");
             return;
         }
-        setIsSaving(true);
+        
         if (!editingBeneficiaryId && avezConjoint && newBeneficiary.relation === "Conjoint") {
             showToast("Vous avez deja un conjoint dans les beneficiares", "error");
             return;
         }
+        setIsSaving(true);
         try {
             const formData = new FormData();
             Object.keys(newBeneficiary).forEach(key => {
@@ -313,7 +314,7 @@ const UserBeneficiarie = () => {
                                             >
                                                 <Info size={16} />
                                             </button>
-                                            {(b.statut === 'En attente' || b.statut === 'Rejeté') && (
+                                            {(b.statut === 'En attente') && (
                                                 <button
                                                     onClick={() => {
                                                         setEditingBeneficiaryId(b.id);

@@ -10,7 +10,7 @@ const register = async (req, res) => {
         let ddnError = null;
 
         const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!regex.test(email)){
+        if (!regex.test(email)) {
             return res.status(400).json({ message: "L'email n'est pas valide" });
         }
 
@@ -21,7 +21,7 @@ const register = async (req, res) => {
             return res.status(400).json({ message: 'Un utilisateur avec cet email existe déjà.' });
         }
 
-        if (!nom || !prenom || nom.trim().length < 2 || prenom.trim().length < 2){
+        if (!nom || !prenom || nom.trim().length < 2 || prenom.trim().length < 2) {
             return res.status(400).json({ message: "le nom ou le prenom n'est pas valide" });
         }
 
@@ -31,33 +31,33 @@ const register = async (req, res) => {
 
 
         if (!ddn) {
-          ddnError = "Date de naissance requise";
+            ddnError = "Date de naissance requise";
         } else {
-          const today = new Date();
-          const birthDate = new Date(ddn);
+            const today = new Date();
+            const birthDate = new Date(ddn);
 
-          if (isNaN(birthDate.getTime())) {
-            ddnError = "Date invalide";
-          } else if (birthDate > today) {
-            ddnError = "Date dans le futur interdite";
-          } else {
-            // Vérifier âge >= 18 ans
-            let age = today.getFullYear() - birthDate.getFullYear();
-            const m = today.getMonth() - birthDate.getMonth();
+            if (isNaN(birthDate.getTime())) {
+                ddnError = "Date invalide";
+            } else if (birthDate > today) {
+                ddnError = "Date dans le futur interdite";
+            } else {
+                // Vérifier âge >= 18 ans
+                let age = today.getFullYear() - birthDate.getFullYear();
+                const m = today.getMonth() - birthDate.getMonth();
 
-            if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
-              age--;
+                if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+                    age--;
+                }
+
+                if (age < 18) {
+                    ddnError = "Vous devez avoir au moins 18 ans";
+                }
             }
-
-            if (age < 18) {
-              ddnError = "Vous devez avoir au moins 18 ans";
-            }
-          }
         }
         if (ddnError) {
             return res.status(400).json({ message: ddnError });
         }
-        
+
         // Format DD/MM/YYYY to YYYY-MM-DD
         let formattedDdn = null;
         if (ddn) {
@@ -68,7 +68,7 @@ const register = async (req, res) => {
                 formattedDdn = ddn;
             }
         }
-    
+
         const newUser = await User.create({
             nom,
             prenom,
@@ -77,7 +77,7 @@ const register = async (req, res) => {
             adresse,
             ville,
             email: normalizedEmail,
-            role: 'ADHERENT', 
+            role: 'ADHERENT',
             statut: 0,
             sexe
         });
@@ -86,17 +86,17 @@ const register = async (req, res) => {
             nom,
             prenom,
             ddn: formattedDdn,
-            relation: 'Titulaire', 
+            relation: 'Titulaire',
             sexe,
             statut: 'Validé',
             userId: newUser.id
         })
-        
+
 
         // --- Notification pour les Responsables RH ---
         try {
             const rhManagers = await User.findAll({ where: { role: 'RESPONSABLE_RH' } });
-            
+
             if (rhManagers.length > 0) {
                 const notifPromises = rhManagers.map(rh => Notification.create({
                     titre: '🆕 Nouvelle inscription',
@@ -183,7 +183,7 @@ const login = async (req, res) => {
         try {
             const { Journal } = require('../../models');
             const ipAddress = req.ip || req.connection?.remoteAddress || '127.0.0.1';
-            
+
             await Journal.create({
                 action: 'POST sur /api/auth/login',
                 userId: user.id,
@@ -222,7 +222,7 @@ const logout = async (req, res) => {
         const { Journal } = require('../../models');
         // Set req.userId so journalMiddleware can also see it, though we do it explicitly
         req.userId = req.body.userId;
-        
+
         await Journal.create({
             action: 'POST sur /api/auth/logout',
             userId: req.body.userId,

@@ -20,11 +20,21 @@ export const getAllUsers = async () => {
     return handleResponse(response);
 };
 
-export const updateUserStatus = async (id, statut, raison = null) => {
+export const updateUserStatus = async (id, statut, payload = null) => {
+    let objet = undefined;
+    let raison = undefined;
+
+    if (payload !== null && typeof payload === 'object') {
+        objet = payload.motifLibelle || payload.objet;
+        raison = payload.commentaire || payload.raison;
+    } else if (typeof payload === 'string') {
+        raison = payload;
+    }
+
     const response = await fetch(`${API_URL}/${id}/status`, {
         method: 'PUT',
         headers: getAuthHeaders(),
-        body: JSON.stringify({ statut, raison }),
+        body: JSON.stringify({ statut, objet, raison }),
     });
 
     return handleResponse(response);

@@ -1,4 +1,4 @@
-const rules = require('../../utils/reimbursementRules2026');
+const rules = require('./reimbursementRules2026');
 
 class RulesEngine {
     /**
@@ -143,7 +143,7 @@ class RulesEngine {
         if (categorie === 'DENTAIRE') return rules.dentaire.soins_protheses_implants.plafond_annuel;
         if (categorie === 'DENTAIRE_ODF') return rules.dentaire.orthopedie_dento_faciale.plafond_annuel;
         if (categorie === 'MATERNITE') return rules.maternite.plafond_annuel;
-        
+
         return Infinity; // Pas de plafond spécifique pour les autres
     }
 

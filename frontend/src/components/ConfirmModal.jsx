@@ -137,9 +137,9 @@ const ConfirmModal = ({
                                                             <AnimatePresence>
                                                                 {isDropdownOpen && (
                                                                     <>
-                                                                        <div 
-                                                                            className="fixed inset-0 z-10" 
-                                                                            onClick={() => setIsDropdownOpen(false)} 
+                                                                        <div
+                                                                            className="fixed inset-0 z-10"
+                                                                            onClick={() => setIsDropdownOpen(false)}
                                                                         />
                                                                         <motion.div
                                                                             initial={{ opacity: 0, y: 10, scale: 0.95 }}
@@ -155,11 +155,10 @@ const ConfirmModal = ({
                                                                                         setSelectedMotif(motif);
                                                                                         setIsDropdownOpen(false);
                                                                                     }}
-                                                                                    className={`w-full text-left px-4 py-3 rounded-xl transition-all flex items-center justify-between group ${
-                                                                                        selectedMotif?.id === motif.id
+                                                                                    className={`w-full text-left px-4 py-3 rounded-xl transition-all flex items-center justify-between group ${selectedMotif?.id === motif.id
                                                                                             ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400'
                                                                                             : 'hover:bg-slate-50 dark:hover:bg-white/5 text-slate-600 dark:text-slate-300'
-                                                                                    }`}
+                                                                                        }`}
                                                                                 >
                                                                                     <div className="flex flex-col">
                                                                                         <span className="font-bold text-[13px] tracking-tight">{motif.libelle}</span>
@@ -177,7 +176,7 @@ const ConfirmModal = ({
 
                                                         {/* Affichage de la description du motif sélectionné */}
                                                         {selectedMotif && selectedMotif.description && (
-                                                            <motion.div 
+                                                            <motion.div
                                                                 initial={{ opacity: 0, y: -10 }}
                                                                 animate={{ opacity: 1, y: 0 }}
                                                                 className="p-5 bg-red-50/50 dark:bg-red-900/5 border border-red-100/50 dark:border-red-900/20 rounded-[1.5rem] flex gap-3"

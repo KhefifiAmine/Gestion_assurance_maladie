@@ -8,7 +8,6 @@ const {
     getBulletinById,
     updateBulletinStatus,
     updateStatutActeMedical,
-    updateStatutPharmacie,
     updateStatutMedicament,
     updateBulletin,
     deleteBulletin,
@@ -32,7 +31,6 @@ router.get('/:id', verifyToken, getBulletinById);
 // Routes réservées uniquement à l'Admin
 router.put('/:id/status', verifyToken, isAdmin, updateBulletinStatus);
 router.put('/acte/:id/status', verifyToken, isAdmin, updateStatutActeMedical);
-router.put('/pharmacie/:id/status', verifyToken, isAdmin, updateStatutPharmacie);
 router.put('/medicament/:id/status', verifyToken, isAdmin, updateStatutMedicament);
 
 

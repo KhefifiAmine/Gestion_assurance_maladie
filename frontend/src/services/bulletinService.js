@@ -114,16 +114,6 @@ export const updateStatutActeMedical = async (id, data) => {
     return handleResponse(response);
 };
 
-export const updateStatutPharmacie = async (id, data) => {
-    const response = await fetch(`${API_URL}/pharmacie/${id}/status`, {
-        method: 'PUT',
-        headers: getAuthHeaders(),
-        body: JSON.stringify(data),
-    });
-
-    return handleResponse(response);
-};
-
 export const updateStatutMedicament = async (id, data) => {
     const response = await fetch(`${API_URL}/medicament/${id}/status`, {
         method: 'PUT',

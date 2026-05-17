@@ -24,12 +24,7 @@ import {
     Check,
     ShieldCheck,
     UserPlus,
-    PlusCircle,
-    ChevronDown,
-    UploadCloud,
-    Download,
-    LayoutGrid,
-    List
+    
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { updateProfile, changePassword } from '../../services/api';
@@ -363,6 +358,7 @@ const UserProfile = () => {
                                     { label: 'Email', key: 'email', icon: Mail, disabled: true },
                                     { label: 'Téléphone', key: 'telephone', icon: Phone },
                                     { label: 'Ville', key: 'ville', icon: Home },
+                                    { label: 'Sexe', key: 'sexe', icon: Home,  disabled: true },
                                     { label: 'Adresse', key: 'adresse', icon: MapPin },
                                     { label: 'Date de naissance', key: 'ddn', icon: Calendar, type: 'date' }
                                 ].map((field) => (
