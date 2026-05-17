@@ -369,12 +369,12 @@ const deleteBulletin = async (req, res) => {
             });
         }
 
-        // 🔥 Récupérer tous les documents associés
+        // Récupérer tous les documents associés
         const docs = await DocumentJustificatif.findAll({
             where: { bulletinId: id }
         });
 
-        // 🔥 Supprimer les fichiers physiques
+        //  Supprimer les fichiers physiques
         for (const doc of docs) {
             if (doc.fichier) {
                 const filePath = path.join(__dirname, '../../uploads', doc.fichier);
@@ -385,7 +385,7 @@ const deleteBulletin = async (req, res) => {
             await doc.destroy();
         }
 
-        // 🔥 Supprimer le bulletin
+        // Supprimer le bulletin
         await bulletin.destroy();
 
         res.status(200).json({ message: 'Bulletin supprimé avec succès' });
@@ -527,15 +527,15 @@ const updateBulletinStatus = async (req, res) => {
 
             let titre, description, priorite;
             if (statut === 2) {
-                titre = '✅ Bulletin traité';
+                titre = 'Bulletin traité';
                 description = `Votre bulletin de soin n°${bulletin.numero_bulletin || id} a été traité par l'administration.`;
                 priorite = 'normale';
             } else if (statut === 1) {
-                titre = '⏳ Bulletin en cours';
+                titre = 'Bulletin en cours';
                 description = `Votre bulletin de soin n°${bulletin.numero_bulletin || id} est en cours de traitement.`;
                 priorite = 'normale';
             } else {
-                titre = 'ℹ️ Statut bulletin mis à jour';
+                titre = 'ℹ Statut bulletin mis à jour';
                 description = `Votre bulletin de soin n°${bulletin.numero_bulletin || id} est maintenant : ${statutLabel}.`;
                 priorite = 'basse';
             }

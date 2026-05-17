@@ -4,7 +4,7 @@ const fs = require('fs');
 const crypto = require('crypto');
 const { DocumentJustificatif } = require('../../models');
 
-// 📁 Config stockage
+// Config stockage
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     const uploadDir = 'uploads/';
@@ -19,13 +19,13 @@ const storage = multer.diskStorage({
   }
 });
 
-// 📦 Multer upload - Changé de .single('file') à .array('files', 5) pour supporter plusieurs documents
+// Multer upload - Changé de .single('file') à .array('files', 5) pour supporter plusieurs documents
 const upload = multer({
   storage: storage,
   limits: { fileSize: 5 * 1024 * 1024 }
 }).array('files', 10); 
 
-// 🔐 Hash
+//  Hash
 function calculateFileHash(filePath) {
   const fileBuffer = fs.readFileSync(filePath);
   const hashSum = crypto.createHash("sha256");
