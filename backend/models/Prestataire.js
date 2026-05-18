@@ -18,9 +18,18 @@ const Prestataire = sequelize.define('Prestataire', {
     },
     telephone: {
         type: DataTypes.STRING,
-        allowNull: true
+        allowNull: true,
+        unique: true
     },
     adresse: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    specialite: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    gsm: {
         type: DataTypes.STRING,
         allowNull: true
     }

@@ -1,4 +1,4 @@
-const { Reclamation, User, BulletinSoin, Notification, Beneficiary, ActeMedical, Pharmacie, DocumentJustificatif } = require('../../models');
+const { Reclamation, User, BulletinSoin, Notification, Beneficiary, ActeMedical, ActePharmacie, DocumentJustificatif, Prestataire, Medicament } = require('../../models');
 const { sendNotificationEmail } = require('../utils/emailService');
 
 // ==========================================
@@ -63,8 +63,8 @@ const AdherentReclamationController = {
             attributes: ['numero_bulletin', 'statut', 'montant_total', 'date_depot', 'createdAt', 'code_cnam', 'date_soin'],
             include: [
               { model: Beneficiary, as: 'beneficiaire', attributes: ['id', 'nom', 'prenom', 'relation', 'ddn', 'statut'] },
-              { model: ActeMedical, as: 'actes' },
-              { model: Pharmacie, as: 'pharmacie' },
+              { model: ActeMedical, as: 'actes', include: [{ model: Prestataire, as: 'prestataire' }] },
+              { model: ActePharmacie, as: 'pharmacie', include: [{ model: Medicament, as: 'medicaments' }, { model: Prestataire, as: 'prestataire' }] },
               { model: DocumentJustificatif, as: 'documents' }
             ]
           },
@@ -143,8 +143,8 @@ const AdminReclamationController = {
             attributes: ['id', 'numero_bulletin', 'code_cnam', 'qualite_malade', 'montant_total', 'statut', 'date_depot', 'createdAt', 'date_soin'],
             include: [
               { model: Beneficiary, as: 'beneficiaire', attributes: ['id', 'nom', 'prenom', 'relation', 'ddn', 'statut'] },
-              { model: ActeMedical, as: 'actes' },
-              { model: Pharmacie, as: 'pharmacie' },
+              { model: ActeMedical, as: 'actes', include: [{ model: Prestataire, as: 'prestataire' }] },
+              { model: ActePharmacie, as: 'pharmacie', include: [{ model: Medicament, as: 'medicaments' }, { model: Prestataire, as: 'prestataire' }] },
               { model: DocumentJustificatif, as: 'documents' }
             ]
           }

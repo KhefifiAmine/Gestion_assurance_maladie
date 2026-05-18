@@ -34,7 +34,7 @@ const AdminLogin = () => {
         try {
             setIsLoading(true);
             const data = await loginUser(credentials.email, credentials.password, true);
-            if (!['ADMIN', 'RESPONSABLE_RH'].includes(data.user.role)) {
+            if (!['ADMIN', 'RESPONSABLE_RH', 'SUPER_ADMIN'].includes(data.user.role)) {
                 showToast("Accès refusé. Portail restreint.", "error");
                 return;
             }

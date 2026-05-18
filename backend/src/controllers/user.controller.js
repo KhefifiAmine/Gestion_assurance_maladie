@@ -107,20 +107,20 @@ const updateUserStatus = async (req, res) => {
     }
 };
 
-// Mettre à jour le rôle d'un utilisateur ('ADMIN' ou 'ADHERENT')
+// Mettre à jour le rôle d'un utilisateur 
 const updateUserRole = async (req, res) => {
     try {
         const { id } = req.params;
         const { role } = req.body;
 
-        if (!['ADMIN', 'ADHERENT', 'RESPONSABLE_RH'].includes(role)) {
+        if (!['ADMIN', 'ADHERENT', 'RESPONSABLE_RH', 'SUPER_ADMIN'].includes(role)) {
             return res.status(400).json({ message: 'Rôle invalide.' });
         }
 
-        // Empêcher l'admin de modifier son propre rôle accidentellement si besoin, ou juste laisser faire.
-        if (id === req.userId && role !== 'ADMIN') {
+        // Empêcher le super admin de modifier son propre rôle accidentellement si besoin, ou juste laisser faire.
+        if (id === req.userId && role !== 'SUPER_ADMIN') {
             return res.status(403).json({
-                message: 'Vous ne pouvez pas révoquer votre propre rôle d\'administrateur'
+                message: 'Vous ne pouvez pas révoquer votre propre rôle de super administrateur'
             });
         }
 

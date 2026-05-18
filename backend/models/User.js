@@ -63,7 +63,7 @@ const User = sequelize.define('User', {
         allowNull: true
     },
     role: {
-        type: DataTypes.ENUM('ADMIN', 'ADHERENT', 'RESPONSABLE_RH'),
+        type: DataTypes.ENUM('ADMIN', 'ADHERENT', 'RESPONSABLE_RH', 'SUPER_ADMIN'),
         defaultValue: 'ADHERENT',
         allowNull: false
     },
@@ -111,6 +111,7 @@ const User = sequelize.define('User', {
                     let prefix = 'ADH';
                     if (user.role === 'RESPONSABLE_RH') prefix = 'RH';
                     if (user.role === 'ADMIN') prefix = 'ADM';
+                    if (user.role === 'SUPER_ADMIN') prefix = 'SAD';
 
                     // On cherche le matricule le plus élevé pour ce préfixe
                     // On utilise Sequelize.Op.like pour filtrer par préfixe

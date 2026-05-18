@@ -44,7 +44,8 @@ Si des différences, des altérations suspectes, ou des incohérences majeures s
 Format de réponse obligatoire (JSON unique) :
 {
   "niveau_risque": "faible" | "moyen" | "élevé",
-  "resultat_analyse": "Description détaillée des résultats de la vérification. Si tout est correct, indique 'Données conformes aux documents'. Sinon, liste précisément les différences et anomalies trouvées."
+  "confiance_score": number, // Score de confiance entre 0 et 100
+  "resultat_analyse": "Bilan de la vérification. Fournis un message clair et bien structuré (en utilisant des retours à la ligne, des puces `-` et des emojis) décrivant les anomalies détectées ou confirmant que les données sont conformes."
 }
         `;
 
@@ -68,6 +69,7 @@ Format de réponse obligatoire (JSON unique) :
         if (jsonMatch) {
             const data = JSON.parse(jsonMatch[0]);
             return {
+                confiance_score: data.confiance_score || 100,
                 niveau_risque: data.niveau_risque || "moyen",
                 resultat_analyse: data.resultat_analyse || "Analyse IA terminée."
             };
