@@ -81,7 +81,7 @@ const uploadWithDuplicateCheck = async (req, res, next) => {
         });
       }
 
-      // 💾 injecter les hashes dans req pour usage après
+      // injecter les hashes dans req pour usage après
       req.fileHashes = filesWithHashes.map(f => ({ 
         filename: f.file.filename, 
         hash: f.hash,

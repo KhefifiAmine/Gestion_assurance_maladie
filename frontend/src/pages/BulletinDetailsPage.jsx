@@ -562,6 +562,11 @@ const BulletinDetailsPage = () => {
 
     useEffect(() => {
         const fetchBulletin = async () => {
+            if (!id || id === 'undefined') {
+                showToast("ID du bulletin invalide", "error");
+                navigate('/bulletins', { replace: true });
+                return;
+            }
             try {
                 setLoading(true);
                 const data = await getBulletinById(id);

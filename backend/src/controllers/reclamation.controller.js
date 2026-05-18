@@ -41,7 +41,7 @@ const AdherentReclamationController = {
         where: { userId: req.userId },
         include: [
           { model: User, as: 'admin', attributes: ['nom', 'prenom'] },
-          { model: BulletinSoin, as: 'bulletinSoin', attributes: ['numero_bulletin', 'statut', 'montant_total', 'date_depot', 'createdAt', 'code_cnam', 'date_soin'] }
+          { model: BulletinSoin, as: 'bulletinSoin', attributes: ['id', 'numero_bulletin', 'statut', 'montant_total', 'date_depot', 'createdAt', 'code_cnam', 'date_soin'] }
         ],
         order: [['createdAt', 'DESC']]
       });
@@ -60,7 +60,7 @@ const AdherentReclamationController = {
           { model: User, as: 'admin', attributes: ['nom', 'prenom'] },
           { 
             model: BulletinSoin, as: 'bulletinSoin', 
-            attributes: ['numero_bulletin', 'statut', 'montant_total', 'date_depot', 'createdAt', 'code_cnam', 'date_soin'],
+            attributes: ['id', 'numero_bulletin', 'statut', 'montant_total', 'date_depot', 'createdAt', 'code_cnam', 'date_soin'],
             include: [
               { model: Beneficiary, as: 'beneficiaire', attributes: ['id', 'nom', 'prenom', 'relation', 'ddn', 'statut'] },
               { model: ActeMedical, as: 'actes' },
