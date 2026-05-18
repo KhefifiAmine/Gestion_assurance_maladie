@@ -225,8 +225,18 @@ const BeneficiaryDetailsModal = ({ isOpen, beneficiary, onClose, onViewAdherent,
                                                 <div className="text-[10px] font-black uppercase tracking-widest text-rose-500 flex items-center gap-2">
                                                     <Info size={14} /> Motif de rejet
                                                 </div>
-                                                <p className="font-bold text-rose-700 dark:text-rose-300 text-sm">{beneficiary.motifRefus}</p>
-                                            </div>
+
+
+                                                {/* Objet du refus — badge rouge */}
+                                                <p className="inline-flex items-center gap-1.5 px-2.5 py-1 text-red-700 text-[12px] font-black uppercase tracking-wide leading-tight">
+                                                    {beneficiary.objetRefus}
+                                                </p>
+                                                {beneficiary.motifRefus && (
+                                                    <p className="text-[14px] text-slate-900 font-medium leading-snug pl-1">
+                                                        {beneficiary.motifRefus}
+                                                    </p>
+                                                )}
+                                           </div>
                                         )}
 
                                         {/* Associated Adherent Section */}

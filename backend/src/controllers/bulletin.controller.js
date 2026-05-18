@@ -60,7 +60,7 @@ const findOrCreatePrestataire = async (pData, transaction) => {
         // Mise à jour optionnelle si de nouvelles infos sont disponibles
         let needsUpdate = false;
         const updates = {};
-        
+
         if (!prestataire.identifiant_unique_mf && pData.identifiant_unique_mf) {
             updates.identifiant_unique_mf = pData.identifiant_unique_mf;
             needsUpdate = true;
@@ -85,7 +85,7 @@ const findOrCreatePrestataire = async (pData, transaction) => {
             updates.gsm = pData.gsm;
             needsUpdate = true;
         }
-        
+
         if (needsUpdate) {
             await prestataire.update(updates, { transaction });
         }
@@ -107,11 +107,11 @@ const createBulletin = async (req, res) => {
         }
 
         const { numero_bulletin, code_cnam, montant_total, est_apci, suivi_grossesse, date_prevue_accouchement, soins_cadre, date_soin, suspicion_locale, confiance_score,
-est_signe_adherent,
-date_depot,
-actes,
-pharmacie,
-pharmacie_detecte
+            est_signe_adherent,
+            date_depot,
+            actes,
+            pharmacie,
+            pharmacie_detecte
         } = payload;
 
         const date60DaysAgo = new Date();
@@ -298,7 +298,7 @@ const updateBulletin = async (req, res) => {
     try {
         const { id } = req.params;
         const userId = req.userId;
-        
+
         let payload = req.body;
         if (req.body.data) {
             payload = JSON.parse(req.body.data);

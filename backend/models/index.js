@@ -15,7 +15,6 @@ const Notification = require('./Notification');
 const Journal = require('./Journal');
 const DocumentJustificatif = require('./DocumentJustificatif');
 const FraudAlert = require('./FraudAlert');
-const MotifRejet = require('./MotifRejet');
 
 // Associations
 User.hasMany(Beneficiary, { foreignKey: 'userId', as: 'beneficiaires' });
@@ -48,10 +47,6 @@ ActePharmacie.belongsTo(BulletinSoin, { foreignKey: 'bulletinId' });
 // ActePharmacie → Medicament (1-N) : une pharmacie contient plusieurs médicaments
 ActePharmacie.hasMany(Medicament, { foreignKey: 'pharmacieId', as: 'medicaments' });
 Medicament.belongsTo(ActePharmacie, { foreignKey: 'pharmacieId', as: 'pharmacie' });
-
-// MotifRejet <-> BulletinSoin
-MotifRejet.hasMany(BulletinSoin, { foreignKey: 'motifRejetId', as: 'bulletins' });
-BulletinSoin.belongsTo(MotifRejet, { foreignKey: 'motifRejetId', as: 'motifRejet' });
 
 // ====== Notifications & Journal ======
 User.hasMany(Notification, { foreignKey: 'userId', as: 'notifications' });
@@ -96,7 +91,6 @@ module.exports = {
     Journal,
     DocumentJustificatif,
     FraudAlert,
-    MotifRejet,
     Prestataire,
     MaladieConsumption
 };

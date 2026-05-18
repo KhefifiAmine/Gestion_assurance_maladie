@@ -63,11 +63,11 @@ export const getAllBeneficiaries = async () => {
     return handleResponse(response);
 };
 
-export const updateStatus = async (id, statut, motifRefus = null) => {
+export const updateStatus = async (id, statut, objetRefus = null, motifRefus = null) => {
     const response = await fetch(`${API_URL}/${id}/status`, {
         method: 'PUT',
         headers: getAuthHeaders(),
-        body: JSON.stringify({ statut, motifRefus })
+        body: JSON.stringify({ statut, objetRefus, motifRefus })
     });
 
     return handleResponse(response);

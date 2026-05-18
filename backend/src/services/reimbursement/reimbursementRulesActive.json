@@ -97,7 +97,7 @@
         "taux": 0.15,
         "plafond_annuel": "260"
     },
-    "plafond_annuel_global_par_prestataire": 4500,
+    "plafond_annuel_global_par_prestataire": "200",
     "defaultRules": {
         "consultations": {
             "C1": 35,

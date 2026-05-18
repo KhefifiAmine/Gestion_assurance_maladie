@@ -171,11 +171,6 @@ const ActeItem = memo(({ acte, index, onUpdate, onRemove, structure, onLookup })
             <FormField label="GSM">
                 <input placeholder="GSM" className="w-full p-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white" value={acte.prestataire?.gsm || ''} onChange={e => onUpdate(index, { prestataire: { ...(acte.prestataire || {}), gsm: e.target.value } })} />
             </FormField>
-
-            <FormField label="Nb Jours">
-                <input type="number" placeholder="Ex: 5" className="w-full p-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white" value={acte.nb_jour || ''} onChange={e => onUpdate(index, { nb_jour: Number(e.target.value) })} />
-            </FormField>
-
             
             <div className="flex items-center gap-2 mt-2">
                 <input type="checkbox" id={`cachet-${index}`} className="w-3 h-3 rounded text-purple-600" checked={!!acte.est_cachet} onChange={e => onUpdate(index, { est_cachet: e.target.checked })} />
@@ -472,7 +467,6 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
                     est_cachet: !!a.est_cachet,
                     est_signature: !!a.est_signature,
                     date_cachet_signature: formatDateForInput(a.date_cachet_signature) || '',
-                    nb_jour: Number(a.nb_jour) || null
                 })) : prev.actes,
                 montant_total: Number(aiData.montant_total) || prev.montant_total,
                 resultat_analyse: cleanIAValue(aiData.resultat_analyse) || '',
@@ -513,7 +507,6 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
                 est_cachet: false, 
                 est_signature: false, 
                 date_cachet_signature: '', 
-                nb_jour: null 
             }]
         }));
     }, []);

@@ -24,6 +24,19 @@ class ReimbursementService {
         return annee;
     }
 
+    static async apparisActe(maldieId, acte, cote) {
+        const nbActeJour = await ActeMedical.count({
+            where: {
+                beneficiaireId: maldieId,
+                acte: acte,
+                cote: cote,
+                statut: 1
+            }
+        });
+        return nbActeJour;
+
+    }
+
     /**
      * Calcule et enregistre un bulletin avec gestion des plafonds et consommations
      */
@@ -62,6 +75,20 @@ class ReimbursementService {
                     },
                     order: [['date_acte', 'DESC']]
                 });
+
+                if ((acte.acte === 'hospitalisation' && acte.cote === 'couveuse')) {
+                    const apparisActeJour = await ReimbursementService.apparisActe(maldieId, 'hospitalisation', 'couveuse');
+                    if (apparisActeJour > rules.hospitalisation.couveuse.max_jours) {
+                        return { amount: 0, message: "Couveuse non remboursable après 15 jours." };
+                    }
+                }
+
+                if ((acte.acte === 'divers' && acte.cote === 'cure_thermale')) {
+                    const apparisActeJour = await ReimbursementService.apparisActe(maldieId, 'divers', 'cure_thermale');
+                    if (apparisActeJour > rules.divers.cure_thermale.max_jours) {
+                        return { amount: 0, message: "Cure thermale non remboursable après 21 jours." };
+                    }
+                }
 
                 if (lastMonture) {
                     const lastDate = new Date(lastMonture.date_acte);

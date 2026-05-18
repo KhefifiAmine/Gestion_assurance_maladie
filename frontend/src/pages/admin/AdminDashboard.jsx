@@ -34,6 +34,17 @@ import UserDetailsModal from '../../components/UserDetailsModal';
 import { Info } from 'lucide-react';
 
 const AdminDashboard = ({ mode = 'all' }) => {
+
+    const motif = [
+        "Informations personnelles manquantes ou incomplètes",
+        "Adresse non valide",
+        "Numéro de téléphone invalide ou non vérifié",
+        "Absence de justificatif requis",
+        "Âge non conforme aux conditions requises",
+        "Informations détectées comme potentiellement frauduleuses",
+        "Données obligatoires manquantes"
+    ]
+    
     const { user: currentUser } = useAuth();
     const { showToast } = useToast();
     const [users, setUsers] = useState([]);
@@ -566,6 +577,7 @@ const AdminDashboard = ({ mode = 'all' }) => {
                 reasonLabel={modalConfig.reasonLabel}
                 requireRoleSelect={modalConfig.requireRoleSelect}
                 currentRole={modalConfig.currentRole}
+                motifs={motif}
             />
 
             {/* Modal d'Ajout d'Utilisateur */}

@@ -188,11 +188,6 @@ const MedicalActCard = ({ acte, index, isAdmin, onProcess, onSave }) => {
                                         {acte.code_acte}
                                     </span>
                                 )}
-                                {acte.nb_jour && (
-                                    <span className="px-2 py-0.5 rounded-md bg-blue-100 dark:bg-blue-900/30 text-[9px] font-bold text-blue-600">
-                                        {acte.nb_jour} jours
-                                    </span>
-                                )}
                                 {acte.cote && (
                                     <span className="px-2 py-0.5 rounded-md bg-purple-100 dark:bg-purple-900/30 text-[9px] font-bold text-purple-600">
                                         Cote: {acte.cote}
@@ -724,7 +719,6 @@ const BulletinDetailsPage = () => {
                 objet_rejet: acte.objet_rejet,
                 motif_rejet: acte.motif_rejet,
                 montant_remboursement: acte.montant_remboursement,
-                nb_jour: acte.nb_jour
             });
             showToast("Acte mis à jour avec succès", "success");
             // Verrouille la carte localement (statut persisté = statut actuel)
@@ -1313,12 +1307,12 @@ const BulletinDetailsPage = () => {
                                                                             <div className="p-3 rounded-xl bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-800/20">
                                                                                 <div className="flex items-center gap-1.5 mb-1">
                                                                                     <XCircle size={11} className="text-red-500 flex-shrink-0" />
-                                                                                    <p className="text-[9px] font-black text-red-600 uppercase tracking-wider">
+                                                                                    <p className="text-[12px] font-black text-red-600 uppercase tracking-wider">
                                                                                         {med.objet_rejet || 'Motif de rejet'}
                                                                                     </p>
                                                                                 </div>
                                                                                 {med.motif_rejet && (
-                                                                                    <p className="text-xs text-red-800 dark:text-red-300 leading-snug pl-4">
+                                                                                    <p className="text-xm text-red-800 dark:text-red-300 leading-snug pl-4">
                                                                                         {med.motif_rejet}
                                                                                     </p>
                                                                                 )}

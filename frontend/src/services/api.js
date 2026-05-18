@@ -140,41 +140,6 @@ export const changePassword = async (ancienMdp, nouveauMdp) => {
     return handleResponse(res);
 };
 
-
-// ─── MOTIFS REJET ────────────────────────────────────────────────────────────
-export const fetchMotifsRejet = async () => {
-    const res = await fetch(`${API_BASE}/motifs-rejet`, {
-        headers: authHeaders()
-    });
-    return handleResponse(res);
-};
-
-export const createMotifRejet = async (data) => {
-    const res = await fetch(`${API_BASE}/motifs-rejet`, {
-        method: 'POST',
-        headers: authHeaders(),
-        body: JSON.stringify(data)
-    });
-    return handleResponse(res);
-};
-
-export const updateMotifRejet = async (id, data) => {
-    const res = await fetch(`${API_BASE}/motifs-rejet/${id}`, {
-        method: 'PUT',
-        headers: authHeaders(),
-        body: JSON.stringify(data)
-    });
-    return handleResponse(res);
-};
-
-export const deleteMotifRejet = async (id) => {
-    const res = await fetch(`${API_BASE}/motifs-rejet/${id}`, {
-        method: 'DELETE',
-        headers: authHeaders()
-    });
-    return handleResponse(res);
-};
-
 // ─── REIMBURSEMENT RULES ──────────────────────────────────────────────────────
 export const fetchReimbursementRules = async () => {
     const res = await fetch(`${API_BASE}/reimbursement/rules`, {

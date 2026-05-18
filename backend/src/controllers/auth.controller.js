@@ -88,7 +88,7 @@ const register = async (req, res) => {
             ddn: formattedDdn,
             relation: 'Titulaire',
             sexe,
-            statut: 'Validé',
+            statut: 'En attente',
             userId: newUser.id
         })
 

@@ -12,6 +12,19 @@ import UserDetailsModal from '../../components/UserDetailsModal';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const AdminBeneficiarie = () => {
+
+    const motifs = [
+      "Document obligatoire manquant ou incomplet",
+      "Pièce justificative non conforme ou illisible",
+      "Informations incohérentes entre les documents fournis",
+      "Document expiré ou non valide",
+      "Justificatif de situation familiale manquant ou invalide",
+      "Justificatif de scolarité ou dépendance non fourni ou non valide",
+      "Attestation administrative manquante ou expirée",
+      "Non-respect des conditions d’éligibilité du bénéficiaire",
+      "Absence de preuve suffisante pour valider le statut du bénéficiaire"
+    ];
+    
     const { user } = useAuth();
     const { showToast } = useToast();
     const [beneficiaries, setBeneficiaries] = useState([]);
@@ -22,9 +35,14 @@ const AdminBeneficiarie = () => {
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [beneficiaryToDelete, setBeneficiaryToDelete] = useState(null);
 
+    // Validate confirm
+    const [showValidateConfirm, setShowValidateConfirm] = useState(false);
+    const [beneficiaryToValidate, setBeneficiaryToValidate] = useState(null);
+
     // Reject confirm
     const [showRejectModal, setShowRejectModal] = useState(false);
     const [beneficiaryToReject, setBeneficiaryToReject] = useState(null);
+    const [selectedMotifRejet, setSelectedMotifRejet] = useState('');
     const [rejectReason, setRejectReason] = useState('');
 
     const [previewDocument, setPreviewDocument] = useState(null);
@@ -73,14 +91,15 @@ const AdminBeneficiarie = () => {
         }
     };
 
-    const handleStatusUpdate = async (id, newStatus, motifRefus = null) => {
+    const handleStatusUpdate = async (id, newStatus, objetRefus = null, motifRefus = null) => {
         try {
-            await updateStatus(id, newStatus, motifRefus);
+            await updateStatus(id, newStatus, objetRefus, motifRefus);
             showToast(`Statut mis à jour : ${newStatus}`, "success");
             fetchBeneficiaries();
             if (newStatus === 'Rejeté') {
                 setShowRejectModal(false);
                 setBeneficiaryToReject(null);
+                setSelectedMotifRejet('');
                 setRejectReason('');
             }
         } catch (error) {
@@ -154,7 +173,7 @@ const AdminBeneficiarie = () => {
                                     <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-900">Naissance</th>
                                     <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-900">Relation</th>
                                     <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-900">Statut</th>
-                                    <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-900">Motif De Rejet</th>
+                                    <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-900">Objet &amp; Motif de Rejet</th>
                                     <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-900 text-right">Actions</th>
                                 </tr>
                             </thead>
@@ -218,8 +237,23 @@ const AdminBeneficiarie = () => {
                                                 {getStatusIcon(b.statut)} {b.statut}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4 px-6 text-xs font-bold uppercase tracking-widest text-red-500">
-                                            {b.motifRefus || 'N/A'}
+                                        <td className="px-6 py-4 max-w-[220px]">
+                                            {b.objetRefus ? (
+                                                <div className="flex flex-col gap-1.5">
+                                                    {/* Objet du refus — badge rouge */}
+                                                    <span className="inline-flex items-center gap-1.5 text-red-700 text-[10px] font-black uppercase tracking-wide leading-tight">
+                                                        {b.objetRefus}
+                                                    </span>
+                                                    {/* Motif additionnel — description grise */}
+                                                    {b.motifRefus && (
+                                                        <span className="text-[12px] text-slate-900 font-medium leading-snug pl-1">
+                                                            {b.motifRefus}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            ) : (
+                                                <span className="text-slate-300 text-xs font-bold">—</span>
+                                            )}
                                         </td>
                                         <td className="px-6 py-4 text-right">
                                             <div className="flex justify-end gap-2">
@@ -232,7 +266,13 @@ const AdminBeneficiarie = () => {
                                                 </button>
                                                 {b.statut === 'En attente' && (
                                                     <>
-                                                        <button onClick={() => handleStatusUpdate(b.id, 'Validé')} title="Valider" className="p-2.5 rounded-xl bg-emerald-100 text-emerald-600 hover:bg-emerald-600 hover:text-white transition-all"><CheckCircle size={18} /></button>
+                                                        <button
+                                                            onClick={() => { setBeneficiaryToValidate(b); setShowValidateConfirm(true); }}
+                                                            title="Valider"
+                                                            className="p-2.5 rounded-xl bg-emerald-100 text-emerald-600 hover:bg-emerald-600 hover:text-white transition-all"
+                                                        >
+                                                            <CheckCircle size={18} />
+                                                        </button>
                                                         <button onClick={() => { setBeneficiaryToReject(b); setShowRejectModal(true); }} title="Refuser" className="p-2.5 rounded-xl bg-red-100 text-red-600 hover:bg-red-600 hover:text-white transition-all"><XCircle size={18} /></button>
                                                     </>
                                                 )}
@@ -247,6 +287,26 @@ const AdminBeneficiarie = () => {
                 </div>
             )}
 
+            {/* Validate Confirm Modal */}
+            <ConfirmModal
+                isOpen={showValidateConfirm}
+                onClose={() => { setShowValidateConfirm(false); setBeneficiaryToValidate(null); }}
+                onConfirm={() => {
+                    if (beneficiaryToValidate) {
+                        handleStatusUpdate(beneficiaryToValidate.id, 'Validé');
+                        setShowValidateConfirm(false);
+                        setBeneficiaryToValidate(null);
+                    }
+                }}
+                title="Valider le bénéficiaire"
+                message={beneficiaryToValidate
+                    ? `Confirmez-vous la validation de ${beneficiaryToValidate.prenom} ${beneficiaryToValidate.nom} (${beneficiaryToValidate.relation}) ? Cette action autorisera la prise en charge de ce bénéficiaire.`
+                    : ''}
+                confirmText="Oui, valider"
+                type="success"
+            />
+
+            {/* Delete Confirm Modal */}
             <ConfirmModal
                 isOpen={showDeleteConfirm}
                 onClose={() => setShowDeleteConfirm(false)}
@@ -262,26 +322,74 @@ const AdminBeneficiarie = () => {
                 <AnimatePresence>
                     <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/40 backdrop-blur-sm">
                         <div className="flex min-h-full items-center justify-center p-4">
-                            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="bg-white rounded-[2rem] p-8 max-w-md w-full shadow-2xl">
-                                <h2 className="text-2xl font-black mb-2 text-slate-900">Refuser la demande</h2>
-                                <p className="text-xs font-bold text-slate-500 mb-6">Veuillez indiquer le motif du refus pour l'adhérent.</p>
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.9 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.9 }}
+                                className="bg-white dark:bg-slate-900 rounded-[2rem] p-8 max-w-md w-full shadow-2xl"
+                            >
+                                {/* Header */}
+                                <div className="flex items-center gap-3 mb-2">
+                                    <div className="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center">
+                                        <XCircle size={20} className="text-red-500" />
+                                    </div>
+                                    <h2 className="text-xl font-black text-slate-900 dark:text-white">Refuser la demande</h2>
+                                </div>
+                                <p className="text-xs font-bold text-slate-500 mb-6">
+                                    Sélectionnez le motif du refus et ajoutez une description si nécessaire.
+                                </p>
 
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black opacity-40 uppercase tracking-widest block">Motif du refus (*)</label>
-                                    <textarea
-                                        className="w-full bg-slate-50 p-4 rounded-xl font-bold text-sm outline-none min-h-[100px] border border-transparent focus:border-red-400"
-                                        placeholder="Ex: Document illisible, Lien de parenté non justifié..."
-                                        value={rejectReason}
-                                        onChange={(e) => setRejectReason(e.target.value)}
-                                    ></textarea>
+                                <div className="space-y-4">
+                                    {/* Motif dropdown */}
+                                    <div>
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">
+                                            Motif du refus *
+                                        </label>
+                                        <select
+                                            value={selectedMotifRejet}
+                                            onChange={(e) => setSelectedMotifRejet(e.target.value)}
+                                            className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-sm font-bold text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-red-400 transition-all"
+                                        >
+                                            <option value="">-- Sélectionner un motif --</option>
+                                            {motifs.map((m, idx) => (
+                                                <option key={idx} value={m}>{m}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    {/* Optional description */}
+                                    <div>
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">
+                                            Description supplémentaire (optionnelle)
+                                        </label>
+                                        <textarea
+                                            className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-3 rounded-xl font-bold text-sm outline-none min-h-[80px] focus:ring-2 focus:ring-red-400 transition-all resize-none dark:text-white"
+                                            placeholder="Détails supplémentaires pour l'adhérent..."
+                                            value={rejectReason}
+                                            onChange={(e) => setRejectReason(e.target.value)}
+                                        />
+                                    </div>
                                 </div>
 
-                                <div className="flex justify-end gap-3 pt-4 mt-6 border-t border-slate-100">
-                                    <button type="button" onClick={() => { setShowRejectModal(false); setRejectReason(''); setBeneficiaryToReject(null); }} className="px-6 py-3 font-black text-xs uppercase tracking-widest bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors">Annuler</button>
+                                <div className="flex justify-end gap-3 pt-5 mt-5 border-t border-slate-100 dark:border-slate-800">
                                     <button
                                         type="button"
-                                        disabled={!rejectReason.trim()}
-                                        onClick={() => handleStatusUpdate(beneficiaryToReject.id, 'Rejeté', rejectReason)}
+                                        onClick={() => { setShowRejectModal(false); setSelectedMotifRejet(''); setRejectReason(''); setBeneficiaryToReject(null); }}
+                                        className="px-6 py-3 font-black text-xs uppercase tracking-widest bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl transition-colors"
+                                    >
+                                        Annuler
+                                    </button>
+                                    <button
+                                        type="button"
+                                        disabled={!selectedMotifRejet}
+                                        onClick={() => {
+                                            handleStatusUpdate(
+                                                beneficiaryToReject.id,
+                                                'Rejeté',
+                                                selectedMotifRejet || null,
+                                                rejectReason.trim() || null
+                                            );
+                                        }}
                                         className="px-6 py-3 font-black text-xs uppercase tracking-widest bg-red-600 hover:bg-red-700 text-white rounded-xl transition-colors disabled:opacity-50"
                                     >
                                         Confirmer le refus

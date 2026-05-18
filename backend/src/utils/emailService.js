@@ -2,10 +2,10 @@
 const nodemailer = require('nodemailer');
 
 const isConfigured = () => {
-  return process.env.EMAIL_USER && 
-         process.env.EMAIL_USER !== 'votre_email@gmail.com' && 
-         process.env.EMAIL_PASS && 
-         process.env.EMAIL_PASS !== 'votre_mot_de_passe_application';
+  return process.env.EMAIL_USER &&
+    process.env.EMAIL_USER !== 'votre_email@gmail.com' &&
+    process.env.EMAIL_PASS &&
+    process.env.EMAIL_PASS !== 'votre_mot_de_passe_application';
 };
 
 const transporter = isConfigured() ? nodemailer.createTransport({
@@ -89,7 +89,7 @@ const sendApprovalEmail = async (email) => {
   }
 };
 
-const sendRejectionEmail = async (email, raison = "") => {
+const sendRejectionEmail = async (email, objet, raison = "") => {
   const mailOptions = {
     from: `"CareCover - Notifications" <${process.env.EMAIL_USER}>`,
     to: email,
@@ -98,6 +98,7 @@ const sendRejectionEmail = async (email, raison = "") => {
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2 style="color: #333;">Information concernant votre demande</h2>
         <p>Nous sommes désolés de vous informer que votre demande de création de compte a été refusée par l'administrateur.</p>
+        ${objet ? `<p><strong>Objet :</strong> ${objet}</p>` : ''}
         ${raison ? `<p><strong>Raison :</strong> ${raison}</p>` : ''}
         <p>Pour plus d'informations, veuillez contacter le support.</p>
         <hr style="margin: 20px 0;">
@@ -125,7 +126,7 @@ const sendRejectionEmail = async (email, raison = "") => {
   }
 };
 
-const sendBlockEmail = async (email, raison = "") => {
+const sendBlockEmail = async (email, objet, raison = "") => {
   const mailOptions = {
     from: `"" <${process.env.EMAIL_USER}>`,
     to: email,
@@ -134,6 +135,7 @@ const sendBlockEmail = async (email, raison = "") => {
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2 style="color: #333;">Alerte de Sécurité</h2>
         <p>Nous vous informons que votre compte a été bloqué / désactivé par l'administrateur.</p>
+        ${objet ? `<p><strong>Objet :</strong> ${objet}</p>` : ''}
         ${raison ? `<p><strong>Raison :</strong> ${raison}</p>` : ''}
         <p>Si vous pensez qu'il s'agit d'une erreur, veuillez contacter le support.</p>
         <hr style="margin: 20px 0;">
@@ -264,11 +266,11 @@ const sendLoginNotificationEmail = async (email, prenom) => {
   }
 };
 
-module.exports = { 
-  sendResetEmail, 
-  sendApprovalEmail, 
-  sendRejectionEmail, 
-  sendBlockEmail, 
+module.exports = {
+  sendResetEmail,
+  sendApprovalEmail,
+  sendRejectionEmail,
+  sendBlockEmail,
   sendNotificationEmail,
   sendLoginNotificationEmail
 };

@@ -189,8 +189,6 @@ const updateBeneficiary = async (req, res) => {
         beneficiary.relation = relation || beneficiary.relation;
         beneficiary.ddn = ddn || beneficiary.ddn;
         beneficiary.sexe = sexe || beneficiary.sexe;
-        beneficiary.statut = 'En attente'; // Remettre en attente après modif
-        beneficiary.motifRefus = null;
         beneficiary.handicape = handicape === 'true' || handicape === true;
         beneficiary.etudiant = etudiant === 'true' || etudiant === true;
         beneficiary.chomage = chomage === 'true' || chomage === true;
@@ -250,7 +248,7 @@ const getAllBeneficiaries = async (req, res) => {
 const updateStatus = async (req, res) => {
     try {
         const { id } = req.params;
-        const { statut, motifRefus } = req.body;
+        const { statut, motifRefus, objetRefus } = req.body;
 
         const beneficiary = await Beneficiary.findByPk(id);
         if (!beneficiary) {
@@ -258,9 +256,11 @@ const updateStatus = async (req, res) => {
         }
 
         beneficiary.statut = statut;
-        if (statut === 'Rejeté' && motifRefus) {
-            beneficiary.motifRefus = motifRefus;
+        if (statut === 'Rejeté') {
+            beneficiary.objetRefus = objetRefus || null;
+            beneficiary.motifRefus = motifRefus || null;
         } else if (statut === 'Validé') {
+            beneficiary.objetRefus = null;
             beneficiary.motifRefus = null;
         }
 
@@ -277,7 +277,8 @@ const updateStatus = async (req, res) => {
                 description = `Votre demande d'ajout du bénéficiaire ${beneficiary.prenom} ${beneficiary.nom} a été validée par l'administration.`;
             } else if (statut === 'Rejeté') {
                 titre = '❌ Bénéficiaire rejeté';
-                description = `Votre demande d'ajout du bénéficiaire ${beneficiary.prenom} ${beneficiary.nom} a été rejetée.${motifRefus ? ' Motif : ' + motifRefus : ''}`;
+                const rejetDetail = [beneficiary.objetRefus, motifRefus].filter(Boolean).join(' — ');
+                description = `Votre demande d'ajout du bénéficiaire ${beneficiary.prenom} ${beneficiary.nom} a été rejetée.${rejetDetail ? ' Motif : ' + rejetDetail : ''}`;
             } else {
                 titre = 'ℹ️ Statut bénéficiaire mis à jour';
                 description = `Le statut du bénéficiaire ${beneficiary.prenom} ${beneficiary.nom} a été mis à jour : ${statut}.`;

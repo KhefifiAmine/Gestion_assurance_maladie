@@ -204,9 +204,9 @@ const UserBeneficiarie = () => {
                     <table className="w-full border-separate border-spacing-y-3 px-8">
                         <thead>
                             <tr className="text-slate-400 dark:text-slate-500">
-                                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-left">Bénéficiaire</th>
-                                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-left">Sexe & Age</th>
-                                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-left">Lien de Parenté</th>
+                                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-center">Bénéficiaire</th>
+                                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-center">Sexe & Age</th>
+                                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-center">Lien de Parenté</th>
                                 <th className="px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-center">Statut</th>
                                 <th className="px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-center">Actions</th>
                             </tr>
@@ -296,11 +296,6 @@ const UserBeneficiarie = () => {
                                                 }`} />
                                                 {b.statut || 'En attente'}
                                             </div>
-                                            {b.statut === 'Rejeté' && b.motifRefus && (
-                                                <span className="text-[9px] text-red-500 font-bold max-w-[120px] truncate" title={b.motifRefus}>
-                                                    {b.motifRefus}
-                                                </span>
-                                            )}
                                         </div>
                                     </td>
 

@@ -40,6 +40,10 @@ const Beneficiary = sequelize.define('Beneficiary', {
         defaultValue: 'En attente'
     },
     motifRefus: {
+        type: DataTypes.TEXT,
+        allowNull: true
+    },
+    objetRefus: {
         type: DataTypes.STRING,
         allowNull: true
     },

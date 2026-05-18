@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AlertTriangle, X, Info, AlertCircle, HelpCircle, Check, FileWarning, ClipboardList, MessageSquare, Loader2, ChevronRight } from 'lucide-react';
-import { fetchMotifsRejet } from '../services/api';
 
 
 const ConfirmModal = ({
@@ -17,14 +16,20 @@ const ConfirmModal = ({
     requireReason = false,
     requireRoleSelect = false,
     currentRole = "ADHERENT",
-    loading = false
+    loading = false,
+    motifs = []
 }) => {
+
+    const normalizedMotifs = (motifs || []).map((m, idx) => {
+        if (typeof m === 'string') {
+            return { id: m, libelle: m, description: '' };
+        }
+        return m;
+    });
 
     const [selectedMotif, setSelectedMotif] = useState(null);
     const [commentaire, setCommentaire] = useState('');
     const [selectedRole, setSelectedRole] = useState(currentRole);
-    const [motifs, setMotifs] = useState([]);
-    const [loadingMotifs, setLoadingMotifs] = useState(false);
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
     useEffect(() => {
@@ -36,16 +41,6 @@ const ConfirmModal = ({
         }
     }, [isOpen, currentRole]);
 
-    // Load motifs from API when modal opens with requireReason
-    useEffect(() => {
-        if (isOpen && requireReason && motifs.length === 0) {
-            setLoadingMotifs(true);
-            fetchMotifsRejet()
-                .then(data => setMotifs(data))
-                .catch(err => console.error('Erreur chargement motifs:', err))
-                .finally(() => setLoadingMotifs(false));
-        }
-    }, [isOpen, requireReason]);
 
     const backdropVariants = { hidden: { opacity: 0 }, visible: { opacity: 1 } };
     const modalVariants = { hidden: { opacity: 0, scale: 0.9, y: 20 }, visible: { opacity: 1, scale: 1, y: 0 } };
@@ -55,6 +50,7 @@ const ConfirmModal = ({
             case 'danger': return { icon: <AlertTriangle size={40} className="text-red-500" />, iconBg: 'bg-red-50 dark:bg-red-900/20', btnBg: 'bg-red-600 hover:bg-red-700 shadow-red-500/20' };
             case 'warning': return { icon: <AlertCircle size={40} className="text-amber-500" />, iconBg: 'bg-amber-50 dark:bg-amber-900/20', btnBg: 'bg-amber-600 hover:bg-amber-700 shadow-amber-500/20' };
             case 'info': return { icon: <Info size={40} className="text-purple-600" />, iconBg: 'bg-purple-50 dark:bg-purple-900/20', btnBg: 'bg-purple-600 hover:bg-purple-700 shadow-purple-500/20' };
+            case 'success': return { icon: <Check size={40} className="text-emerald-500" />, iconBg: 'bg-emerald-50 dark:bg-emerald-900/20', btnBg: 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/20' };
             default: return { icon: <HelpCircle size={40} className="text-purple-600" />, iconBg: 'bg-slate-50 dark:bg-slate-800', btnBg: 'bg-purple-600 hover:bg-purple-700 shadow-purple-500/20' };
         }
     };
@@ -103,108 +99,90 @@ const ConfirmModal = ({
                                 {/* Motif selection section */}
                                 {requireReason && (
                                     <div className="w-full space-y-5 text-left">
-                                        {loadingMotifs ? (
-                                            <div className="flex items-center justify-center gap-3 py-8">
-                                                <Loader2 size={20} className="animate-spin text-purple-500" />
-                                                <span className="text-sm font-bold text-slate-400">Chargement des motifs...</span>
-                                            </div>
-                                        ) : (
-                                            <>
-                                                {/* Motif grid by category */}
-                                                <div>
-                                                    <label className="flex items-center gap-2 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-4 ml-1">
-                                                        <ClipboardList size={12} className="text-red-500" />
-                                                        Motif de rejet *
-                                                    </label>
-                                                    <div className="space-y-4">
-                                                        <div className="relative">
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                                                                className="w-full bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/50 rounded-[1.5rem] px-6 py-4 text-sm font-bold flex items-center justify-between outline-none focus:ring-4 focus:ring-red-500/10 focus:border-red-500/50 transition-all dark:text-white shadow-sm"
-                                                            >
-                                                                <span className={selectedMotif ? "text-slate-900 dark:text-white" : "text-slate-400"}>
-                                                                    {selectedMotif ? selectedMotif.libelle : "Sélectionner la raison du rejet..."}
-                                                                </span>
+                                        <div>
+                                            <label className="flex items-center gap-2 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-4 ml-1">
+                                                <ClipboardList size={12} className="text-red-500" />
+                                                Motif de rejet *
+                                            </label>
+                                            <div className="space-y-4">
+                                                <div className="relative">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                                                        className="w-full bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/50 rounded-[1.5rem] px-6 py-4 text-sm font-bold flex items-center justify-between outline-none focus:ring-4 focus:ring-red-500/10 focus:border-red-500/50 transition-all dark:text-white shadow-sm"
+                                                    >
+                                                        <span className={selectedMotif ? "text-slate-900 dark:text-white" : "text-slate-400"}>
+                                                            {selectedMotif ? selectedMotif.libelle : "Sélectionner la raison du rejet..."}
+                                                        </span>
+                                                        <motion.div
+                                                            animate={{ rotate: isDropdownOpen ? 180 : 0 }}
+                                                            transition={{ duration: 0.3 }}
+                                                        >
+                                                            <ChevronRight size={18} className="rotate-90 text-slate-400" />
+                                                        </motion.div>
+                                                    </button>
+
+                                                    <AnimatePresence>
+                                                        {isDropdownOpen && (
+                                                            <>
+                                                                <div
+                                                                    className="fixed inset-0 z-10"
+                                                                    onClick={() => setIsDropdownOpen(false)}
+                                                                />
                                                                 <motion.div
-                                                                    animate={{ rotate: isDropdownOpen ? 180 : 0 }}
-                                                                    transition={{ duration: 0.3 }}
+                                                                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                                                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                                                                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                                                                    className="absolute left-0 right-0 mt-2 p-2 bg-white dark:bg-slate-900 border border-slate-100 dark:border-white/5 rounded-[1.5rem] shadow-2xl z-20 max-h-64 overflow-y-auto"
                                                                 >
-                                                                    <ChevronRight size={18} className="rotate-90 text-slate-400" />
-                                                                </motion.div>
-                                                            </button>
-
-                                                            <AnimatePresence>
-                                                                {isDropdownOpen && (
-                                                                    <>
-                                                                        <div
-                                                                            className="fixed inset-0 z-10"
-                                                                            onClick={() => setIsDropdownOpen(false)}
-                                                                        />
-                                                                        <motion.div
-                                                                            initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                                                                            animate={{ opacity: 1, y: 0, scale: 1 }}
-                                                                            exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                                                                            className="absolute left-0 right-0 mt-2 p-2 bg-white dark:bg-slate-900 border border-slate-100 dark:border-white/5 rounded-[1.5rem] shadow-2xl z-20 max-h-64 overflow-y-auto"
+                                                                    {normalizedMotifs.map((m, idx) => (
+                                                                        <button
+                                                                            key={m.id || idx}
+                                                                            type="button"
+                                                                            onClick={() => {
+                                                                                setSelectedMotif(m);
+                                                                                setIsDropdownOpen(false);
+                                                                            }}
+                                                                            className="w-full text-left px-4 py-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 text-sm font-bold text-slate-700 dark:text-slate-300 transition-colors"
                                                                         >
-                                                                            {motifs.map(motif => (
-                                                                                <button
-                                                                                    key={motif.id}
-                                                                                    type="button"
-                                                                                    onClick={() => {
-                                                                                        setSelectedMotif(motif);
-                                                                                        setIsDropdownOpen(false);
-                                                                                    }}
-                                                                                    className={`w-full text-left px-4 py-3 rounded-xl transition-all flex items-center justify-between group ${selectedMotif?.id === motif.id
-                                                                                            ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400'
-                                                                                            : 'hover:bg-slate-50 dark:hover:bg-white/5 text-slate-600 dark:text-slate-300'
-                                                                                        }`}
-                                                                                >
-                                                                                    <div className="flex flex-col">
-                                                                                        <span className="font-bold text-[13px] tracking-tight">{motif.libelle}</span>
-                                                                                    </div>
-                                                                                    {selectedMotif?.id === motif.id && (
-                                                                                        <Check size={16} className="text-red-500" />
-                                                                                    )}
-                                                                                </button>
-                                                                            ))}
-                                                                        </motion.div>
-                                                                    </>
-                                                                )}
-                                                            </AnimatePresence>
-                                                        </div>
-
-                                                        {/* Affichage de la description du motif sélectionné */}
-                                                        {selectedMotif && selectedMotif.description && (
-                                                            <motion.div
-                                                                initial={{ opacity: 0, y: -10 }}
-                                                                animate={{ opacity: 1, y: 0 }}
-                                                                className="p-5 bg-red-50/50 dark:bg-red-900/5 border border-red-100/50 dark:border-red-900/20 rounded-[1.5rem] flex gap-3"
-                                                            >
-                                                                <Info size={16} className="text-red-500 flex-shrink-0 mt-0.5" />
-                                                                <p className="text-[12px] text-red-600 dark:text-red-400 font-bold leading-relaxed">
-                                                                    {selectedMotif.description}
-                                                                </p>
-                                                            </motion.div>
+                                                                            {m.libelle}
+                                                                        </button>
+                                                                    ))}
+                                                                </motion.div>
+                                                            </>
                                                         )}
-                                                    </div>
+                                                    </AnimatePresence>
                                                 </div>
 
-                                                {/* Optional comment */}
-                                                <div>
-                                                    <label className="flex items-center gap-2 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-3 ml-1">
-                                                        <MessageSquare size={12} className="text-purple-500" />
-                                                        Commentaire supplémentaire (optionnel)
-                                                    </label>
-                                                    <textarea
-                                                        className="w-full bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/50 rounded-[1.5rem] p-4 text-sm font-bold focus:ring-4 focus:ring-purple-500/10 focus:border-purple-500/50 outline-none transition-all min-h-[90px] resize-none dark:text-white shadow-sm"
-                                                        placeholder="Informations complémentaires pour l'adhérent..."
-                                                        value={commentaire}
-                                                        onChange={(e) => setCommentaire(e.target.value)}
-                                                    />
-                                                </div>
-                                            </>
-                                        )}
+                                                {/* Affichage de la description du motif sélectionné */}
+                                                {selectedMotif && selectedMotif.description && (
+                                                    <motion.div
+                                                        initial={{ opacity: 0, y: -10 }}
+                                                        animate={{ opacity: 1, y: 0 }}
+                                                        className="p-5 bg-red-50/50 dark:bg-red-900/5 border border-red-100/50 dark:border-red-900/20 rounded-[1.5rem] flex gap-3"
+                                                    >
+                                                        <Info size={16} className="text-red-500 flex-shrink-0 mt-0.5" />
+                                                        <p className="text-[12px] text-red-600 dark:text-red-400 font-bold leading-relaxed">
+                                                            {selectedMotif.description}
+                                                        </p>
+                                                    </motion.div>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {/* Optional comment */}
+                                        <div>
+                                            <label className="flex items-center gap-2 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-3 ml-1">
+                                                <MessageSquare size={12} className="text-purple-500" />
+                                                Commentaire supplémentaire (optionnel)
+                                            </label>
+                                            <textarea
+                                                className="w-full bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/50 rounded-[1.5rem] p-4 text-sm font-bold focus:ring-4 focus:ring-purple-500/10 focus:border-purple-500/50 outline-none transition-all min-h-[90px] resize-none dark:text-white shadow-sm"
+                                                placeholder="Informations complémentaires pour l'adhérent..."
+                                                value={commentaire}
+                                                onChange={(e) => setCommentaire(e.target.value)}
+                                            />
+                                        </div>
                                     </div>
                                 )}
 

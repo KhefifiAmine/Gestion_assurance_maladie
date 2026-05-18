@@ -97,7 +97,7 @@ const updateUserStatus = async (req, res) => {
         // If transitioning from Pending (0) to Rejected (2)
         if (previousStatus === 0 && statut === 2) {
             // Background email sending
-            const result = await sendRejectionEmail(user.email, raison);
+            const result = await sendRejectionEmail(user.email, objet, raison);
             if (!result) {
                 return res.status(500).json({ message: 'Erreur lors de l\'envoi de l\'email de refus' });
             }
@@ -107,7 +107,7 @@ const updateUserStatus = async (req, res) => {
         // If transitioning from Active (1) to Blocked (3)
         if (previousStatus === 1 && statut === 3) {
             // Background email sending
-            const result = await sendBlockEmail(user.email, raison);
+            const result = await sendBlockEmail(user.email, objet, raison);
             if (!result) {
                 return res.status(500).json({ message: 'Erreur lors de l\'envoi de l\'email de blocage' });
             }

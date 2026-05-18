@@ -274,7 +274,6 @@ const analyzeBulletin = async (req, res) => {
           "est_cachet": false,
           "est_signature": false,
           "date_cachet_signature": "",
-          "nb_jour": 0,           // Hospitalisation (tous les codes, couveuse : max 15 jours) et Divers (code cure thermale uniquement : max 21 jours) : calcul du montant limité au maximum autorisé
           "prestataire": {
             "identifiant_unique_mf": "",
             "nom": "",
