@@ -259,7 +259,7 @@ const UserLayout = () => {
           </div>
 
           <div className="flex items-center gap-6">
-            {['ADMIN', 'RESPONSABLE_RH'].includes(user?.role) && (
+            {['ADMIN', 'RESPONSABLE_RH', 'SUPER_ADMIN'].includes(user?.role) && (
               <button 
                 onClick={() => navigate('/admin/dashboard')}
                 className={`flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl transition-all border group active:scale-95 ${

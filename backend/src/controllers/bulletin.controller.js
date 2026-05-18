@@ -152,6 +152,7 @@ const createBulletin = async (req, res) => {
             await ActeMedical.create(
                 {
                     ...acte,
+                    cachet_signature_present: acte.est_cachet !== undefined ? !!acte.est_cachet : (acte.cachet_signature_present ?? false),
                     bulletinId: bulletin.id,
                     prestataireId: prestataire.id
                 },
@@ -287,7 +288,11 @@ const updateBulletin = async (req, res) => {
     try {
         const { id } = req.params;
         const userId = req.userId;
-        const payload = req.body;
+        
+        let payload = req.body;
+        if (req.body.data) {
+            payload = JSON.parse(req.body.data);
+        }
 
         const bulletin = await BulletinSoin.findByPk(id, { transaction: t });
 
@@ -420,13 +425,46 @@ const updateBulletin = async (req, res) => {
 
                 // 2. Upsert (Update ou Create) pour chaque acte
                 for (const acteData of resultActe.actes) {
+                    let prestataireId = acteData.prestataireId;
+
+                    if (acteData.prestataire && acteData.prestataire.identifiant_unique_mf) {
+                        const mf = acteData.prestataire.identifiant_unique_mf;
+                        let prestataire = await Prestataire.findOne({
+                            where: { identifiant_unique_mf: mf },
+                            transaction: t
+                        });
+
+                        const prestataireData = {
+                            identifiant_unique_mf: mf,
+                            nom: acteData.prestataire.nom || null,
+                            telephone: acteData.prestataire.telephone || null,
+                            adresse: acteData.prestataire.adresse || null,
+                            specialite: acteData.prestataire.specialite || acteData.prestataire.specialité || null,
+                            gsm: acteData.prestataire.gsm || null
+                        };
+
+                        if (!prestataire) {
+                            prestataire = await Prestataire.create(prestataireData, { transaction: t });
+                        } else {
+                            await prestataire.update(prestataireData, { transaction: t });
+                        }
+                        prestataireId = prestataire.id;
+                    }
+
+                    const medicalActeData = {
+                        ...acteData,
+                        cachet_signature_present: acteData.est_cachet !== undefined ? !!acteData.est_cachet : (acteData.cachet_signature_present ?? false),
+                        prestataireId,
+                        bulletinId: id
+                    };
+
                     if (acteData.id) {
-                        await ActeMedical.update(acteData, {
+                        await ActeMedical.update(medicalActeData, {
                             where: { id: acteData.id, bulletinId: id },
                             transaction: t
                         });
                     } else {
-                        await ActeMedical.create({ ...acteData, bulletinId: id }, { transaction: t });
+                        await ActeMedical.create(medicalActeData, { transaction: t });
                     }
                 }
             }

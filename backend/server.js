@@ -16,6 +16,7 @@ const beneficiaryRoutes = require("./src/routes/beneficiary.routes");
 const notificationRoutes = require("./src/routes/notification.routes");
 const logRoutes = require('./src/routes/logRoutes');
 const motifRejetRoutes = require('./src/routes/motifRejet.routes');
+const reimbursementRoutes = require('./src/routes/reimbursement.routes');
 const journalMiddleware = require('./src/middleware/journal.middleware');
 
 const app = express();
@@ -65,6 +66,7 @@ app.use("/api/notifications", notificationRoutes);
 app.use("/uploads", express.static("uploads"));
 app.use('/api/logs', logRoutes);
 app.use('/api/motifs-rejet', motifRejetRoutes);
+app.use('/api/reimbursement', reimbursementRoutes);
 
 // Test DB and sync models
 sequelize.authenticate()

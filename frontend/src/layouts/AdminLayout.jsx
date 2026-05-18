@@ -112,6 +112,7 @@ const AdminLayout = () => {
     // Admin Features
     { name: 'Bulletins de Soin', path: '/admin/bulletins', icon: FileText, roles: ['ADMIN', 'SUPER_ADMIN'] },
     { name: 'Réclamations', path: '/admin/reclamations', icon: AlertTriangle, roles: ['ADMIN', 'SUPER_ADMIN'] },
+    { name: 'Barèmes & Plafonds', path: '/admin/rules', icon: ShieldCheck, roles: ['ADMIN', 'SUPER_ADMIN'] },
 
     // Shared feature
     { name: 'Finances & Stats', path: '/admin/statistiques', icon: BarChart2, roles: ['ADMIN', 'RESPONSABLE_RH', 'SUPER_ADMIN'] },
