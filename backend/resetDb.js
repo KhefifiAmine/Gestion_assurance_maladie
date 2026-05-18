@@ -128,12 +128,8 @@ async function resetAndSeedDatabase() {
             userId: userSuper.id
         })
         
-        console.log("\n⏳ Étape 4 : Insertion des prestataires de santé...");
-        const fs = require('fs');
-        const path = require('path');
-        const prestatairesData = JSON.parse(fs.readFileSync(path.join(__dirname, 'src/tests/prestataires.js'), 'utf8'));
-        await Prestataire.bulkCreate(prestatairesData);
-        console.log(`✅ ${prestatairesData.length} prestataires insérés avec succès !`);
+        const { seedPrestataires } = require('./prestataireSeeder');
+        await seedPrestataires();
 
         console.log("\n✅ Comptes créés avec succès ! Voici les identifiants pour vos tests :");
         console.log("-----------------------------------------");

@@ -52,6 +52,22 @@ const updateUserStatus = async (req, res) => {
             return res.status(404).json({ message: 'Utilisateur non trouvé.' });
         }
 
+        // Règle de hiérarchie pour la modification de statut (blocage / refus / acceptation)
+        const targetUserRole = user.role;
+        const actorRole = req.userRole;
+
+        if (actorRole === 'RESPONSABLE_RH' && targetUserRole === 'SUPER_ADMIN' && (statut === 2 || statut === 3)) {
+            return res.status(403).json({ message: "Accès refusé. Un Responsable RH ne peut pas bloquer ou refuser un Super Administrateur." });
+        }
+
+        if (actorRole === 'ADMIN' && targetUserRole === 'RESPONSABLE_RH' && (statut === 2 || statut === 3)) {
+            return res.status(403).json({ message: "Accès refusé. Un Administrateur ne peut pas bloquer ou refuser un Responsable RH." });
+        }
+
+        if (actorRole === 'ADMIN' && targetUserRole === 'SUPER_ADMIN' && (statut === 2 || statut === 3)) {
+            return res.status(403).json({ message: "Accès refusé. Un Administrateur ne peut pas bloquer ou refuser un Super Administrateur." });
+        }
+
         const previousStatus = user.statut;
 
 

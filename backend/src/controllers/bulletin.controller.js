@@ -758,7 +758,7 @@ const getBulletinById = async (req, res) => {
         }
 
         // Vérification des droits d'accès
-        if (userRole !== 'ADMIN' && userRole !== 'RESPONSABLE_RH' && bulletin.userId !== userId) {
+        if (userRole !== 'ADMIN' && userRole !== 'SUPER_ADMIN' && userRole !== 'RESPONSABLE_RH' && bulletin.userId !== userId) {
             return res.status(403).json({ message: 'Accès non autorisé' });
         }
 

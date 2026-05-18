@@ -8,7 +8,7 @@
         "V3": 50
     },
     "pharmacie": {
-        "taux": 0.9,
+        "taux": 0.1,
         "plafond_annuel": 1000
     },
     "actes_medicaux_courants": {
@@ -21,38 +21,38 @@
         }
     },
     "analyses": {
-        "taux": 0.8,
+        "taux": 0.15,
         "plafond_annuel": 800
     },
     "chirurgie": {
-        "taux": 0.9,
+        "taux": 0.15,
         "plafond_annuel": 600
     },
     "orthopedie_prothese": {
-        "taux": 1,
+        "taux": 0.15,
         "plafond_annuel": 600
     },
     "radiologie_electroradiologie": {
-        "taux": 0.9,
+        "taux": 0.13,
         "plafond_annuel": 600
     },
     "traitement_special": {
-        "taux": 1,
+        "taux": 0.15,
         "plafond_annuel": 650
     },
     "optique": {
         "monture": {
-            "taux": 0.9,
+            "taux": 0.15,
             "plafond_max": 250
         },
         "verre": {
-            "taux": 0.9,
+            "taux": 0.15,
             "plafond_max": 200
         }
     },
     "dentaire": {
         "soins_protheses_implants": {
-            "taux": 0.8,
+            "taux": 0.15,
             "plafond_annuel": 1000
         },
         "orthopedie_dento_faciale": {
@@ -80,7 +80,7 @@
     },
     "divers": {
         "transport_malade": {
-            "taux": 0.8,
+            "taux": 0.15,
             "plafond_max": 100
         },
         "circoncision": 100,
@@ -90,12 +90,12 @@
         }
     },
     "anesthesie": {
-        "taux": 0.9,
+        "taux": 0.14,
         "plafond_annuel": 250
     },
     "salle_operation": {
-        "taux": 0.9,
-        "plafond_annuel": 250
+        "taux": 0.15,
+        "plafond_annuel": "260"
     },
     "plafond_annuel_global_par_prestataire": 4500,
     "defaultRules": {

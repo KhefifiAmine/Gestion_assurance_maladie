@@ -12,7 +12,7 @@ router.get('/myreclamations', AdherentReclamationController.listMy);
 
 // Dispatcher intelligent pour les détails selon le rôle
 router.get('/:id', (req, res) => {
-    if (req.userRole === 'ADMIN' || req.userRole === 'RESPONSABLE_RH') {
+    if (req.userRole === 'ADMIN' || req.userRole === 'RESPONSABLE_RH' || req.userRole === 'SUPER_ADMIN') {
         return AdminReclamationController.getDetails(req, res);
     }
     return AdherentReclamationController.getDetails(req, res);

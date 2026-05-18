@@ -457,59 +457,76 @@ const AdminDashboard = ({ mode = 'all' }) => {
                                                         >
                                                             <Info size={14} />
                                                         </button>
-                                                        {['RESPONSABLE_RH', 'SUPER_ADMIN'].includes(currentUser?.role) && user.id !== currentUser.id && (
-                                                            <>
-                                                                <div className="w-px h-6 bg-slate-100 dark:bg-slate-800" />
-                                                                {user.statut === 0 && (
-                                                                    <>
+                                                        {/* Actions de gestion de comptes pour ADMIN, RESPONSABLE_RH et SUPER_ADMIN */}
+                                                        {(() => {
+                                                            const canModifyStatus = (actorRole, targetRole) => {
+                                                                if (actorRole === 'SUPER_ADMIN') return true;
+                                                                if (actorRole === 'RESPONSABLE_RH') {
+                                                                    return targetRole !== 'SUPER_ADMIN';
+                                                                }
+                                                                if (actorRole === 'ADMIN') {
+                                                                    return targetRole !== 'RESPONSABLE_RH' && targetRole !== 'SUPER_ADMIN';
+                                                                }
+                                                                return false;
+                                                            };
+                                                            
+                                                            const showActions = ['ADMIN', 'RESPONSABLE_RH', 'SUPER_ADMIN'].includes(currentUser?.role) && user.id !== currentUser.id;
+                                                            const allowedToChange = showActions && canModifyStatus(currentUser?.role, user.role);
+
+                                                            return showActions && (
+                                                                <>
+                                                                    <div className="w-px h-6 bg-slate-100 dark:bg-slate-800" />
+                                                                    {user.statut === 0 && allowedToChange && (
+                                                                        <>
+                                                                            <button
+                                                                                onClick={() => handleStatusChange(user.id, 1)}
+                                                                                className="p-2.5 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 rounded-xl hover:bg-emerald-600 hover:text-white transition-all shadow-sm"
+                                                                                title="Approuver"
+                                                                            >
+                                                                                <UserCheck size={14} />
+                                                                            </button>
+                                                                            <button
+                                                                                onClick={() => handleStatusChange(user.id, 2)}
+                                                                                className="p-2.5 bg-red-50 dark:bg-red-900/30 text-red-600 rounded-xl hover:bg-red-600 hover:text-white transition-all shadow-sm"
+                                                                                title="Refuser"
+                                                                            >
+                                                                                <UserX size={14} />
+                                                                            </button>
+                                                                        </>
+                                                                    )}
+                                                                    {user.statut === 1 && allowedToChange && (
                                                                         <button
-                                                                            onClick={() => handleStatusChange(user.id, 1)}
-                                                                            className="p-2.5 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 rounded-xl hover:bg-emerald-600 hover:text-white transition-all shadow-sm"
-                                                                            title="Approuver"
-                                                                        >
-                                                                            <UserCheck size={14} />
-                                                                        </button>
-                                                                        <button
-                                                                            onClick={() => handleStatusChange(user.id, 2)}
-                                                                            className="p-2.5 bg-red-50 dark:bg-red-900/30 text-red-600 rounded-xl hover:bg-red-600 hover:text-white transition-all shadow-sm"
-                                                                            title="Refuser"
+                                                                            onClick={() => handleStatusChange(user.id, 3)}
+                                                                            className="p-2.5 bg-orange-50 dark:bg-orange-900/30 text-orange-600 rounded-xl hover:bg-orange-600 hover:text-white transition-all shadow-sm"
+                                                                            title="Bloquer"
                                                                         >
                                                                             <UserX size={14} />
                                                                         </button>
-                                                                    </>
-                                                                )}
-                                                                {user.statut === 1 && (
-                                                                    <button
-                                                                        onClick={() => handleStatusChange(user.id, 3)}
-                                                                        className="p-2.5 bg-orange-50 dark:bg-orange-900/30 text-orange-600 rounded-xl hover:bg-orange-600 hover:text-white transition-all shadow-sm"
-                                                                        title="Bloquer"
-                                                                    >
-                                                                        <UserX size={14} />
-                                                                    </button>
-                                                                )}
-                                                                {user.statut === 3 && (
-                                                                    <button
-                                                                        onClick={() => handleStatusChange(user.id, 1)}
-                                                                        className="p-2.5 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 rounded-xl hover:bg-emerald-600 hover:text-white transition-all shadow-sm"
-                                                                        title="Débloquer"
-                                                                    >
-                                                                        <UserCheck size={14} />
-                                                                    </button>
-                                                                )}
-                                                                {currentUser?.role === 'SUPER_ADMIN' && (
-                                                                    <>
-                                                                        <div className="w-px h-6 bg-slate-100 dark:bg-slate-800" />
+                                                                    )}
+                                                                    {user.statut === 3 && allowedToChange && (
                                                                         <button
-                                                                            className="p-2.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-xl hover:bg-purple-600 hover:text-white transition-all shadow-sm"
-                                                                            onClick={() => handleRoleChange(user.id, user.role)}
-                                                                            title="Changer rôle"
+                                                                            onClick={() => handleStatusChange(user.id, 1)}
+                                                                            className="p-2.5 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 rounded-xl hover:bg-emerald-600 hover:text-white transition-all shadow-sm"
+                                                                            title="Débloquer"
                                                                         >
-                                                                            <Edit size={14} />
+                                                                            <UserCheck size={14} />
                                                                         </button>
-                                                                    </>
-                                                                )}
-                                                            </>
-                                                        )}
+                                                                    )}
+                                                                    {currentUser?.role === 'SUPER_ADMIN' && (
+                                                                        <>
+                                                                            <div className="w-px h-6 bg-slate-100 dark:bg-slate-800" />
+                                                                            <button
+                                                                                className="p-2.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-xl hover:bg-purple-600 hover:text-white transition-all shadow-sm"
+                                                                                onClick={() => handleRoleChange(user.id, user.role)}
+                                                                                title="Changer rôle"
+                                                                            >
+                                                                                <Edit size={14} />
+                                                                            </button>
+                                                                        </>
+                                                                    )}
+                                                                </>
+                                                            );
+                                                        })()}
                                                         {/* Simple visual indicator for self */}
                                                         {user.id === currentUser?.id && (
                                                             <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest px-3 py-1 bg-slate-50 dark:bg-slate-800/50 rounded-lg italic">Vous</span>

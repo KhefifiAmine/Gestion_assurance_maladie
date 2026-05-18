@@ -162,7 +162,7 @@ function loadRules() {
             fs.writeFileSync(JSON_PATH, JSON.stringify(defaultRules, null, 4), 'utf8');
         }
     } catch (e) {
-        console.error("⚠️ Erreur lors de l'accès au fichier des règles dynamiques, utilisation des valeurs par défaut:", e);
+        console.error("Erreur lors de l'accès au fichier des règles dynamiques, utilisation des valeurs par défaut:", e);
         Object.assign(activeRules, defaultRules);
     }
 }

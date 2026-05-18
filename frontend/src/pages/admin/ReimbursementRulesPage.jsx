@@ -60,7 +60,13 @@ const FIELD_HELPERS = {
   'hospitalisation.couveuse.montant_par_jour': 'Prise en charge journalière pour le séjour d\'un nouveau-né en couveuse.',
   'maternite.accouchement_simple': 'Forfait fixe alloué pour un accouchement simple en clinique.',
   'maternite.gemellaire': 'Forfait alloué pour un accouchement multiple (jumeaux/triplés).',
-  'maternite.sterilite': 'Plafond maximal d\'aide pour les traitements liés à l\'infertilité ou aide médicale à la procréation.'
+  'maternite.sterilite': 'Plafond maximal d\'aide pour les traitements liés à l\'infertilité ou aide médicale à la procréation.',
+  'consultations.C1': 'Tarif fixe remboursé pour une consultation cabinet chez un médecin généraliste (Code C1).',
+  'consultations.C2': 'Tarif fixe remboursé pour une consultation cabinet chez un médecin spécialiste (Code C2).',
+  'consultations.C3': 'Tarif fixe remboursé pour une consultation cabinet chez un médecin clinicien ou professeur (Code C3).',
+  'consultations.V1': 'Tarif fixe remboursé pour une visite à domicile d\'un médecin généraliste (Code V1).',
+  'consultations.V2': 'Tarif fixe remboursé pour une visite à domicile d\'un médecin spécialiste (Code V2).',
+  'consultations.V3': 'Tarif fixe remboursé pour une visite à domicile d\'un médecin clinicien ou professeur (Code V3).'
 };
 
 const PRESETS = {
@@ -163,6 +169,7 @@ const initialState = {
   searchQuery: '',
   collapses: {
     global: false,
+    consultations: false,
     pharmacie: false,
     analyses: false,
     chirurgie: false,
@@ -490,6 +497,12 @@ const ReimbursementRulesPage = () => {
     checkValue('maternite.accouchement_simple', rules.maternite.accouchement_simple, false);
     checkValue('maternite.gemellaire', rules.maternite.gemellaire, false);
     checkValue('maternite.sterilite', rules.maternite.sterilite, false);
+    checkValue('consultations.C1', rules.consultations?.C1, false);
+    checkValue('consultations.C2', rules.consultations?.C2, false);
+    checkValue('consultations.C3', rules.consultations?.C3, false);
+    checkValue('consultations.V1', rules.consultations?.V1, false);
+    checkValue('consultations.V2', rules.consultations?.V2, false);
+    checkValue('consultations.V3', rules.consultations?.V3, false);
 
     return errors;
   };
@@ -611,31 +624,7 @@ const ReimbursementRulesPage = () => {
 
         {/* Action controls */}
         <div className="flex flex-wrap items-center gap-2.5">
-          <button
-            onClick={handlePrint}
-            className="p-3 rounded-2xl border border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 transition-all active:scale-95 flex items-center gap-1.5 font-bold text-xs uppercase tracking-wider"
-            title="Imprimer les barèmes"
-          >
-            <Printer size={18} />
-            <span className="hidden sm:inline">Imprimer</span>
-          </button>
-          
-          <button
-            onClick={() => setShowHistoryModal(true)}
-            className="p-3 rounded-2xl border border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 transition-all active:scale-95 flex items-center gap-1.5 font-bold text-xs uppercase tracking-wider"
-            title="Historique des versions"
-          >
-            <History size={18} />
-            <span className="hidden sm:inline">Versions</span>
-          </button>
 
-          <button
-            onClick={loadRules}
-            className="p-3 rounded-2xl border border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 transition-all active:scale-95"
-            title="Réinitialiser les barèmes"
-          >
-            <RefreshCw size={18} />
-          </button>
 
           <button
             onClick={handlePublish}
@@ -747,23 +736,7 @@ const ReimbursementRulesPage = () => {
             )}
           </div>
 
-          {/* Import/Export Configurations */}
-          <div className="bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-white/5 rounded-3xl p-5 shadow-xl flex gap-3">
-            <button
-              onClick={handleExportJSON}
-              className="flex-1 flex items-center justify-center gap-2 py-3 border border-slate-200 dark:border-slate-800 rounded-2xl font-bold text-xs uppercase tracking-wider text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900 transition-all active:scale-95"
-            >
-              <Download size={14} />
-              Exporter
-            </button>
-            <label
-              className="flex-1 flex items-center justify-center gap-2 py-3 border border-slate-200 dark:border-slate-800 rounded-2xl font-bold text-xs uppercase tracking-wider text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900 transition-all active:scale-95 cursor-pointer"
-            >
-              <Upload size={14} />
-              Importer
-              <input type="file" onChange={handleImportJSON} className="hidden" accept=".json" />
-            </label>
-          </div>
+
 
         </div>
 
@@ -878,6 +851,71 @@ const ReimbursementRulesPage = () => {
                     error={state.errors['plafond_annuel_global_par_prestataire']}
                     icon={DollarSign}
                   />
+                </div>
+              </AccordionCard>
+            )}
+
+            {/* 1.5. SECTEUR CONSULTATIONS */}
+            {(!state.searchQuery || 'consultations'.includes(state.searchQuery.toLowerCase()) || 'visite'.includes(state.searchQuery.toLowerCase()) || 'tarif'.includes(state.searchQuery.toLowerCase()) || 'c1'.includes(state.searchQuery.toLowerCase())) && (
+              <AccordionCard
+                title="Consultations & Visites Médicales"
+                icon={Activity}
+                collapsed={state.collapses.consultations}
+                toggle={() => dispatch({ type: 'TOGGLE_COLLAPSE', payload: 'consultations' })}
+              >
+                <div className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                    <FormInput
+                      label="Tarif C1 (Généraliste Cabinet) (TND)"
+                      field="consultations.C1"
+                      value={state.draftRules.consultations?.C1 || ''}
+                      onChange={(val) => dispatch({ type: 'UPDATE_FIELD', payload: { path: 'consultations.C1', value: parseFloat(val) || 0 } })}
+                      error={state.errors['consultations.C1']}
+                      icon={DollarSign}
+                    />
+                    <FormInput
+                      label="Tarif C2 (Spécialiste Cabinet) (TND)"
+                      field="consultations.C2"
+                      value={state.draftRules.consultations?.C2 || ''}
+                      onChange={(val) => dispatch({ type: 'UPDATE_FIELD', payload: { path: 'consultations.C2', value: parseFloat(val) || 0 } })}
+                      error={state.errors['consultations.C2']}
+                      icon={DollarSign}
+                    />
+                    <FormInput
+                      label="Tarif C3 (Professeur Cabinet) (TND)"
+                      field="consultations.C3"
+                      value={state.draftRules.consultations?.C3 || ''}
+                      onChange={(val) => dispatch({ type: 'UPDATE_FIELD', payload: { path: 'consultations.C3', value: parseFloat(val) || 0 } })}
+                      error={state.errors['consultations.C3']}
+                      icon={DollarSign}
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-5 pt-4 border-t border-slate-100 dark:border-white/5">
+                    <FormInput
+                      label="Tarif V1 (Généraliste Visite) (TND)"
+                      field="consultations.V1"
+                      value={state.draftRules.consultations?.V1 || ''}
+                      onChange={(val) => dispatch({ type: 'UPDATE_FIELD', payload: { path: 'consultations.V1', value: parseFloat(val) || 0 } })}
+                      error={state.errors['consultations.V1']}
+                      icon={DollarSign}
+                    />
+                    <FormInput
+                      label="Tarif V2 (Spécialiste Visite) (TND)"
+                      field="consultations.V2"
+                      value={state.draftRules.consultations?.V2 || ''}
+                      onChange={(val) => dispatch({ type: 'UPDATE_FIELD', payload: { path: 'consultations.V2', value: parseFloat(val) || 0 } })}
+                      error={state.errors['consultations.V2']}
+                      icon={DollarSign}
+                    />
+                    <FormInput
+                      label="Tarif V3 (Professeur Visite) (TND)"
+                      field="consultations.V3"
+                      value={state.draftRules.consultations?.V3 || ''}
+                      onChange={(val) => dispatch({ type: 'UPDATE_FIELD', payload: { path: 'consultations.V3', value: parseFloat(val) || 0 } })}
+                      error={state.errors['consultations.V3']}
+                      icon={DollarSign}
+                    />
+                  </div>
                 </div>
               </AccordionCard>
             )}
@@ -1027,11 +1065,11 @@ const ReimbursementRulesPage = () => {
               </AccordionCard>
             )}
 
-            {/* 5. DENTAIRE & OPTIQUE */}
-            {(!state.searchQuery || 'dentaire'.includes(state.searchQuery.toLowerCase()) || 'optique'.includes(state.searchQuery.toLowerCase()) || 'lunettes'.includes(state.searchQuery.toLowerCase())) && (
+            {/* 5. SECTEUR DENTAIRE */}
+            {(!state.searchQuery || 'dentaire'.includes(state.searchQuery.toLowerCase()) || 'orthodontie'.includes(state.searchQuery.toLowerCase()) || 'odf'.includes(state.searchQuery.toLowerCase())) && (
               <AccordionCard
-                title="Dentaire, Orthodontie & Lunettes"
-                icon={Glasses}
+                title="Secteur Dentaire & Orthodontie"
+                icon={Activity}
                 collapsed={state.collapses.dentaire}
                 toggle={() => dispatch({ type: 'TOGGLE_COLLAPSE', payload: 'dentaire' })}
               >
@@ -1064,7 +1102,20 @@ const ReimbursementRulesPage = () => {
                       icon={DollarSign}
                     />
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-4 border-t border-slate-100 dark:border-white/5">
+                </div>
+              </AccordionCard>
+            )}
+
+            {/* 5.5. SECTEUR OPTIQUE */}
+            {(!state.searchQuery || 'optique'.includes(state.searchQuery.toLowerCase()) || 'lunettes'.includes(state.searchQuery.toLowerCase()) || 'verre'.includes(state.searchQuery.toLowerCase()) || 'monture'.includes(state.searchQuery.toLowerCase())) && (
+              <AccordionCard
+                title="Secteur Optique & Lunettes"
+                icon={Glasses}
+                collapsed={state.collapses.optique}
+                toggle={() => dispatch({ type: 'TOGGLE_COLLAPSE', payload: 'optique' })}
+              >
+                <div className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <FormInput
                       label="Optique Montures - Limite Max (TND)"
                       field="optique.monture.plafond_max"
