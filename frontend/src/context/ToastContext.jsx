@@ -8,7 +8,7 @@ export const ToastProvider = ({ children }) => {
     const [toasts, setToasts] = useState([]);
 
     const showToast = useCallback((message, type = 'success', duration = 4000, persistent = false) => {
-        const id = Date.now();
+        const id = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
         // Par défaut, tous les messages (bienvenue, alertes) sont désormais temporaires (persistent = false)
         setToasts(prev => [...prev, { id, message, type, duration, persistent }]);
     }, []);

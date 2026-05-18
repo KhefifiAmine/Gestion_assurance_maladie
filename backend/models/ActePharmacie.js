@@ -56,7 +56,7 @@ const ActePharmacie = sequelize.define('ActePharmacie', {
         defaultValue: 0.0
     }
 }, {
-    tableName: 'actePharmacies',
+    tableName: 'pharmacies',
     timestamps: true
 });
 

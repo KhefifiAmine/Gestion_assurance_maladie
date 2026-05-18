@@ -1,9 +1,10 @@
 /**
- * Barème de remboursement Assurance Groupe Maladie 2026
+ * Barème de remboursement Assurance Groupe Maladie 2026 - Géré Dynamiquement
  */
+const fs = require('fs');
+const path = require('path');
 
-const reimbursementRules2026 = {
-
+const defaultRules = {
     consultations: {
         C1: 35,
         C2: 45,
@@ -56,7 +57,7 @@ const reimbursementRules2026 = {
     },
 
     optique: {
-        monture: { //-------------------------------
+        monture: {
             taux: 0.90,
             plafond_max: 250,
             renouvellement: {
@@ -72,7 +73,6 @@ const reimbursementRules2026 = {
     },
 
     dentaire: {
-
         soins_protheses_implants: {
             types: [
                 "Soin dentaire",
@@ -83,7 +83,7 @@ const reimbursementRules2026 = {
             plafond_annuel: 1000
         },
 
-        orthopedie_dento_faciale: { //-------------------------------
+        orthopedie_dento_faciale: {
             plafond_annuel: 300,
             conditions: {
                 age_max: 18,
@@ -93,21 +93,20 @@ const reimbursementRules2026 = {
     },
 
     hospitalisation: {
-
-        clinique: { //-------------------------------
+        clinique: {
             montant_par_jour: 110
         },
 
         hopital: {
-            montant_par_jour: 10 //-------------------------------
+            montant_par_jour: 10
         },
 
-        reanimation: { //------------------------------------
+        reanimation: {
             montant_par_jour: 150
         },
 
         couveuse: {
-            montant_par_jour: 80, //-------------------------------
+            montant_par_jour: 80,
             max_jours: 15
         },
         usage_unique_medical: { 
@@ -122,7 +121,6 @@ const reimbursementRules2026 = {
     },
 
     divers: {
-
         transport_malade: {
             taux: 0.80,
             plafond_max: 100
@@ -130,15 +128,15 @@ const reimbursementRules2026 = {
 
         circoncision: 100,
 
-        cure_thermale: { //------------------------------------
+        cure_thermale: {
             montant_par_jour: 15,
             max_jours: 21
         }
     },
     anesthesie: {
-            taux: 0.90,
-            plafond_annuel: 250
-        },
+        taux: 0.90,
+        plafond_annuel: 250
+    },
     salle_operation: {
         taux: 0.90,
         plafond_annuel: 250
@@ -147,4 +145,43 @@ const reimbursementRules2026 = {
     plafond_annuel_global_par_prestataire: 4500
 };
 
-module.exports = reimbursementRules2026;
+const JSON_PATH = path.join(__dirname, 'reimbursementRulesActive.json');
+
+// Initialiser l'objet exporté
+let activeRules = {};
+
+// Charger les règles de manière robuste
+function loadRules() {
+    try {
+        if (fs.existsSync(JSON_PATH)) {
+            const data = fs.readFileSync(JSON_PATH, 'utf8');
+            const parsed = JSON.parse(data);
+            Object.assign(activeRules, defaultRules, parsed);
+        } else {
+            Object.assign(activeRules, defaultRules);
+            fs.writeFileSync(JSON_PATH, JSON.stringify(defaultRules, null, 4), 'utf8');
+        }
+    } catch (e) {
+        console.error("⚠️ Erreur lors de l'accès au fichier des règles dynamiques, utilisation des valeurs par défaut:", e);
+        Object.assign(activeRules, defaultRules);
+    }
+}
+
+// Effectuer le premier chargement
+loadRules();
+
+// Fonction pour modifier les règles de façon persistante
+function updateRules(newRules) {
+    try {
+        Object.assign(activeRules, newRules);
+        fs.writeFileSync(JSON_PATH, JSON.stringify(activeRules, null, 4), 'utf8');
+        return { success: true, rules: activeRules };
+    } catch (e) {
+        console.error("❌ Erreur lors de la sauvegarde des règles :", e);
+        return { success: false, error: e.message };
+    }
+}
+
+module.exports = activeRules;
+module.exports.updateRules = updateRules;
+module.exports.defaultRules = defaultRules;

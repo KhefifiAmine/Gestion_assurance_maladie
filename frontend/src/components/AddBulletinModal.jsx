@@ -355,7 +355,11 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
                         montant_pharmacie: 0,
                         medicaments: []
                     },
-                    actes: initialData.actes || [],
+                    actes: (initialData.actes || []).map(a => ({
+                        ...a,
+                        est_cachet: a.est_cachet ?? a.cachet_signature_present ?? false,
+                        est_signature: a.est_signature ?? false
+                    })),
                     fichiers: initialData.documents || initialData.fichiers || []
                 };
                 setFormData(mappedData);
@@ -573,57 +577,167 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
     const handleSubmit = useCallback(async (e) => {
         e.preventDefault();
         
-        // Validation basique
-        if (!formData.numero_bulletin) {
-            showToast("Le numéro du bulletin est requis", "error");
+        // --- CONTROLE DE SAISIE GLOBAL ---
+        
+        // 1. Validation du numéro de bulletin
+        if (!formData.numero_bulletin || !formData.numero_bulletin.trim()) {
+            showToast("Le numéro du bulletin est obligatoire.", "error");
+            return;
+        }
+        if (formData.numero_bulletin.trim().length < 3) {
+            showToast("Le numéro du bulletin doit contenir au moins 3 caractères.", "error");
             return;
         }
 
-        // Validation des actes médicaux
+        // 2. Validation du matricule adhérent
+        if (!formData.matricule_adherent || !formData.matricule_adherent.trim()) {
+            showToast("Le matricule de l'adhérent est obligatoire.", "error");
+            return;
+        }
+
+        // 3. Validation du nom du malade
+        if (!formData.nom_prenom_malade || !formData.nom_prenom_malade.trim()) {
+            showToast("Le nom et prénom du malade sont obligatoires.", "error");
+            return;
+        }
+
+        // 4. Validation de la date de soin
+        if (!formData.date_soin) {
+            showToast("La date de soin est obligatoire.", "error");
+            return;
+        }
+        const today = new Date();
+        today.setHours(23, 59, 59, 999); // Inclure toute la journée d'aujourd'hui
+        const soinDate = new Date(formData.date_soin);
+        if (soinDate > today) {
+            showToast("La date de soin ne peut pas être dans le futur.", "error");
+            return;
+        }
+        
+        // Limite de dépôt de 60 jours
+        const limitDate = new Date();
+        limitDate.setDate(limitDate.getDate() - 60);
+        limitDate.setHours(0, 0, 0, 0);
+        if (soinDate < limitDate) {
+            showToast("La date de soin dépasse la limite réglementaire de dépôt de 60 jours.", "error");
+            return;
+        }
+
+        // 5. Validation de la grossesse / maternité
+        if (formData.suivi_grossesse) {
+            if (!formData.date_prevue_accouchement) {
+                showToast("Veuillez renseigner la date prévue de l'accouchement.", "error");
+                return;
+            }
+            const accDate = new Date(formData.date_prevue_accouchement);
+            const pastLimit = new Date();
+            pastLimit.setHours(0,0,0,0);
+            if (accDate < pastLimit) {
+                showToast("La date prévue d'accouchement ne peut pas être dans le passé.", "error");
+                return;
+            }
+        }
+
+        // 6. Validation des actes médicaux
         if (formData.actes && formData.actes.length > 0) {
             for (let i = 0; i < formData.actes.length; i++) {
                 const acte = formData.actes[i];
+                const actName = `Acte médical n°${i + 1}`;
+
                 if (!acte.acte) {
-                    showToast(`Acte médical #${i+1} : La nature de l'acte est requise`, "error");
+                    showToast(`${actName} : La nature de l'acte est obligatoire.`, "error");
                     return;
                 }
                 if (!acte.cote && !acte.code_acte) {
-                    showToast(`Acte médical #${i+1} : La cote ou le code acte est requis`, "error");
+                    showToast(`${actName} : La cote ou le code de l'acte est obligatoire.`, "error");
                     return;
                 }
                 if (!acte.date_acte) {
-                    showToast(`Acte médical #${i+1} : La date de l'acte est requise`, "error");
+                    showToast(`${actName} : La date de l'acte est obligatoire.`, "error");
                     return;
                 }
-                if (!acte.honoraires || Number(acte.honoraires) <= 0) {
-                    showToast(`Acte médical #${i+1} : Les honoraires sont requis`, "error");
+                
+                const actDate = new Date(acte.date_acte);
+                if (actDate > today) {
+                    showToast(`${actName} : La date de l'acte ne peut pas être dans le futur.`, "error");
                     return;
                 }
+                if (actDate < limitDate) {
+                    showToast(`${actName} : La date de l'acte dépasse la limite de 60 jours.`, "error");
+                    return;
+                }
+
+                if (acte.honoraires === undefined || acte.honoraires === null || Number(acte.honoraires) <= 0) {
+                    showToast(`${actName} : Les honoraires doivent être supérieurs à 0 TND.`, "error");
+                    return;
+                }
+
                 if (!acte.est_cachet && !acte.est_signature) {
-                    showToast(`Acte médical #${i+1} : Le cachet ou la signature est requis`, "error");
+                    showToast(`${actName} : Le cachet et la signature du prestataire sont obligatoires.`, "error");
                     return;
                 }
-                if (!acte.prestataire?.identifiant_unique_mf) {
-                    showToast(`Acte médical #${i+1} : Le matricule fiscal (MF) du médecin est requis`, "error");
+
+                if (!acte.prestataire?.nom || !acte.prestataire.nom.trim()) {
+                    showToast(`${actName} : Le nom du médecin est obligatoire.`, "error");
                     return;
+                }
+                const nameRegex = /^[a-zA-ZÀ-ÿ\s'-]+$/;
+                if (!nameRegex.test(acte.prestataire.nom.trim())) {
+                    showToast(`${actName} : Le nom du médecin doit être une chaîne de caractères valide (lettres et espaces uniquement).`, "error");
+                    return;
+                }
+
+                if (!acte.prestataire?.identifiant_unique_mf || !acte.prestataire.identifiant_unique_mf.trim()) {
+                    showToast(`${actName} : Le matricule fiscal (MF) du médecin est obligatoire.`, "error");
+                    return;
+                }
+
+                // Optionnel : vérification du format de téléphone si saisi
+                const phone = acte.prestataire?.telephone || acte.prestataire?.gsm;
+                if (phone && phone.trim()) {
+                    const cleanPhone = phone.replace(/[^0-9]/g, '');
+                    if (cleanPhone.length < 8) {
+                        showToast(`${actName} : Le numéro de téléphone du médecin doit contenir au moins 8 chiffres.`, "error");
+                        return;
+                    }
                 }
             }
         }
 
-        // Validation pharmacie
+        // 7. Validation de la section Pharmacie
         if (formData.pharmacie_detecte) {
-            if (!formData.pharmacie.identifiant_unique_mf) {
-                showToast("Pharmacie : Le matricule fiscal (MF) de la pharmacie est requis", "error");
+            if (!formData.pharmacie.identifiant_unique_mf || !formData.pharmacie.identifiant_unique_mf.trim()) {
+                showToast("Pharmacie : Le matricule fiscal (MF) de la pharmacie est obligatoire.", "error");
+                return;
+            }
+            if (!formData.pharmacie.prestataire?.nom || !formData.pharmacie.prestataire.nom.trim()) {
+                showToast("Pharmacie : Le nom de la pharmacie est obligatoire.", "error");
+                return;
+            }
+            const nameRegex = /^[a-zA-ZÀ-ÿ\s'-]+$/;
+            if (!nameRegex.test(formData.pharmacie.prestataire.nom.trim())) {
+                showToast("Pharmacie : Le nom de la pharmacie doit être une chaîne de caractères valide (lettres et espaces uniquement).", "error");
                 return;
             }
             if (!formData.pharmacie.medicaments || formData.pharmacie.medicaments.length === 0) {
-                showToast("Pharmacie : Au moins un médicament est requis", "error");
+                showToast("Pharmacie : Vous devez ajouter au moins un médicament.", "error");
                 return;
             }
+
             for (let i = 0; i < formData.pharmacie.medicaments.length; i++) {
                 const med = formData.pharmacie.medicaments[i];
-                if (!med.nom_medicament || !med.quantite || !med.prix_unitaire) {
-                    showToast(`Médicament #${i+1} : Tous les champs (nom, quantité, prix unitaire) sont obligatoires`, "error");
+                const medName = `Médicament n°${i + 1}`;
+
+                if (!med.nom_medicament || !med.nom_medicament.trim()) {
+                    showToast(`${medName} : Le nom du médicament est obligatoire.`, "error");
+                    return;
+                }
+                if (!med.quantite || Number(med.quantite) < 1) {
+                    showToast(`${medName} : La quantité doit être supérieure ou égale à 1.`, "error");
+                    return;
+                }
+                if (med.prix_unitaire === undefined || med.prix_unitaire === null || Number(med.prix_unitaire) <= 0) {
+                    showToast(`${medName} : Le prix unitaire doit être supérieur à 0 TND.`, "error");
                     return;
                 }
             }

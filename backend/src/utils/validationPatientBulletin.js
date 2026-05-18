@@ -67,9 +67,7 @@ async function resolvePatientForBulletin(userId, body) {
         if (!namesMatchDocument(nomDoc, adherent.nom, adherent.prenom)) {
             return { error: { status: 400, message: 'Le nom sur le document ne correspond pas au titulaire du compte.' } };
         }
-        if (body.beneficiaireId != null && body.beneficiaireId !== '' && Number(body.beneficiaireId) !== 0) {
-            return { error: { status: 400, message: 'Pour un soin « Titulaire », ne renseignez pas beneficiaireId.' } };
-        }
+        
         let ben = await Beneficiary.findOne({
             where: {
                 userId,
@@ -87,6 +85,10 @@ async function resolvePatientForBulletin(userId, body) {
                 sexe: adherent.sexe,
                 statut: 'Validé'
             });
+        }
+
+        if (body.beneficiaireId != null && body.beneficiaireId !== '' && Number(body.beneficiaireId) !== 0 && Number(body.beneficiaireId) !== ben.id) {
+            return { error: { status: 400, message: "Pour un soin « Titulaire », le beneficiaireId doit correspondre au profil de l'adhérent." } };
         }
     }
 

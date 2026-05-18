@@ -19,7 +19,7 @@ const transporter = isConfigured() ? nodemailer.createTransport({
 const sendResetEmail = async (email, code) => {
 
   const mailOptions = {
-    from: `"Votre Application" <${process.env.EMAIL_USER}>`,
+    from: `"CareCover - Notifications" <${process.env.EMAIL_USER}>`,
     to: email,
     subject: 'Réinitialisation de votre mot de passe',
     html: `
@@ -56,7 +56,7 @@ const sendResetEmail = async (email, code) => {
 
 const sendApprovalEmail = async (email) => {
   const mailOptions = {
-    from: `"Votre Application" TT Asurance`,
+    from: `"CareCover - Notifications`,
     to: email,
     subject: 'Votre compte a été approuvé',
     html: `
@@ -91,7 +91,7 @@ const sendApprovalEmail = async (email) => {
 
 const sendRejectionEmail = async (email, raison = "") => {
   const mailOptions = {
-    from: `"Votre Application" <${process.env.EMAIL_USER}>`,
+    from: `"CareCover - Notifications" <${process.env.EMAIL_USER}>`,
     to: email,
     subject: 'Votre demande de compte a été refusée',
     html: `
@@ -127,7 +127,7 @@ const sendRejectionEmail = async (email, raison = "") => {
 
 const sendBlockEmail = async (email, raison = "") => {
   const mailOptions = {
-    from: `"Votre Application" <${process.env.EMAIL_USER}>`,
+    from: `"" <${process.env.EMAIL_USER}>`,
     to: email,
     subject: 'Votre compte a été bloqué',
     html: `

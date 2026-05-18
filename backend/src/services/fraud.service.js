@@ -1,4 +1,4 @@
-const { BulletinSoin, ActeMedical, User, FraudAlert, sequelize } = require('../../models');
+const { BulletinSoin, ActeMedical, User, FraudAlert, Prestataire, ActePharmacie, Medicament, sequelize } = require('../../models');
 const { Op } = require('sequelize');
 
 class FraudService {
@@ -18,7 +18,9 @@ class FraudService {
             frequence_adherent_7j: 0,
             frequence_adherent_30j: 0,
             duplicates_detected: 0,
-            doctor_concentration: 0
+            doctor_concentration: 0,
+            nomadisme_medical: 0,
+            trafic_medicaments: 0
         };
 
         const date30DaysAgo = new Date();
@@ -106,6 +108,103 @@ class FraudService {
         if (repeatedAmount >= 2) {
             sqlRulesScore += repeatedAmount >= 4 ? 50 : 25;
             reasons.push(`Répétition suspecte du montant total (${bulletin.montant_total} TND) par l'adhérent.`);
+        }
+
+        // 5. Nomadisme Médical (Doctor Shopping)
+        // Détecte un adhérent qui consulte plusieurs médecins de la même spécialité
+        const specialitesActuelles = [...new Set(
+            (bulletin.actes || [])
+                .map(a => a.prestataire?.specialite)
+                .filter(s => !!s)
+        )];
+
+        for (const specialite of specialitesActuelles) {
+            const matches = await ActeMedical.findAll({
+                attributes: ['prestataireId'],
+                include: [
+                    {
+                        model: BulletinSoin,
+                        attributes: ['id'],
+                        where: {
+                            userId: bulletin.userId,
+                            createdAt: { [Op.gte]: date30DaysAgo }
+                        }
+                    },
+                    {
+                        model: Prestataire,
+                        as: 'prestataire',
+                        attributes: ['id', 'specialite'],
+                        where: { specialite },
+                        required: true
+                    }
+                ]
+            });
+            const distinctDoctors = new Set(matches.map(m => m.prestataireId).filter(id => id !== null)).size;
+
+            if (distinctDoctors >= 3) {
+                const scoreAjout = distinctDoctors >= 5 ? 70 : 40;
+                sqlRulesScore += scoreAjout;
+                metrics.nomadisme_medical = Math.max(metrics.nomadisme_medical, distinctDoctors);
+                reasons.push(`Nomadisme médical détecté : ${distinctDoctors} médecin(s) différent(s) en "${specialite}" consultés en 30 jours.`);
+            }
+        }
+
+        // 6. Pharmacie de Complaisance / Trafic de médicaments
+        // Détecte le rachat précoce ou répétitif de médicaments par un adhérent
+        if (bulletin.pharmacie && bulletin.pharmacie.medicaments && bulletin.pharmacie.medicaments.length > 0) {
+            for (const med of bulletin.pharmacie.medicaments) {
+                // Chercher les achats récents du même médicament par le même adhérent
+                const recentPurchases = await Medicament.findAll({
+                    include: [
+                        {
+                            model: ActePharmacie,
+                            as: 'pharmacie',
+                            include: [
+                                {
+                                    model: BulletinSoin,
+                                    where: {
+                                        userId: bulletin.userId,
+                                        id: { [Op.ne]: bulletin.id }, // Exclure le bulletin actuel
+                                        createdAt: { [Op.gte]: date30DaysAgo }
+                                    }
+                                }
+                            ],
+                            required: true
+                        }
+                    ],
+                    where: {
+                        nom_medicament: med.nom_medicament
+                    }
+                });
+
+                if (recentPurchases.length > 0) {
+                    let mostRecentDate = null;
+                    for (const rp of recentPurchases) {
+                        const dateDepot = rp.pharmacie?.BulletinSoin?.createdAt || rp.createdAt;
+                        if (!mostRecentDate || dateDepot > mostRecentDate) {
+                            mostRecentDate = new Date(dateDepot);
+                        }
+                    }
+
+                    if (mostRecentDate) {
+                        const diffTime = Math.abs(new Date() - mostRecentDate);
+                        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                        // Si racheté à moins de 15 jours d'intervalle
+                        if (diffDays <= 15) {
+                            const scoreAjout = recentPurchases.length >= 2 ? 80 : 40;
+                            sqlRulesScore += scoreAjout;
+                            metrics.trafic_medicaments = Math.max(metrics.trafic_medicaments, recentPurchases.length + 1);
+
+                            const msg = recentPurchases.length >= 2
+                                ? `Trafic de médicaments suspecté : Le médicament "${med.nom_medicament}" a été acheté ${recentPurchases.length + 1} fois au cours des 30 derniers jours.`
+                                : `Cumul suspect de traitement : Le médicament "${med.nom_medicament}" a été racheté seulement ${diffDays} jour(s) après le précédent achat.`;
+
+                            reasons.push(msg);
+                        }
+                    }
+                }
+            }
         }
 
         return {
@@ -200,7 +299,16 @@ class FraudService {
     static async calculateFraudScore(bulletinId) {
         const bulletin = await BulletinSoin.findByPk(bulletinId, {
             include: [
-                { model: ActeMedical, as: 'actes' }
+                {
+                    model: ActeMedical,
+                    as: 'actes',
+                    include: [{ model: Prestataire, as: 'prestataire', required: false }]
+                },
+                {
+                    model: ActePharmacie,
+                    as: 'pharmacie',
+                    include: [{ model: Medicament, as: 'medicaments', required: false }]
+                }
             ]
         });
 

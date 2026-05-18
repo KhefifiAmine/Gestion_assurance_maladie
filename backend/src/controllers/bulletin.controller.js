@@ -188,6 +188,7 @@ pharmacie_detecte
             await ActeMedical.create(
                 {
                     ...acte,
+                    cachet_signature_present: acte.est_cachet !== undefined ? !!acte.est_cachet : (acte.cachet_signature_present ?? false),
                     bulletinId: bulletin.id,
                     prestataireId: prestataire?.id || null
                 },
@@ -297,7 +298,11 @@ const updateBulletin = async (req, res) => {
     try {
         const { id } = req.params;
         const userId = req.userId;
-        const payload = req.body;
+        
+        let payload = req.body;
+        if (req.body.data) {
+            payload = JSON.parse(req.body.data);
+        }
 
         const bulletin = await BulletinSoin.findByPk(id, { transaction: t });
 
@@ -431,26 +436,45 @@ const updateBulletin = async (req, res) => {
                 // 2. Upsert (Update ou Create) pour chaque acte
                 for (const acteData of resultActe.actes) {
                     let prestataireId = acteData.prestataireId;
+                    if (acteData.prestataire && acteData.prestataire.identifiant_unique_mf) {
+                        const mf = acteData.prestataire.identifiant_unique_mf;
+                        let prestataire = await Prestataire.findOne({
+                            where: { identifiant_unique_mf: mf },
+                            transaction: t
+                        });
 
-                    if (acteData.prestataire) {
-                        const prestataire = await findOrCreatePrestataire(acteData.prestataire, t);
-                        if (prestataire) {
-                            prestataireId = prestataire.id;
+                        const prestataireData = {
+                            identifiant_unique_mf: mf,
+                            nom: acteData.prestataire.nom || null,
+                            telephone: acteData.prestataire.telephone || null,
+                            adresse: acteData.prestataire.adresse || null,
+                            specialite: acteData.prestataire.specialite || acteData.prestataire.specialité || null,
+                            gsm: acteData.prestataire.gsm || null
+                        };
+
+                        if (!prestataire) {
+                            prestataire = await Prestataire.create(prestataireData, { transaction: t });
+                        } else {
+                            await prestataire.update(prestataireData, { transaction: t });
                         }
+                        prestataireId = prestataire.id;
                     }
 
-                    const mergedActeData = {
+                    const medicalActeData = {
                         ...acteData,
-                        prestataireId
+                        cachet_signature_present: acteData.est_cachet !== undefined ? !!acteData.est_cachet : (acteData.cachet_signature_present ?? false),
+                        prestataireId,
+                        bulletinId: id
                     };
 
                     if (acteData.id) {
-                        await ActeMedical.update(mergedActeData, {
+                        await ActeMedical.update(medicalActeData, {
                             where: { id: acteData.id, bulletinId: id },
                             transaction: t
                         });
                     } else {
-                        await ActeMedical.create({ ...mergedActeData, bulletinId: id }, { transaction: t });
+
+                        await ActeMedical.create(medicalActeData, { transaction: t });
                     }
                 }
             }
@@ -620,6 +644,7 @@ const deleteBulletin = async (req, res) => {
             });
         }
 
+
         // 🔥 Revert consumption
         const annee = ReimbursementService.getAnnee(bulletin.date_soin);
         const actes = await ActeMedical.findAll({ where: { bulletinId: id } });
@@ -641,11 +666,12 @@ const deleteBulletin = async (req, res) => {
         }
 
         // 🔥 Récupérer tous les documents associés
+
         const docs = await DocumentJustificatif.findAll({
             where: { bulletinId: id }
         });
 
-        // 🔥 Supprimer les fichiers physiques
+        //  Supprimer les fichiers physiques
         for (const doc of docs) {
             if (doc.fichier) {
                 const filePath = path.join(__dirname, '../../uploads', doc.fichier);
@@ -656,7 +682,7 @@ const deleteBulletin = async (req, res) => {
             await doc.destroy();
         }
 
-        // 🔥 Supprimer le bulletin
+        // Supprimer le bulletin
         await bulletin.destroy();
 
         res.status(200).json({ message: 'Bulletin supprimé avec succès' });
@@ -816,15 +842,15 @@ const updateBulletinStatus = async (req, res) => {
 
             let titre, description, priorite;
             if (statut === 2) {
-                titre = '✅ Bulletin traité';
+                titre = 'Bulletin traité';
                 description = `Votre bulletin de soin n°${bulletin.numero_bulletin || id} a été traité par l'administration.`;
                 priorite = 'normale';
             } else if (statut === 1) {
-                titre = '⏳ Bulletin en cours';
+                titre = 'Bulletin en cours';
                 description = `Votre bulletin de soin n°${bulletin.numero_bulletin || id} est en cours de traitement.`;
                 priorite = 'normale';
             } else {
-                titre = 'ℹ️ Statut bulletin mis à jour';
+                titre = 'ℹ Statut bulletin mis à jour';
                 description = `Votre bulletin de soin n°${bulletin.numero_bulletin || id} est maintenant : ${statutLabel}.`;
                 priorite = 'basse';
             }

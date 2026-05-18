@@ -10,10 +10,11 @@ import {
     Calendar,
     MapPin,
     Activity,
+    Plus,
     Info
 } from 'lucide-react';
 
-const UserDetailsModal = ({ isOpen, onClose, user }) => {
+const UserDetailsModal = ({ isOpen, onClose, user, onAddBulletin }) => {
 
     if (!isOpen || !user) return null;
 
@@ -90,7 +91,14 @@ const UserDetailsModal = ({ isOpen, onClose, user }) => {
                                 );
                             })}
                         </div>
-                        <div className="mt-8 flex flex-col mt-auto pt-8 border-t border-slate-100 dark:border-slate-800">
+                        <div className="mt-8 flex flex-col gap-3 mt-auto pt-8 border-t border-slate-100 dark:border-slate-800">
+                            <button 
+                                onClick={() => onAddBulletin && onAddBulletin(user)}
+                                className="w-full py-4 bg-purple-600 text-white font-bold rounded-2xl hover:bg-purple-700 transition-all font-black text-xs uppercase tracking-widest active:scale-95 flex items-center justify-center gap-2"
+                            >
+                                <Plus size={18} />
+                                Ajouter un Bulletin
+                            </button>
                             <button 
                                 onClick={onClose}
                                 className="w-full py-4 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold rounded-2xl hover:bg-slate-200 transition-all font-black text-xs uppercase tracking-widest active:scale-95"

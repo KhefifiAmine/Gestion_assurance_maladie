@@ -174,3 +174,20 @@ export const deleteMotifRejet = async (id) => {
     });
     return handleResponse(res);
 };
+
+// ─── REIMBURSEMENT RULES ──────────────────────────────────────────────────────
+export const fetchReimbursementRules = async () => {
+    const res = await fetch(`${API_BASE}/reimbursement/rules`, {
+        headers: authHeaders()
+    });
+    return handleResponse(res);
+};
+
+export const updateReimbursementRules = async (rulesData) => {
+    const res = await fetch(`${API_BASE}/reimbursement/rules`, {
+        method: 'PUT',
+        headers: authHeaders(),
+        body: JSON.stringify(rulesData)
+    });
+    return handleResponse(res);
+};
