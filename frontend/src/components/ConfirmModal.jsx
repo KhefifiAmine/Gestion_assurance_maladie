@@ -213,7 +213,7 @@ const ConfirmModal = ({
                                     <div className="w-full mb-6 text-left">
                                         <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">Sélectionner le nouveau rôle</label>
                                         <div className="grid grid-cols-1 gap-2">
-                                            {['ADHERENT', 'ADMIN', 'RESPONSABLE_RH'].map((role) => (
+                                            {['ADHERENT', 'ADMIN', 'RESPONSABLE_RH', 'SUPER_ADMIN'].map((role) => (
                                                 <button key={role} type="button" onClick={() => setSelectedRole(role)}
                                                     className={`flex items-center justify-between p-4 rounded-2xl border-2 transition-all ${selectedRole === role ? 'bg-purple-600 border-purple-600 text-white shadow-lg shadow-purple-500/30' : 'bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-purple-200'}`}>
                                                     <span className="font-black text-xs uppercase tracking-widest">{role}</span>

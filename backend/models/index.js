@@ -3,7 +3,7 @@ const User = require('./User');
 const Beneficiary = require('./Beneficiary');
 const BulletinSoin = require('./BulletinSoin');
 const ActeMedical = require('./ActeMedical');
-const Pharmacie = require('./Pharmacie');
+const ActePharmacie = require('./ActePharmacie');
 const Medicament = require('./Medicament');
 const Prestataire = require('./Prestataire');
 const MaladieConsumption = require('./MaladieConsumption');
@@ -38,12 +38,15 @@ ActeMedical.belongsTo(BulletinSoin, { foreignKey: 'bulletinId' });
 Prestataire.hasMany(ActeMedical, { foreignKey: 'prestataireId', as: 'actes' });
 ActeMedical.belongsTo(Prestataire, { foreignKey: 'prestataireId', as: 'prestataire' });
 
-BulletinSoin.hasOne(Pharmacie, { foreignKey: 'bulletinId', as: 'pharmacie' });
-Pharmacie.belongsTo(BulletinSoin, { foreignKey: 'bulletinId' });
+Prestataire.hasMany(ActePharmacie, { foreignKey: 'prestataireId', as: 'pharmacies' });
+ActePharmacie.belongsTo(Prestataire, { foreignKey: 'prestataireId', as: 'prestataire' });
 
-// Pharmacie → Medicament (1-N) : une pharmacie contient plusieurs médicaments
-Pharmacie.hasMany(Medicament, { foreignKey: 'pharmacieId', as: 'medicaments' });
-Medicament.belongsTo(Pharmacie, { foreignKey: 'pharmacieId', as: 'pharmacie' });
+BulletinSoin.hasOne(ActePharmacie, { foreignKey: 'bulletinId', as: 'pharmacie' });
+ActePharmacie.belongsTo(BulletinSoin, { foreignKey: 'bulletinId' });
+
+// ActePharmacie → Medicament (1-N) : une pharmacie contient plusieurs médicaments
+ActePharmacie.hasMany(Medicament, { foreignKey: 'pharmacieId', as: 'medicaments' });
+Medicament.belongsTo(ActePharmacie, { foreignKey: 'pharmacieId', as: 'pharmacie' });
 
 // MotifRejet <-> BulletinSoin
 MotifRejet.hasMany(BulletinSoin, { foreignKey: 'motifRejetId', as: 'bulletins' });
@@ -78,7 +81,7 @@ module.exports = {
     Beneficiary,
     BulletinSoin,
     ActeMedical,
-    Pharmacie,
+    ActePharmacie,
     Medicament,
     Reclamation,
     Notification,

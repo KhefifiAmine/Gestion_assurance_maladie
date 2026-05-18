@@ -208,15 +208,26 @@ const AddUserModal = ({ isOpen, onClose, onSubmit }) => {
                                                 <label className="text-xs font-black text-slate-600 dark:text-slate-400 ml-1">Rôle *</label>
                                                 <div className="relative">
                                                     <Shield size={18} className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" />
-                                                    <select 
-                                                        className="w-full pl-12 pr-5 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl text-sm font-bold focus:ring-4 focus:ring-purple-500/10 transition-all outline-none dark:text-white appearance-none cursor-pointer"
-                                                        value={formData.role}
-                                                        onChange={(e) => setFormData({...formData, role: e.target.value})}
-                                                    >
-                                                        <option value="ADHERENT">Adhérent</option>
-                                                        <option value="ADMIN">Administrateur</option>
-                                                        <option value="RESPONSABLE_RH">Responsable RH</option>
-                                                    </select>
+                                                    {initiator?.role === 'SUPER_ADMIN' ? (
+                                                        <>
+                                                            <select 
+                                                                className="w-full pl-12 pr-5 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl text-sm font-bold focus:ring-4 focus:ring-purple-500/10 transition-all outline-none dark:text-white appearance-none cursor-pointer"
+                                                                value={formData.role}
+                                                                onChange={(e) => setFormData({...formData, role: e.target.value})}
+                                                            >
+                                                                
+                                                                    <option value="ADHERENT">Adhérent</option>
+                                                                    <option value="ADMIN">Administrateur</option>
+                                                                    <option value="RESPONSABLE_RH">Responsable RH</option>
+                                                                    <option value="SUPER_ADMIN">Super Administrateur</option>
+                                                                
+                                                            </select>  
+                                                        </>
+                                                    ) : (
+                                                        <div className="w-full pl-12 pr-5 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl text-sm font-bold focus:ring-4 focus:ring-purple-500/10 transition-all outline-none dark:text-white appearance-none cursor-pointer">
+                                                             ADHERENT
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
                                             <div className="space-y-2">

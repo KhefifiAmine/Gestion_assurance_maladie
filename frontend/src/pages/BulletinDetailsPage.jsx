@@ -270,15 +270,33 @@ const MedicalActCard = ({ acte, index, isAdmin, onProcess, onSave }) => {
                                             <p className="text-xs font-black text-slate-800 dark:text-slate-200">{acte.prestataire.nom || 'Non spécifié'}</p>
                                         </div>
                                         <div className="space-y-1">
-                                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Coordonnées</p>
+                                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Spécialité</p>
+                                            <p className="text-xs font-black text-slate-800 dark:text-slate-200">{acte.prestataire.specialite || 'Non spécifiée'}</p>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Téléphone</p>
                                             <div className="flex items-center gap-3 text-xs font-bold text-slate-600 dark:text-slate-400">
-                                                {acte.prestataire.telephone && (
+                                                {acte.prestataire.telephone ? (
                                                     <span className="flex items-center gap-1">
                                                         <Phone size={10} className="text-slate-400" />
                                                         {acte.prestataire.telephone}
                                                     </span>
+                                                ) : (
+                                                    <span>Pas de téléphone</span>
                                                 )}
-                                                {!acte.prestataire.telephone && <span>Pas de téléphone</span>}
+                                            </div>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">GSM</p>
+                                            <div className="flex items-center gap-3 text-xs font-bold text-slate-600 dark:text-slate-400">
+                                                {acte.prestataire.gsm ? (
+                                                    <span className="flex items-center gap-1">
+                                                        <Phone size={10} className="text-slate-400" />
+                                                        {acte.prestataire.gsm}
+                                                    </span>
+                                                ) : (
+                                                    <span>Pas de GSM</span>
+                                                )}
                                             </div>
                                         </div>
                                         {acte.prestataire.adresse && (
@@ -952,7 +970,7 @@ const BulletinDetailsPage = () => {
                                             {bulletin.beneficiaire && (
                                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                                     <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50">
-                                                        <p className="text-[9px] font-black text-slate-400 uppercase mb-2">Bénéficiaire</p>
+                                                        <p className="text-[9px] font-black text-slate-400 uppercase mb-2">Patient</p>
                                                         <p className="font-bold text-slate-800 dark:text-white">
                                                             {bulletin.beneficiaire.prenom} {bulletin.beneficiaire.nom}
                                                         </p>
@@ -1064,36 +1082,96 @@ const BulletinDetailsPage = () => {
                                             className="space-y-4"
                                         >
                                             <div>
-                                                    <div className="flex items-center justify-between mb-6">
-                                                        <h3 className="text-xs font-black uppercase tracking-wider text-slate-500 flex items-center gap-2">
-                                                            <Pill size={14} />
-                                                            Traitement Pharmacie
-                                                        </h3>
-                                                        <span className="px-3 py-1 rounded-full bg-slate-100 text-[9px] font-black text-slate-500 uppercase tracking-widest">
-                                                            Achat: {formatDateFr(bulletin.pharmacie.date_achat)}
-                                                        </span>
-                                                    </div>
+                                                <div className="flex items-center justify-between mb-6">
+                                                    <h3 className="text-xs font-black uppercase tracking-wider text-slate-500 flex items-center gap-2">
+                                                        <Pill size={14} />
+                                                        Traitement Pharmacie
+                                                    </h3>
+                                                    <span className="px-3 py-1 rounded-full bg-slate-100 text-[9px] font-black text-slate-500 uppercase tracking-widest">
+                                                        Achat: {formatDateFr(bulletin.pharmacie.date_achat)}
+                                                    </span>
+                                                </div>
 
-                                                    <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-100 dark:border-slate-700 shadow-sm space-y-6">
-                                                        <div className="grid grid-cols-2 gap-4">
-                                                            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700">
-                                                                <p className="text-[9px] font-black text-slate-400 uppercase mb-1">Montant Total</p>
-                                                                <p className="text-lg font-black text-slate-800 dark:text-white">{formatMontantTnd(bulletin.pharmacie.montant_pharmacie || bulletin.pharmacie.montant || 0)} TND</p>
+                                                <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-100 dark:border-slate-700 shadow-sm space-y-6">
+                                                    {bulletin.pharmacie && (bulletin.pharmacie.prestataire || bulletin.pharmacie.identifiant_unique_mf) && (
+                                                        <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 shadow-sm">
+                                                            <div className="flex items-center justify-between mb-3">
+                                                                <p className="text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest flex items-center gap-2">
+                                                                    <Building2 size={12} />
+                                                                    Prestataire Pharmacie
+                                                                </p>
+                                                                {(bulletin.pharmacie.prestataire?.identifiant_unique_mf || bulletin.pharmacie.identifiant_unique_mf) && (
+                                                                    <span className="px-2 py-0.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-[9px] font-mono font-bold text-slate-500">
+                                                                        MF: {bulletin.pharmacie.prestataire?.identifiant_unique_mf || bulletin.pharmacie.identifiant_unique_mf}
+                                                                    </span>
+                                                                )}
                                                             </div>
-                                                            <div className="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-100 dark:border-emerald-800/30">
-                                                                <p className="text-[9px] font-black text-emerald-600 uppercase mb-1">Remboursement</p>
-                                                                <input
-                                                                    type="number"
-                                                                    disabled={bulletin.pharmacie.statut !== 0}
-                                                                    value={bulletin.pharmacie.montant_remboursement || 0}
-                                                                    max={bulletin.pharmacie.montant_pharmacie || bulletin.pharmacie.montant || 0}
-                                                                    onChange={(e) => {
-                                                                        const val = parseFloat(e.target.value) || 0;
-                                                                        if (val > (bulletin.pharmacie.montant_pharmacie || bulletin.pharmacie.montant || 0)) return;
-                                                                        handlePharmacieProcessing('montant_remboursement', val);
-                                                                    }}
-                                                                    placeholder="Montant remboursement"
-                                                                    className="
+                                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                                <div className="space-y-1">
+                                                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Nom / Pharmacie</p>
+                                                                    <p className="text-xs font-black text-slate-800 dark:text-slate-200">{bulletin.pharmacie.prestataire?.nom || 'Non spécifié'}</p>
+                                                                </div>
+                                                                <div className="space-y-1">
+                                                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Spécialité</p>
+                                                                    <p className="text-xs font-black text-slate-800 dark:text-slate-200">{bulletin.pharmacie.prestataire?.specialite || 'Non spécifiée'}</p>
+                                                                </div>
+                                                                <div className="space-y-1">
+                                                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Téléphone</p>
+                                                                    <div className="flex items-center gap-3 text-xs font-bold text-slate-600 dark:text-slate-400">
+                                                                        {bulletin.pharmacie.prestataire?.telephone ? (
+                                                                            <span className="flex items-center gap-1">
+                                                                                <Phone size={10} className="text-slate-400" />
+                                                                                {bulletin.pharmacie.prestataire.telephone}
+                                                                            </span>
+                                                                        ) : (
+                                                                            <span>Pas de téléphone</span>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                                <div className="space-y-1">
+                                                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">GSM</p>
+                                                                    <div className="flex items-center gap-3 text-xs font-bold text-slate-600 dark:text-slate-400">
+                                                                        {bulletin.pharmacie.prestataire?.gsm ? (
+                                                                            <span className="flex items-center gap-1">
+                                                                                <Phone size={10} className="text-slate-400" />
+                                                                                {bulletin.pharmacie.prestataire.gsm}
+                                                                            </span>
+                                                                        ) : (
+                                                                            <span>Pas de GSM</span>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                                {bulletin.pharmacie.prestataire?.adresse && (
+                                                                    <div className="md:col-span-2 space-y-1 pt-1 border-t border-slate-200/50 dark:border-slate-700/50">
+                                                                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Adresse</p>
+                                                                        <p className="text-xs font-medium text-slate-600 dark:text-slate-400 flex items-center gap-1">
+                                                                            <MapPin size={10} className="text-slate-400" />
+                                                                            {bulletin.pharmacie.prestataire.adresse}
+                                                                        </p>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                    <div className="grid grid-cols-2 gap-4">
+                                                        <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700">
+                                                            <p className="text-[9px] font-black text-slate-400 uppercase mb-1">Montant Total</p>
+                                                            <p className="text-lg font-black text-slate-800 dark:text-white">{formatMontantTnd(bulletin.pharmacie.montant_pharmacie || bulletin.pharmacie.montant || 0)} TND</p>
+                                                        </div>
+                                                        <div className="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-100 dark:border-emerald-800/30">
+                                                            <p className="text-[9px] font-black text-emerald-600 uppercase mb-1">Remboursement</p>
+                                                            <input
+                                                                type="number"
+                                                                disabled={bulletin.pharmacie.statut !== 0}
+                                                                value={bulletin.pharmacie.montant_remboursement || 0}
+                                                                max={bulletin.pharmacie.montant_pharmacie || bulletin.pharmacie.montant || 0}
+                                                                onChange={(e) => {
+                                                                    const val = parseFloat(e.target.value) || 0;
+                                                                    if (val > (bulletin.pharmacie.montant_pharmacie || bulletin.pharmacie.montant || 0)) return;
+                                                                    handlePharmacieProcessing('montant_remboursement', val);
+                                                                }}
+                                                                placeholder="Montant remboursement"
+                                                                className="
                                                                         w-full
                                                                         rounded-2xl
                                                                         border border-emerald-300
@@ -1108,85 +1186,85 @@ const BulletinDetailsPage = () => {
                                                                         hover:border-emerald-400
                                                                         disabled:opacity-50
                                                                     "
-                                                                />
-                                                            </div>
+                                                            />
                                                         </div>
+                                                    </div>
 
-                                                        {/* Liste des Médicaments */}
-                                                        {bulletin.pharmacie.medicaments && bulletin.pharmacie.medicaments.length > 0 && (
-                                                            <div className="space-y-3">
-                                                                <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Liste des médicaments ({bulletin.pharmacie.medicaments.length})</p>
-                                                                <div className="grid grid-cols-1 gap-3">
-                                                                    {bulletin.pharmacie.medicaments.map((med, mIdx) => (
-                                                                        <div key={med.id || mIdx} className="p-5 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-700 flex flex-col gap-4">
-                                                                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                                                                                <div className="flex items-center gap-3">
-                                                                                    <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600">
-                                                                                        <Pill size={18} />
-                                                                                    </div>
-                                                                                    <div>
-                                                                                        <h4 className="text-sm font-bold text-slate-800 dark:text-white">{med.nom_medicament}</h4>
-                                                                                        <p className="text-[10px] text-slate-500 font-medium">{med.dosage || 'Dosage non spécifié'} • Qté: {med.quantite}</p>
-                                                                                    </div>
+                                                    {/* Liste des Médicaments */}
+                                                    {bulletin.pharmacie.medicaments && bulletin.pharmacie.medicaments.length > 0 && (
+                                                        <div className="space-y-3">
+                                                            <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Liste des médicaments ({bulletin.pharmacie.medicaments.length})</p>
+                                                            <div className="grid grid-cols-1 gap-3">
+                                                                {bulletin.pharmacie.medicaments.map((med, mIdx) => (
+                                                                    <div key={med.id || mIdx} className="p-5 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-700 flex flex-col gap-4">
+                                                                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                                                            <div className="flex items-center gap-3">
+                                                                                <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600">
+                                                                                    <Pill size={18} />
                                                                                 </div>
-                                                                                <div className="flex items-center gap-6">
-                                                                                    <div className="text-right">
-                                                                                        <p className="text-[10px] font-black text-slate-400 uppercase mb-0.5">Montant</p>
-                                                                                        <p className="text-sm font-black text-slate-800 dark:text-white">{formatMontantTnd(med.montant_total)} TND</p>
-                                                                                    </div>
-                                                                                    {med.statut === 1 && med.montant_remboursement > 0 && (
-                                                                                        <div className="text-right flex flex-col items-end">
-                                                                                            <p className="text-[10px] font-black text-emerald-500 uppercase mb-0.5">Remb.</p>
-                                                                                            <p className="text-sm font-black text-emerald-600">{formatMontantTnd(med.montant_remboursement)} TND</p>
-                                                                                            {med.message_remboursement && (
-                                                                                                <p className="text-[7px] font-black text-amber-600 uppercase tracking-tighter mt-1 max-w-[100px] leading-none">
-                                                                                                    {med.message_remboursement}
-                                                                                                </p>
-                                                                                            )}
-                                                                                        </div>
-                                                                                    )}
-                                                                                    {med.statut === 2 && (
-                                                                                        <div className="px-2 py-1 rounded-md bg-rose-100 text-rose-600 text-[9px] font-black uppercase">Rejeté</div>
-                                                                                    )}
+                                                                                <div>
+                                                                                    <h4 className="text-sm font-bold text-slate-800 dark:text-white">{med.nom_medicament}</h4>
+                                                                                    <p className="text-[10px] text-slate-500 font-medium">{med.dosage || 'Dosage non spécifié'} • Qté: {med.quantite}</p>
                                                                                 </div>
                                                                             </div>
-
-                                                                            {isAdmin && med.statut === 0 && (
-                                                                                <div className="pt-4 border-t border-slate-200/50 dark:border-slate-700/50 flex flex-col md:flex-row items-center gap-4">
-                                                                                    <div className="flex-1 w-full">
-                                                                                        <input
-                                                                                            type="number"
-                                                                                            step="0.001"
-                                                                                            placeholder="Montant remboursable"
-                                                                                            className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold"
-                                                                                            value={med.montant_remboursement || ''}
-                                                                                            onChange={(e) => handleMedicamentProcessing(med.id, 'montant_remboursement', parseFloat(e.target.value) || 0)}
-                                                                                        />
-                                                                                    </div>
-                                                                                    <div className="flex gap-2 w-full md:w-auto">
-                                                                                        <button
-                                                                                            onClick={() => handleMedicamentStatusUpdate(med.id, 1)}
-                                                                                            className="flex-1 md:px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-[10px] font-black uppercase transition-all"
-                                                                                        >
-                                                                                            Accepter
-                                                                                        </button>
-                                                                                        <button
-                                                                                            onClick={() => handleMedicamentStatusUpdate(med.id, 2)}
-                                                                                            className="flex-1 md:px-4 py-2 bg-rose-500 hover:bg-rose-600 text-white rounded-xl text-[10px] font-black uppercase transition-all"
-                                                                                        >
-                                                                                            Rejeter
-                                                                                        </button>
-                                                                                    </div>
+                                                                            <div className="flex items-center gap-6">
+                                                                                <div className="text-right">
+                                                                                    <p className="text-[10px] font-black text-slate-400 uppercase mb-0.5">Montant</p>
+                                                                                    <p className="text-sm font-black text-slate-800 dark:text-white">{formatMontantTnd(med.montant_total)} TND</p>
                                                                                 </div>
-                                                                            )}
+                                                                                {med.statut === 1 && med.montant_remboursement > 0 && (
+                                                                                    <div className="text-right flex flex-col items-end">
+                                                                                        <p className="text-[10px] font-black text-emerald-500 uppercase mb-0.5">Remb.</p>
+                                                                                        <p className="text-sm font-black text-emerald-600">{formatMontantTnd(med.montant_remboursement)} TND</p>
+                                                                                        {med.message_remboursement && (
+                                                                                            <p className="text-[7px] font-black text-amber-600 uppercase tracking-tighter mt-1 max-w-[100px] leading-none">
+                                                                                                {med.message_remboursement}
+                                                                                            </p>
+                                                                                        )}
+                                                                                    </div>
+                                                                                )}
+                                                                                {med.statut === 2 && (
+                                                                                    <div className="px-2 py-1 rounded-md bg-rose-100 text-rose-600 text-[9px] font-black uppercase">Rejeté</div>
+                                                                                )}
+                                                                            </div>
                                                                         </div>
-                                                                    ))}
-                                                                </div>
-                                                            </div>
-                                                        )}
 
-                                                    </div>
+                                                                        {isAdmin && med.statut === 0 && (
+                                                                            <div className="pt-4 border-t border-slate-200/50 dark:border-slate-700/50 flex flex-col md:flex-row items-center gap-4">
+                                                                                <div className="flex-1 w-full">
+                                                                                    <input
+                                                                                        type="number"
+                                                                                        step="0.001"
+                                                                                        placeholder="Montant remboursable"
+                                                                                        className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold"
+                                                                                        value={med.montant_remboursement || ''}
+                                                                                        onChange={(e) => handleMedicamentProcessing(med.id, 'montant_remboursement', parseFloat(e.target.value) || 0)}
+                                                                                    />
+                                                                                </div>
+                                                                                <div className="flex gap-2 w-full md:w-auto">
+                                                                                    <button
+                                                                                        onClick={() => handleMedicamentStatusUpdate(med.id, 1)}
+                                                                                        className="flex-1 md:px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-[10px] font-black uppercase transition-all"
+                                                                                    >
+                                                                                        Accepter
+                                                                                    </button>
+                                                                                    <button
+                                                                                        onClick={() => handleMedicamentStatusUpdate(med.id, 2)}
+                                                                                        className="flex-1 md:px-4 py-2 bg-rose-500 hover:bg-rose-600 text-white rounded-xl text-[10px] font-black uppercase transition-all"
+                                                                                    >
+                                                                                        Rejeter
+                                                                                    </button>
+                                                                                </div>
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    )}
+
                                                 </div>
+                                            </div>
                                         </motion.div>
                                     )}
 
@@ -1286,7 +1364,7 @@ const BulletinDetailsPage = () => {
                                                         <FileCheck size={16} className="text-blue-500" />
                                                         <p className="text-[10px] font-black uppercase tracking-wider text-blue-600">Rapport d'analyse détaillé</p>
                                                     </div>
-                                                    <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                                                    <p className="whitespace-pre-wrap text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
                                                         {bulletin.resultat_analyse}
                                                     </p>
                                                 </div>

@@ -1,5 +1,5 @@
 require('dotenv').config();
-const { User, Beneficiary, BulletinSoin, ActeMedical, Pharmacie, Medicament, MaladieConsumption } = require('../../models');
+const { User, Beneficiary, BulletinSoin, ActeMedical, ActePharmacie, Medicament, MaladieConsumption } = require('../../models');
 const { calculeRemboursementActe, calculeRemboursementPharmacie } = require('../services/reimbursement/calculerReimbursement');
 const FraudService = require('../services/fraud.service');
 
@@ -36,10 +36,10 @@ async function runTests() {
         try {
             for (const b of bulletinsCreated) {
                 await ActeMedical.destroy({ where: { bulletinId: b.id } });
-                const pharm = await Pharmacie.findOne({ where: { bulletinId: b.id } });
+                const pharm = await ActePharmacie.findOne({ where: { bulletinId: b.id } });
                 if (pharm) {
                     await Medicament.destroy({ where: { pharmacieId: pharm.id } });
-                    await Pharmacie.destroy({ where: { id: pharm.id } });
+                    await ActePharmacie.destroy({ where: { id: pharm.id } });
                 }
                 await BulletinSoin.destroy({ where: { id: b.id } });
             }

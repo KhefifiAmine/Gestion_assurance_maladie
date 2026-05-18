@@ -22,7 +22,7 @@ async function resetAndSeedDatabase() {
 
         // 2. Load Sequelize models and Force Sync
         console.log("\n⏳ Étape 2 : Création des tables...");
-        const { sequelize, User } = require('./models');
+        const { sequelize, User, Beneficiary, Prestataire } = require('./models');
         await sequelize.sync({ force: true });
         console.log("✅ Toutes les tables ont été recréées !");
 
@@ -32,33 +32,60 @@ async function resetAndSeedDatabase() {
         const defaultPassword = await hashPassword('123456');
 
         // Créer l'Admin
-        await User.create({
+        const user1 = await User.create({
             matricule: 'ADM001',
             nom: 'Admin',
             prenom: 'Test',
             email: 'admin@test.com',
+            ddn: '1990-01-01',
+            sexe: 'H',
             mot_de_passe: defaultPassword,
             role: 'ADMIN',
             statut: 1
         });
 
+        await Beneficiary.create({
+            nom: 'Admin',
+            prenom: 'Test',
+            ddn: '1990-01-01',
+            relation: 'Titulaire',
+            sexe: 'H',
+            statut: 'Validé',
+            userId: user1.id
+        })
+
+
         // Créer le Responsable RH
-        await User.create({
+        const user2 = await User.create({
             matricule: 'RH001',
             nom: 'Responsable',
             prenom: 'RH',
             email: 'rh@test.com',
+            ddn: '1990-01-01',
+            sexe: 'H',
             mot_de_passe: defaultPassword,
             role: 'RESPONSABLE_RH',
             statut: 1
         });
 
+        await Beneficiary.create({
+            nom: 'Responsable',
+            prenom: 'RH',
+            ddn: '1990-01-01',
+            relation: 'Titulaire',
+            sexe: 'H',
+            statut: 'Validé',
+            userId: user2.id
+        })
+
         // Créer l'Adhérent
-        await User.create({
+        const user3 = await User.create({
             matricule: 'ADH001',
             nom: 'Adherent',
             prenom: 'User',
             email: 'user@test.com',
+            ddn: '1990-01-01',
+            sexe: 'H',
             mot_de_passe: defaultPassword,
             role: 'ADHERENT',
             statut: 1,
@@ -68,9 +95,50 @@ async function resetAndSeedDatabase() {
             ville: 'Ville de Test'
         });
 
-        console.log("✅ Comptes créés avec succès ! Voici les identifiants pour vos tests :");
+        await Beneficiary.create({
+            nom: 'Adherent',
+            prenom: 'User',
+            ddn: '1990-01-01',
+            relation: 'Titulaire',
+            sexe: 'H',
+            statut: 'Validé',
+            userId: user3.id
+        })
+
+        // Créer le Super Administrateur
+        const userSuper = await User.create({
+            matricule: 'SUP001',
+            nom: 'Super',
+            prenom: 'Admin',
+            email: 'superadmin@test.com',
+            ddn: '1990-01-01',
+            sexe: 'H',
+            mot_de_passe: defaultPassword,
+            role: 'SUPER_ADMIN',
+            statut: 1
+        });
+
+        await Beneficiary.create({
+            nom: 'Super',
+            prenom: 'Admin',
+            ddn: '1990-01-01',
+            relation: 'Titulaire',
+            sexe: 'H',
+            statut: 'Validé',
+            userId: userSuper.id
+        })
+        
+        console.log("\n⏳ Étape 4 : Insertion des prestataires de santé...");
+        const fs = require('fs');
+        const path = require('path');
+        const prestatairesData = JSON.parse(fs.readFileSync(path.join(__dirname, 'src/tests/prestataires.js'), 'utf8'));
+        await Prestataire.bulkCreate(prestatairesData);
+        console.log(`✅ ${prestatairesData.length} prestataires insérés avec succès !`);
+
+        console.log("\n✅ Comptes créés avec succès ! Voici les identifiants pour vos tests :");
         console.log("-----------------------------------------");
-        console.log("🔑 Mot de passe global pour les 3 comptes : 123456");
+        console.log("🔑 Mot de passe global pour les 4 comptes : 123456");
+        console.log("👑 Super Admin    : superadmin@test.com");
         console.log("👨‍💼 Administrateur : admin@test.com");
         console.log("👥 Responsable RH : rh@test.com");
         console.log("👤 Adhérent       : user@test.com");

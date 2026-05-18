@@ -70,20 +70,27 @@ async function resolvePatientForBulletin(userId, body) {
         if (body.beneficiaireId != null && body.beneficiaireId !== '' && Number(body.beneficiaireId) !== 0) {
             return { error: { status: 400, message: 'Pour un soin « Titulaire », ne renseignez pas beneficiaireId.' } };
         }
-        const ben = await Beneficiary.findOne({
+        let ben = await Beneficiary.findOne({
             where: {
                 userId,
-                relation : 'Titulaire'
-                
+                relation: 'Titulaire'
             }
-        })
-        if(ben) {
-            return { beneficiaireId: ben.id, qualite_malade: 'Titulaire' };
+        });
+
+        if (!ben) {
+            ben = await Beneficiary.create({
+                userId: adherent.id,
+                nom: adherent.nom,
+                prenom: adherent.prenom,
+                relation: 'Titulaire',
+                ddn: adherent.ddn,
+                sexe: adherent.sexe,
+                statut: 'Validé'
+            });
         }
-        
     }
 
-    const relation = kind === 'CONJOINT' ? 'Conjoint' : 'Enfant';
+    const relation = kind === 'CONJOINT' ? 'Conjoint' : kind === "ENFANT" ? 'Enfant' : 'Titulaire';
     const beneficiaries = await Beneficiary.findAll({
         where: {
             userId,
@@ -126,5 +133,5 @@ async function resolvePatientForBulletin(userId, body) {
 }
 
 module.exports = {
-  resolvePatientForBulletin
+    resolvePatientForBulletin
 };

@@ -69,8 +69,22 @@ const analyzeBulletin = async (req, res) => {
       Tu es un expert certifié en analyse de bulletins de soins tunisiens, 
       spécialisé dans la détection de fraude documentaire et la vérification de conformité.
 
-      Tu analyses entre 1 et 5 documents (images ou PDFs) transmis simultanément.
-      Pour tout les documents, produis un seul et unique objet JSON.
+      Tu analyses entre 1 et 10 documents (images ou PDFs) transmis simultanément.
+      ⚠️ IMPORTANT :
+          Même si plusieurs fichiers sont fournis, tu dois TOUJOURS produire UN SEUL ET UNIQUE OBJET JSON GLOBAL.
+          Il est STRICTEMENT INTERDIT de retourner :
+          - un tableau JSON
+          - plusieurs objets JSON
+          - une structure du type "documents": []
+
+
+      Tous les fichiers doivent être fusionnés dans une structure unique :
+        - fusionner tous les actes dans un seul tableau "actes"
+        - fusionner tous les médicaments dans "pharmacie.medicaments"
+        - calculer un seul "montant_total" global
+        - fusionner toutes les anomalies dans "resultat_analyse"
+        - fusionner tous les champs manquants dans "champs_manquants"
+
 
       ========================
       📌 RÈGLES FONDAMENTALES
@@ -78,10 +92,13 @@ const analyzeBulletin = async (req, res) => {
 
       1. N'extraire que les données VISIBLES dans le document.
       2. Ne jamais inventer, compléter ou déduire une donnée absente.
-      3. Champ absent → null (jamais "" sauf pour les chaînes explicitement vides).
-      4. Si le document est illisible, renvoyer : { "erreur": "document_illisible", "Numero_de_fichier_analyser": N }
-      5. Si le document n'est pas un bulletin de soins, renvoyer : { "erreur": "non_medical", "Numero_de_fichier_analyser": N }
-      4. Formats obligatoires : dates → YYYY-MM-DD | montants → float | noms → MAJUSCULES sans accents superflus.
+      3. Champ absent String -> "", Numbre -> 0, Booleen -> null.
+      4. Si un document est illisible :
+      - continuer l'analyse des autres fichiers
+      - ajouter dans "resultat_analyse"
+      - diminuer "confiance_score"
+      5. Si le document n'est pas un bulletin de soins, renvoyer : { "est_document_medical": "false" }
+      6. Formats obligatoires : dates → YYYY-MM-DD | montants → float | noms → MAJUSCULES sans accents superflus.
 
       ========================
       📌 TYPES DE FICHIERS ACCEPTÉS
@@ -131,17 +148,18 @@ const analyzeBulletin = async (req, res) => {
       - est_cachet / est_signature : true/false
       - date_cachet_signature : si distincte de date_acte
       - prestataire_detecté : true/false
-      - prestataire : { nom, telephone, adresse }
+      - prestataire : { nom, telephone, adresse, identifiant_unique_mf, specialité, gsm }
 
       ⚠️ Plusieurs actes possibles par bulletin → tableau "actes" obligatoire, même pour 1 seul acte.
 
       --- F. PHARMACIE ---
-      Détecter si une ordonnance/pharmacie est jointe :
+      Détecter si des informations pharmacie est detecté :
       - Si oui : renseigner le bloc "pharmacie" complet
       - Pour chaque médicament : nom, dosage, quantité, prix unitaire, montant total
+      - Et les information de pharmacie dans le objet JSON
 
       --- G. MONTANT ---
-      - montant_total = somme de tous les honoraires des actes
+      - montant_total = somme de tous les honoraires des actes et medicaments(pharmacie)
       - Si un total imprimé est visible ET diffère du calcul → signaler en "resultat_analyse"
 
       ========================
@@ -166,7 +184,7 @@ const analyzeBulletin = async (req, res) => {
       Retourner :
       - suspicion_locale : true/false
       - niveau_risque : "faible" | "moyen" | "élevé"
-      - resultat_analyse : description précise des anomalies détectées
+      - resultat_analyse : "Un message clair et bien structuré (en utilisant des sauts de lignes, des puces `-` et des emojis) décrivant le bilan de l'analyse, les anomalies ou la conformité du bulletin."
 
       ========================
       📊 NORMALISATION
@@ -176,7 +194,6 @@ const analyzeBulletin = async (req, res) => {
       - Montants → float (ex : 45.500 → 45.5)
       - Noms → MAJUSCULES, espaces normalisés
       - Numéros de téléphone → format +216 XX XXX XXX si détecté
-      - MF → conserver tel quel, noter si format inhabituel
 
       ========================
       📦 FORMAT JSON OBLIGATOIRE
@@ -199,10 +216,8 @@ const analyzeBulletin = async (req, res) => {
         "Anesthésie": ["ANE"]
       };
 
-      // Réponse
-      {
-      "erreur": null,                           // "document_illisible" | "non_medical" | null
-
+      // Réponse ne retourne pas un tableau retourner un seul objet json pour tous les documents comme le structure au dessus
+      { 
       "est_document_medical": true,
 
       "numero_bulletin": ",
@@ -229,9 +244,14 @@ const analyzeBulletin = async (req, res) => {
         "est_signature": false,
         "date": "",
         "montant_pharmacie": 0, // Récupérer le montant depuis la section pharmacie ou calculer le total des médicaments
-        "nom": "",
-        "telephone": "",
-        "adresse": "",
+        "prestataire": { 
+                "identifiant_unique_mf": '',
+                "nom": '',
+                "telephone": '',
+                "adresse": '',
+                "specialité": '',
+                "gsm": '',
+            },
         "medicaments": [
           {
             "nom_medicament": "",
@@ -256,11 +276,13 @@ const analyzeBulletin = async (req, res) => {
           "est_signature": false,
           "date_cachet_signature": "",
           "nb_jour": 0,           // Hospitalisation (tous les codes, couveuse : max 15 jours) et Divers (code cure thermale uniquement : max 21 jours) : calcul du montant limité au maximum autorisé
-          "prestataire": { // null si n'est pas detecté
+          "prestataire": {
             "identifiant_unique_mf": "",
             "nom": "",
             "telephone": "",
-            "adresse": ""
+            "adresse": "",
+            "specialité": "",
+            "gsm": "",
           }
         }
       ],

@@ -457,9 +457,9 @@ const AdminDashboard = ({ mode = 'all' }) => {
                                                         >
                                                             <Info size={14} />
                                                         </button>
-                                                        <div className="w-px h-6 bg-slate-100 dark:bg-slate-800" />
-                                                        {currentUser?.role === 'RESPONSABLE_RH' && user.id !== currentUser.id && (
+                                                        {['RESPONSABLE_RH', 'SUPER_ADMIN'].includes(currentUser?.role) && user.id !== currentUser.id && (
                                                             <>
+                                                                <div className="w-px h-6 bg-slate-100 dark:bg-slate-800" />
                                                                 {user.statut === 0 && (
                                                                     <>
                                                                         <button
@@ -496,14 +496,18 @@ const AdminDashboard = ({ mode = 'all' }) => {
                                                                         <UserCheck size={14} />
                                                                     </button>
                                                                 )}
-                                                                <div className="w-px h-6 bg-slate-100 dark:bg-slate-800" />
-                                                                <button
-                                                                    className="p-2.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-xl hover:bg-purple-600 hover:text-white transition-all shadow-sm"
-                                                                    onClick={() => handleRoleChange(user.id, user.role)}
-                                                                    title="Changer rôle"
-                                                                >
-                                                                    <Edit size={14} />
-                                                                </button>
+                                                                {currentUser?.role === 'SUPER_ADMIN' && (
+                                                                    <>
+                                                                        <div className="w-px h-6 bg-slate-100 dark:bg-slate-800" />
+                                                                        <button
+                                                                            className="p-2.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-xl hover:bg-purple-600 hover:text-white transition-all shadow-sm"
+                                                                            onClick={() => handleRoleChange(user.id, user.role)}
+                                                                            title="Changer rôle"
+                                                                        >
+                                                                            <Edit size={14} />
+                                                                        </button>
+                                                                    </>
+                                                                )}
                                                             </>
                                                         )}
                                                         {/* Simple visual indicator for self */}

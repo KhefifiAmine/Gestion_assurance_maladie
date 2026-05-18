@@ -42,6 +42,33 @@ class ConsumptionService {
             await globalCons.update({ montant_consomme: nouveauGlobal });
         }
     }
+    /**
+     * Soustrait (retire) le montant consommé pour une catégorie donnée
+     * Utilisé lors d'un rejet, suppression ou mise à jour
+     */
+    static async removeConsumption(maladieId, annee, categorie, montant) {
+        if (montant <= 0) return;
+
+        const consumption = await MaladieConsumption.findOne({
+            where: { maladieId, annee, categorie }
+        });
+
+        if (consumption) {
+            const nouveauMontant = Math.max(0, Number(consumption.montant_consomme) - Number(montant));
+            await consumption.update({ montant_consomme: nouveauMontant });
+        }
+
+        // Mise à jour automatique du plafond GLOBAL
+        if (categorie !== 'GLOBAL') {
+            const globalCons = await MaladieConsumption.findOne({
+                where: { maladieId, annee, categorie: 'GLOBAL' }
+            });
+            if (globalCons) {
+                const nouveauGlobal = Math.max(0, Number(globalCons.montant_consomme) - Number(montant));
+                await globalCons.update({ montant_consomme: nouveauGlobal });
+            }
+        }
+    }
 }
 
 module.exports = ConsumptionService;

@@ -8,7 +8,7 @@ const FraudAlert = sequelize.define('FraudAlert', {
         primaryKey: true
     },
     entity_type: {
-        type: DataTypes.ENUM('medecin', 'adherent', 'pharmacie'),
+        type: DataTypes.ENUM('prestataire', 'adherent'),
         allowNull: false
     },
     entity_id: {

@@ -164,6 +164,14 @@ const ActeItem = memo(({ acte, index, onUpdate, onRemove, structure }) => (
                 <input placeholder="Adresse" className="w-full p-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white" value={acte.prestataire?.adresse || ''} onChange={e => onUpdate(index, { prestataire: { ...(acte.prestataire || {}), adresse: e.target.value } })} />
             </FormField>
 
+            <FormField label="Spécialité">
+                <input placeholder="Spécialité" className="w-full p-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white" value={acte.prestataire?.specialite || ''} onChange={e => onUpdate(index, { prestataire: { ...(acte.prestataire || {}), specialite: e.target.value } })} />
+            </FormField>
+
+            <FormField label="GSM">
+                <input placeholder="GSM" className="w-full p-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white" value={acte.prestataire?.gsm || ''} onChange={e => onUpdate(index, { prestataire: { ...(acte.prestataire || {}), gsm: e.target.value } })} />
+            </FormField>
+
             <FormField label="Nb Jours">
                 <input type="number" placeholder="Ex: 5" className="w-full p-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white" value={acte.nb_jour || ''} onChange={e => onUpdate(index, { nb_jour: Number(e.target.value) })} />
             </FormField>
@@ -268,6 +276,14 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
         pharmacie_detecte: false,
         pharmacie: {
             identifiant_unique_mf: '',
+            prestataire: {
+                identifiant_unique_mf: '',
+                nom: '',
+                telephone: '',
+                adresse: '',
+                specialite: '',
+                gsm: ''
+            },
             est_cachet: false,
             est_signature: false,
             date: '',
@@ -305,9 +321,19 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
                 const mappedData = {
                     ...initialFormState,
                     ...initialData,
+                    nom_prenom_malade: initialData.beneficiaire ? `${initialData.beneficiaire.prenom} ${initialData.beneficiaire.nom}`.trim() : initialData.nom_prenom_malade || '',
+                    date_naissance_malade: initialData.beneficiaire?.ddn || initialData.date_naissance_malade || '',
                     pharmacie_detecte: !!initialData.pharmacie,
                     pharmacie: initialData.pharmacie ? {
                         identifiant_unique_mf: initialData.pharmacie.identifiant_unique_mf || '',
+                        prestataire: {
+                            identifiant_unique_mf: initialData.pharmacie.prestataire?.identifiant_unique_mf || initialData.pharmacie.identifiant_unique_mf || '',
+                            nom: initialData.pharmacie.prestataire?.nom || initialData.pharmacie.nom || '',
+                            telephone: initialData.pharmacie.prestataire?.telephone || initialData.pharmacie.telephone || '',
+                            adresse: initialData.pharmacie.prestataire?.adresse || initialData.pharmacie.adresse || '',
+                            specialite: initialData.pharmacie.prestataire?.specialite || '',
+                            gsm: initialData.pharmacie.prestataire?.gsm || ''
+                        },
                         est_cachet: !!initialData.pharmacie.est_cachet,
                         est_signature: !!initialData.pharmacie.est_signature,
                         date: initialData.pharmacie.date || initialData.pharmacie.date_achat || '',
@@ -315,6 +341,14 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
                         medicaments: initialData.pharmacie.medicaments || []
                     } : {
                         identifiant_unique_mf: '',
+                        prestataire: {
+                            identifiant_unique_mf: '',
+                            nom: '',
+                            telephone: '',
+                            adresse: '',
+                            specialite: '',
+                            gsm: ''
+                        },
                         est_cachet: false,
                         est_signature: false,
                         date: '',
@@ -400,7 +434,15 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
                         montant_total: Number(( (Number(m.quantite) || 1) * (Number(m.prix_unitaire) || 0) ).toFixed(3))
                     })) : [];
                     return {
-                        identifiant_unique_mf: cleanIAValue(aiData.pharmacie.identifiant_unique_mf) || '',
+                        identifiant_unique_mf: cleanIAValue(aiData.pharmacie.prestataire?.identifiant_unique_mf || aiData.pharmacie.identifiant_unique_mf) || '',
+                        prestataire: {
+                            identifiant_unique_mf: cleanIAValue(aiData.pharmacie.prestataire?.identifiant_unique_mf || aiData.pharmacie.identifiant_unique_mf) || '',
+                            nom: cleanIAValue(aiData.pharmacie.prestataire?.nom || aiData.pharmacie.nom) || '',
+                            telephone: cleanIAValue(aiData.pharmacie.prestataire?.telephone || aiData.pharmacie.telephone) || '',
+                            adresse: cleanIAValue(aiData.pharmacie.prestataire?.adresse || aiData.pharmacie.adresse) || '',
+                            specialite: cleanIAValue(aiData.pharmacie.prestataire?.specialite || aiData.pharmacie.prestataire?.specialité) || '',
+                            gsm: cleanIAValue(aiData.pharmacie.prestataire?.gsm) || ''
+                        },
                         est_cachet: !!aiData.pharmacie.est_cachet,
                         est_signature: !!aiData.pharmacie.est_signature,
                         date: formatDateForInput(aiData.pharmacie.date) || '',
@@ -416,10 +458,12 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
                     numero_dent: cleanIAValue(a.numero_dent) || '',
                     honoraires: Number(a.honoraires) || 0,
                     prestataire: {
-                        identifiant_unique_mf: cleanIAValue(a.identifiant_unique_mf) || '',
-                        nom: cleanIAValue(a.nom_prestataire) || '',
-                        telephone: cleanIAValue(a.telephone_prestataire) || '',
-                        adresse: cleanIAValue(a.adresse_prestataire) || ''
+                        identifiant_unique_mf: cleanIAValue(a.prestataire?.identifiant_unique_mf || a.identifiant_unique_mf) || '',
+                        nom: cleanIAValue(a.prestataire?.nom || a.nom_prestataire) || '',
+                        telephone: cleanIAValue(a.prestataire?.telephone || a.telephone_prestataire) || '',
+                        adresse: cleanIAValue(a.prestataire?.adresse || a.adresse_prestataire) || '',
+                        specialite: cleanIAValue(a.prestataire?.specialite || a.prestataire?.specialité) || '',
+                        gsm: cleanIAValue(a.prestataire?.gsm) || ''
                     },
                     est_cachet: !!a.est_cachet,
                     est_signature: !!a.est_signature,
@@ -458,7 +502,9 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
                     identifiant_unique_mf: '',
                     nom: '',
                     telephone: '',
-                    adresse: ''
+                    adresse: '',
+                    specialite: '',
+                    gsm: ''
                 },
                 est_cachet: false, 
                 est_signature: false, 
@@ -763,9 +809,9 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
                                                                         const isTitulaire = user && `${user.prenom} ${user.nom}`.toLowerCase() === lowerValue;
                                                                         
                                                                         if (matchedBeneficiary) {
-                                                                            setFormData({ ...formData, nom_prenom_malade: value, qualite_malade: matchedBeneficiary.relation, beneficiaireId: matchedBeneficiary.id });
+                                                                            setFormData({ ...formData, nom_prenom_malade: value, qualite_malade: matchedBeneficiary.relation, beneficiaireId: matchedBeneficiary.id, date_naissance_malade: matchedBeneficiary.ddn });
                                                                         } else if (isTitulaire) {
-                                                                            setFormData({ ...formData, nom_prenom_malade: value, qualite_malade: 'Titulaire', beneficiaireId: null });
+                                                                            setFormData({ ...formData, nom_prenom_malade: value, qualite_malade: 'Titulaire', beneficiaireId: null, date_naissance_malade: user.ddn });
                                                                         } else {
                                                                             setFormData({ ...formData, nom_prenom_malade: value });
                                                                         }
@@ -779,12 +825,12 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
                                                             <div className="absolute z-50 w-full mt-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
                                                                 <div className="p-2 bg-slate-50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-700"><p className="text-[10px] font-black text-slate-400 uppercase px-2">Choisissez un bénéficiaire</p></div>
                                                                 <div className="max-h-60 overflow-y-auto">
-                                                                    <button type="button" className="w-full p-3 text-left hover:bg-purple-50 dark:hover:bg-purple-900/20 flex items-center gap-3 transition-colors border-b border-slate-50 dark:border-slate-700/50" onClick={() => { setFormData({ ...formData, nom_prenom_malade: `${user.prenom} ${user.nom}`, qualite_malade: 'Titulaire', beneficiaireId: null }); setIsBeneficiaryDropdownOpen(false); }}>
+                                                                    <button type="button" className="w-full p-3 text-left hover:bg-purple-50 dark:hover:bg-purple-900/20 flex items-center gap-3 transition-colors border-b border-slate-50 dark:border-slate-700/50" onClick={() => { setFormData({ ...formData, nom_prenom_malade: `${user.prenom} ${user.nom}`, qualite_malade: 'Titulaire', beneficiaireId: null, date_naissance_malade: user.ddn }); setIsBeneficiaryDropdownOpen(false); }}>
                                                                         <div className="p-2 bg-purple-100 dark:bg-purple-900 text-purple-600 rounded-lg"><User size={14} /></div>
                                                                         <div><p className="text-sm font-bold dark:text-white">{user.prenom} {user.nom}</p><p className="text-[10px] text-slate-500 uppercase font-bold">Titulaire (Adhérent)</p></div>
                                                                     </button>
                                                                     {beneficiaries.map(b => (
-                                                                        <button key={b.id} type="button" className="w-full p-3 text-left hover:bg-purple-50 dark:hover:bg-purple-900/20 flex items-center gap-3 transition-colors border-b border-slate-50 dark:border-slate-700/50" onClick={() => { setFormData({ ...formData, nom_prenom_malade: `${b.prenom} ${b.nom}`, qualite_malade: b.relation, beneficiaireId: b.id }); setIsBeneficiaryDropdownOpen(false); }}>
+                                                                        <button key={b.id} type="button" className="w-full p-3 text-left hover:bg-purple-50 dark:hover:bg-purple-900/20 flex items-center gap-3 transition-colors border-b border-slate-50 dark:border-slate-700/50" onClick={() => { setFormData({ ...formData, nom_prenom_malade: `${b.prenom} ${b.nom}`, qualite_malade: b.relation, beneficiaireId: b.id, date_naissance_malade: b.ddn }); setIsBeneficiaryDropdownOpen(false); }}>
                                                                             <div className="p-2 bg-blue-100 dark:bg-blue-900 text-blue-600 rounded-lg"><Users size={14} /></div>
                                                                             <div><p className="text-sm font-bold dark:text-white">{b.prenom} {b.nom}</p><p className="text-[10px] text-slate-500 uppercase font-bold">{b.relation}</p></div>
                                                                         </button>
@@ -799,7 +845,7 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
                                                 </FormField>
 
                                                 <FormField label="Date de naissance">
-                                                    <input type="date" className="w-full p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-sm dark:text-white" value={formData.date_naissance_malade} onChange={e => setFormData({ ...formData, date_naissance_malade: e.target.value })} />
+                                                    <input type="date" className="w-full p-3 bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-sm dark:text-slate-400" value={formData.date_naissance_malade} readOnly />
                                                 </FormField>
 
                                                 <FormField label="Date de Soin">
@@ -843,7 +889,22 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
                                                     <div className="p-6 bg-blue-50/30 dark:bg-blue-900/10 rounded-2xl border border-blue-100 dark:border-blue-800 space-y-4 animate-in zoom-in-95 duration-200">
                                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                             <FormField label="MF Pharmacie">
-                                                                <input className="w-full p-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white" value={formData.pharmacie.identifiant_unique_mf} onChange={e => setFormData({ ...formData, pharmacie: { ...formData.pharmacie, identifiant_unique_mf: e.target.value } })} />
+                                                                <input placeholder="MF Pharmacie" className="w-full p-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white" value={formData.pharmacie.prestataire?.identifiant_unique_mf || formData.pharmacie.identifiant_unique_mf || ''} onChange={e => setFormData({ ...formData, pharmacie: { ...formData.pharmacie, identifiant_unique_mf: e.target.value, prestataire: { ...(formData.pharmacie.prestataire || {}), identifiant_unique_mf: e.target.value } } })} />
+                                                            </FormField>
+                                                            <FormField label="Nom Pharmacie">
+                                                                <input placeholder="Nom Pharmacie" className="w-full p-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white" value={formData.pharmacie.prestataire?.nom || ''} onChange={e => setFormData({ ...formData, pharmacie: { ...formData.pharmacie, prestataire: { ...(formData.pharmacie.prestataire || {}), nom: e.target.value } } })} />
+                                                            </FormField>
+                                                            <FormField label="Téléphone Pharmacie">
+                                                                <input placeholder="Téléphone Pharmacie" className="w-full p-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white" value={formData.pharmacie.prestataire?.telephone || ''} onChange={e => setFormData({ ...formData, pharmacie: { ...formData.pharmacie, prestataire: { ...(formData.pharmacie.prestataire || {}), telephone: e.target.value } } })} />
+                                                            </FormField>
+                                                            <FormField label="Adresse Pharmacie">
+                                                                <input placeholder="Adresse Pharmacie" className="w-full p-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white" value={formData.pharmacie.prestataire?.adresse || ''} onChange={e => setFormData({ ...formData, pharmacie: { ...formData.pharmacie, prestataire: { ...(formData.pharmacie.prestataire || {}), adresse: e.target.value } } })} />
+                                                            </FormField>
+                                                            <FormField label="Spécialité">
+                                                                <input placeholder="Spécialité (ex: Pharmacien)" className="w-full p-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white" value={formData.pharmacie.prestataire?.specialite || ''} onChange={e => setFormData({ ...formData, pharmacie: { ...formData.pharmacie, prestataire: { ...(formData.pharmacie.prestataire || {}), specialite: e.target.value } } })} />
+                                                            </FormField>
+                                                            <FormField label="GSM Pharmacie">
+                                                                <input placeholder="GSM Pharmacie" className="w-full p-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white" value={formData.pharmacie.prestataire?.gsm || ''} onChange={e => setFormData({ ...formData, pharmacie: { ...formData.pharmacie, prestataire: { ...(formData.pharmacie.prestataire || {}), gsm: e.target.value } } })} />
                                                             </FormField>
                                                             <FormField label="Total Pharmacie (TND)">
                                                                 <input type="number" step="0.001" className="w-full p-2 text-xs bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-blue-400 font-black cursor-not-allowed" value={formData.pharmacie.montant_pharmacie} readOnly />

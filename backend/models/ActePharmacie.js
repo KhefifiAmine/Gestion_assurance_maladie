@@ -1,7 +1,7 @@
 const { Sequelize, DataTypes } = require('sequelize');
 const sequelize = require('../src/config/db');
 
-const Pharmacie = sequelize.define('Pharmacie', {
+const ActePharmacie = sequelize.define('ActePharmacie', {
     id: {
         type: DataTypes.INTEGER,
         autoIncrement: true,
@@ -15,21 +15,17 @@ const Pharmacie = sequelize.define('Pharmacie', {
             key: 'id'
         }
     },
-    nom: {
-        type: DataTypes.STRING,
-        allowNull: true
-    },
-    telephone: {
-        type: DataTypes.STRING,
-        allowNull: true
-    },
-    adresse: {
-        type: DataTypes.STRING,
-        allowNull: true
-    },
     identifiant_unique_mf: {
         type: DataTypes.STRING,
         allowNull: true
+    },
+    prestataireId: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        references: {
+            model: 'prestataires',
+            key: 'id'
+        }
     },
     est_cachet: {
         type: DataTypes.BOOLEAN,
@@ -60,8 +56,8 @@ const Pharmacie = sequelize.define('Pharmacie', {
         defaultValue: 0.0
     }
 }, {
-    tableName: 'pharmacies',
+    tableName: 'actePharmacies',
     timestamps: true
 });
 
-module.exports = Pharmacie;
+module.exports = ActePharmacie;

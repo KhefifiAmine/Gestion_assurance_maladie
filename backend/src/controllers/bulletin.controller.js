@@ -2,12 +2,29 @@ const path = require('path');
 const fs = require('fs');
 const { Op } = require('sequelize');
 const { PDFDocument, rgb } = require('pdf-lib');
-const { BulletinSoin, ActeMedical, Pharmacie, Medicament, User, DocumentJustificatif, Beneficiary, Notification, sequelize, Prestataire, FraudAlert } = require('../../models');
+const { BulletinSoin, ActeMedical, ActePharmacie, Medicament, User, DocumentJustificatif, Beneficiary, Notification, sequelize, Prestataire, FraudAlert } = require('../../models');
 const { sendNotificationEmail } = require('../utils/emailService');
 const FraudService = require('../services/fraud.service');
 const { resolvePatientForBulletin } = require('../utils/validationPatientBulletin');
 const { calculeRemboursementActe, calculeRemboursementPharmacie } = require('../services/reimbursement/calculerReimbursement');
 const { verifyBulletinWithAI } = require('../services/ai.service');
+const ConsumptionService = require('../services/reimbursement/ConsumptionService');
+const RulesEngine = require('../services/reimbursement/RulesEngine');
+const ReimbursementService = require('../services/reimbursement/ReimbursementServices');
+
+const cleanupFiles = (files) => {
+    if (files && Array.isArray(files)) {
+        files.forEach(file => {
+            if (fs.existsSync(file.path)) {
+                try {
+                    fs.unlinkSync(file.path);
+                } catch (e) {
+                    console.error("Erreur suppression fichier:", e);
+                }
+            }
+        });
+    }
+};
 
 const createBulletin = async (req, res) => {
 
@@ -46,6 +63,7 @@ const createBulletin = async (req, res) => {
 
         if (soinDate < date60DaysAgo) {
             await t.rollback();
+            cleanupFiles(req.files);
 
             return res.status(400).json({
                 message: 'Tu as passé la limite de dépôt de bulletin',
@@ -59,6 +77,7 @@ const createBulletin = async (req, res) => {
 
         if (patient.error) {
             await t.rollback();
+            cleanupFiles(req.files);
             return res.status(patient.error.status)
                 .json({ message: patient.error.message });
         }
@@ -118,7 +137,12 @@ const createBulletin = async (req, res) => {
             if (!prestataire) {
                 prestataire = await Prestataire.create(
                     {
-                        ...acte.prestataire
+                        identifiant_unique_mf: acte.prestataire.identifiant_unique_mf,
+                        nom: acte.prestataire.nom || null,
+                        telephone: acte.prestataire.telephone || null,
+                        adresse: acte.prestataire.adresse || null,
+                        specialite: acte.prestataire.specialite || acte.prestataire.specialité || null,
+                        gsm: acte.prestataire.gsm || null
                     },
                     { transaction: t }
                 );
@@ -136,9 +160,52 @@ const createBulletin = async (req, res) => {
         }
 
         if (pharmacieCalculee) {
+            let prestataireId = null;
 
-            const pharm = await Pharmacie.create({
+            if (pharmacieCalculee.prestataire && pharmacieCalculee.prestataire.identifiant_unique_mf) {
+                const mf = pharmacieCalculee.prestataire.identifiant_unique_mf;
+                let prestataire = await Prestataire.findOne({
+                    where: { identifiant_unique_mf: mf },
+                    transaction: t
+                });
+
+                if (!prestataire) {
+                    prestataire = await Prestataire.create(
+                        {
+                            identifiant_unique_mf: pharmacieCalculee.prestataire.identifiant_unique_mf,
+                            nom: pharmacieCalculee.prestataire.nom || null,
+                            telephone: pharmacieCalculee.prestataire.telephone || null,
+                            adresse: pharmacieCalculee.prestataire.adresse || null,
+                            specialite: pharmacieCalculee.prestataire.specialite || pharmacieCalculee.prestataire.specialité || null,
+                            gsm: pharmacieCalculee.prestataire.gsm || null
+                        },
+                        { transaction: t }
+                    );
+                }
+                prestataireId = prestataire.id;
+            } else if (pharmacieCalculee.identifiant_unique_mf) {
+                let prestataire = await Prestataire.findOne({
+                    where: { identifiant_unique_mf: pharmacieCalculee.identifiant_unique_mf },
+                    transaction: t
+                });
+
+                if (!prestataire) {
+                    prestataire = await Prestataire.create({
+                        identifiant_unique_mf: pharmacieCalculee.identifiant_unique_mf,
+                        nom: pharmacieCalculee.nom || null,
+                        telephone: pharmacieCalculee.telephone || null,
+                        adresse: pharmacieCalculee.adresse || null,
+                        specialite: pharmacieCalculee.specialite || null,
+                        gsm: pharmacieCalculee.gsm || null
+                    }, { transaction: t });
+                }
+                prestataireId = prestataire.id;
+            }
+
+            const pharm = await ActePharmacie.create({
                 ...pharmacieCalculee,
+                identifiant_unique_mf: pharmacieCalculee.prestataire?.identifiant_unique_mf || pharmacieCalculee.identifiant_unique_mf,
+                prestataireId,
                 bulletinId: bulletin.id
             }, { transaction: t });
 
@@ -171,10 +238,12 @@ const createBulletin = async (req, res) => {
                 const finalResultatAnalyse = payload.resultat_analyse
                     ? `${payload.resultat_analyse} | Vérification IA: ${aiVerification.resultat_analyse}`
                     : `Vérification IA: ${aiVerification.resultat_analyse}`;
+                const finalConfiance_score = aiVerification.confiance_score || payload.confiance_score || bulletin.confiance_score || 100;
 
                 await BulletinSoin.update({
                     niveauRisque: finalNiveauRisque,
-                    resultat_analyse: finalResultatAnalyse
+                    resultat_analyse: finalResultatAnalyse,
+                    confiance_score: finalConfiance_score
                 }, {
                     where: { id: bulletin.id }
                 });
@@ -189,7 +258,7 @@ const createBulletin = async (req, res) => {
         const loadedBulletin = await BulletinSoin.findByPk(bulletin.id, {
             include: [
                 { model: ActeMedical, as: 'actes', include: [{ model: Prestataire, as: 'prestataire' }] },
-                { model: Pharmacie, as: 'pharmacie', include: [{ model: Medicament, as: 'medicaments' }] },
+                { model: ActePharmacie, as: 'pharmacie', include: [{ model: Medicament, as: 'medicaments' }, { model: Prestataire, as: 'prestataire' }] },
                 { model: DocumentJustificatif, as: 'documents' },
                 { model: Beneficiary, as: 'beneficiaire', required: false }
             ]
@@ -202,6 +271,7 @@ const createBulletin = async (req, res) => {
 
     } catch (error) {
         await t.rollback();
+        cleanupFiles(req.files);
 
         console.error(error);
 
@@ -221,9 +291,21 @@ const updateBulletin = async (req, res) => {
 
         const bulletin = await BulletinSoin.findByPk(id, { transaction: t });
 
-        if (!bulletin) throw new Error('Bulletin non trouvé');
-        if (bulletin.userId !== userId) throw new Error('Accès non autorisé');
-        if (bulletin.adminId) throw new Error('Impossible de modifier un bulletin déjà pris en charge');
+        if (!bulletin) {
+            await t.rollback();
+            cleanupFiles(req.files);
+            return res.status(404).json({ message: 'Bulletin non trouvé' });
+        }
+        if (bulletin.userId !== userId) {
+            await t.rollback();
+            cleanupFiles(req.files);
+            return res.status(403).json({ message: 'Accès non autorisé' });
+        }
+        if (bulletin.adminId) {
+            await t.rollback();
+            cleanupFiles(req.files);
+            return res.status(400).json({ message: 'Impossible de modifier un bulletin déjà pris en charge' });
+        }
 
         const patientKeysTouched = ['qualite_malade', 'nom_prenom_malade', 'nom_prenom_adherent', 'beneficiaireId', 'matricule_adherent', 'date_naissance_malade']
             .some((k) => payload[k] !== undefined);
@@ -237,7 +319,11 @@ const updateBulletin = async (req, res) => {
                 ...payload
             };
             const patient = await resolvePatientForBulletin(userId, mergedPatientBody);
-            if (patient.error) throw new Error(patient.error.message);
+            if (patient.error) {
+                await t.rollback();
+                cleanupFiles(req.files);
+                return res.status(patient.error.status).json({ message: patient.error.message });
+            }
             resolvedBeneficiaireId = patient.beneficiaireId;
             resolvedQualite = patient.qualite_malade;
         }
@@ -283,11 +369,27 @@ const updateBulletin = async (req, res) => {
         // Gérer le recalcul du remboursement si actes ou pharmacie changent
         if (payload.actes !== undefined || payload.pharmacie !== undefined) {
             const currentActes = await ActeMedical.findAll({ where: { bulletinId: id }, transaction: t });
-            const currentPharm = await Pharmacie.findOne({
+            const currentPharm = await ActePharmacie.findOne({
                 where: { bulletinId: id },
                 include: [{ model: Medicament, as: 'medicaments' }],
                 transaction: t
             });
+
+            // 🔥 Revert all existing consumptions for this bulletin before recalculating
+            const annee = ReimbursementService.getAnnee(bulletin.date_soin);
+            for (const a of currentActes) {
+                if (a.montant_remboursement > 0) {
+                    const cat = RulesEngine.getPlafondCategory(a);
+                    await ConsumptionService.removeConsumption(bulletin.beneficiaireId, annee, cat, a.montant_remboursement);
+                }
+            }
+            if (currentPharm && currentPharm.medicaments) {
+                for (const m of currentPharm.medicaments) {
+                    if (m.montant_remboursement > 0) {
+                        await ConsumptionService.removeConsumption(bulletin.beneficiaireId, annee, 'PHARMACIE', m.montant_remboursement);
+                    }
+                }
+            }
 
             // Déterminer les données à utiliser pour le calcul
             const actesToCalc = payload.actes !== undefined ? payload.actes : currentActes.map(a => a.toJSON());
@@ -297,8 +399,8 @@ const updateBulletin = async (req, res) => {
             const pharmaDetecte = payload.pharmacie_detecte !== undefined ? payload.pharmacie_detecte : !!pharmacieToCalc;
 
             // Calculer les remboursements séparément
-            const resultActe = calculeRemboursementActe(actesToCalc);
-            const resultPharmacie = calculeRemboursementPharmacie(pharmacieToCalc, pharmaDetecte);
+            const resultActe = await calculeRemboursementActe(actesToCalc, resolvedBeneficiaireId, bulletin.date_soin);
+            const resultPharmacie = await calculeRemboursementPharmacie(pharmacieToCalc, pharmaDetecte, resolvedBeneficiaireId, bulletin.date_soin);
 
             // Mise à jour du montant total remboursé
             updateData.montant_total_remboursé = Number((resultActe.totalActeRemboursement + resultPharmacie.totalPharmacieRemboursement).toFixed(3));
@@ -332,15 +434,63 @@ const updateBulletin = async (req, res) => {
             // Si la pharmacie a été fournie, on utilise aussi l'Upsert
             if (payload.pharmacie !== undefined) {
                 if (resultPharmacie.pharmacie) {
+                    let prestataireId = null;
+
+                    if (resultPharmacie.pharmacie.prestataire && resultPharmacie.pharmacie.prestataire.identifiant_unique_mf) {
+                        const mf = resultPharmacie.pharmacie.prestataire.identifiant_unique_mf;
+                        let prestataire = await Prestataire.findOne({
+                            where: { identifiant_unique_mf: mf },
+                            transaction: t
+                        });
+
+                        if (!prestataire) {
+                            prestataire = await Prestataire.create(
+                                {
+                                    identifiant_unique_mf: resultPharmacie.pharmacie.prestataire.identifiant_unique_mf,
+                                    nom: resultPharmacie.pharmacie.prestataire.nom || null,
+                                    telephone: resultPharmacie.pharmacie.prestataire.telephone || null,
+                                    adresse: resultPharmacie.pharmacie.prestataire.adresse || null,
+                                    specialite: resultPharmacie.pharmacie.prestataire.specialite || resultPharmacie.pharmacie.prestataire.specialité || null,
+                                    gsm: resultPharmacie.pharmacie.prestataire.gsm || null
+                                },
+                                { transaction: t }
+                            );
+                        }
+                        prestataireId = prestataire.id;
+                    } else if (resultPharmacie.pharmacie.identifiant_unique_mf) {
+                        let prestataire = await Prestataire.findOne({
+                            where: { identifiant_unique_mf: resultPharmacie.pharmacie.identifiant_unique_mf },
+                            transaction: t
+                        });
+
+                        if (!prestataire) {
+                            prestataire = await Prestataire.create({
+                                identifiant_unique_mf: resultPharmacie.pharmacie.identifiant_unique_mf,
+                                nom: resultPharmacie.pharmacie.nom || null,
+                                telephone: resultPharmacie.pharmacie.telephone || null,
+                                adresse: resultPharmacie.pharmacie.adresse || null,
+                                specialite: resultPharmacie.pharmacie.specialite || null,
+                                gsm: resultPharmacie.pharmacie.gsm || null
+                            }, { transaction: t });
+                        }
+                        prestataireId = prestataire.id;
+                    }
+
+                    const pharmData = {
+                        ...resultPharmacie.pharmacie,
+                        identifiant_unique_mf: resultPharmacie.pharmacie.prestataire?.identifiant_unique_mf || resultPharmacie.pharmacie.identifiant_unique_mf,
+                        prestataireId
+                    };
+
                     // Trouver ou créer la pharmacie pour ce bulletin
-                    let [pharm, created] = await Pharmacie.findOrCreate({
+                    let [pharm, created] = await ActePharmacie.findOrCreate({
                         where: { bulletinId: id },
-                        defaults: { ...resultPharmacie.pharmacie, bulletinId: id },
+                        defaults: { ...pharmData, bulletinId: id },
                         transaction: t
                     });
 
                     if (!created) {
-                        await pharm.update(resultPharmacie.pharmacie, { transaction: t });
+                        await pharm.update(pharmData, { transaction: t });
                     }
 
                     // Gérer les médicaments (Upsert)
@@ -369,7 +519,7 @@ const updateBulletin = async (req, res) => {
                     }
                 } else {
                     // Si resultPharmacie.pharmacie est null (pharmacie désactivée), on supprime tout
-                    await Pharmacie.destroy({ where: { bulletinId: id }, transaction: t });
+                    await ActePharmacie.destroy({ where: { bulletinId: id }, transaction: t });
                 }
             }
         }
@@ -412,12 +562,14 @@ const updateBulletin = async (req, res) => {
                 const aiVerification = await verifyBulletinWithAI(filesToVerify, payload);
                 const finalNiveauRisque = aiVerification.niveau_risque || payload.niveau_risque || bulletin.niveauRisque || 'faible';
                 const finalResultatAnalyse = payload.resultat_analyse
-                    ? `${payload.resultat_analyse} | Vérification IA: ${aiVerification.resultat_analyse}`
+                    ? `${payload.resultat_analyse}\n \nVérification IA: ${aiVerification.resultat_analyse}`
                     : `Vérification IA: ${aiVerification.resultat_analyse}`;
+                const finalConfiance_score = aiVerification.confiance_score || payload.confiance_score || bulletin.confiance_score || 100;
 
                 await BulletinSoin.update({
                     niveauRisque: finalNiveauRisque,
-                    resultat_analyse: finalResultatAnalyse
+                    resultat_analyse: finalResultatAnalyse,
+                    confiance_score: finalConfiance_score
                 }, {
                     where: { id }
                 });
@@ -431,7 +583,7 @@ const updateBulletin = async (req, res) => {
         const loadedBulletin = await BulletinSoin.findByPk(id, {
             include: [
                 { model: ActeMedical, as: 'actes', include: [{ model: Prestataire, as: 'prestataire' }] },
-                { model: Pharmacie, as: 'pharmacie', include: [{ model: Medicament, as: 'medicaments' }] },
+                { model: ActePharmacie, as: 'pharmacie', include: [{ model: Medicament, as: 'medicaments' }, { model: Prestataire, as: 'prestataire' }] },
                 { model: DocumentJustificatif, as: 'documents' },
                 { model: Beneficiary, as: 'beneficiaire', required: false }
             ]
@@ -441,6 +593,7 @@ const updateBulletin = async (req, res) => {
 
     } catch (error) {
         await t.rollback();
+        cleanupFiles(req.files);
         console.error(error);
         res.status(500).json({ message: 'Erreur lors de la mise à jour', error: error.message });
     }
@@ -469,7 +622,29 @@ const deleteBulletin = async (req, res) => {
             });
         }
 
-        // Récupérer tous les documents associés
+
+        // 🔥 Revert consumption
+        const annee = ReimbursementService.getAnnee(bulletin.date_soin);
+        const actes = await ActeMedical.findAll({ where: { bulletinId: id } });
+        for (const a of actes) {
+            if (a.montant_remboursement > 0) {
+                const cat = RulesEngine.getPlafondCategory(a);
+                await ConsumptionService.removeConsumption(bulletin.beneficiaireId, annee, cat, a.montant_remboursement);
+            }
+        }
+
+        const pharmacies = await ActePharmacie.findAll({ where: { bulletinId: id } });
+        for (const p of pharmacies) {
+            const meds = await Medicament.findAll({ where: { pharmacieId: p.id } });
+            for (const m of meds) {
+                if (m.montant_remboursement > 0) {
+                    await ConsumptionService.removeConsumption(bulletin.beneficiaireId, annee, 'PHARMACIE', m.montant_remboursement);
+                }
+            }
+        }
+
+        // 🔥 Récupérer tous les documents associés
+
         const docs = await DocumentJustificatif.findAll({
             where: { bulletinId: id }
         });
@@ -506,8 +681,8 @@ const getMyBulletins = async (req, res) => {
         const bulletins = await BulletinSoin.findAll({
             where: { userId },
             include: [
-                { model: ActeMedical, as: 'actes' },
-                { model: Pharmacie, as: 'pharmacie', include: [{ model: Medicament, as: 'medicaments' }] },
+                { model: ActeMedical, as: 'actes', include: [{ model: Prestataire, as: 'prestataire' }] },
+                { model: ActePharmacie, as: 'pharmacie', include: [{ model: Medicament, as: 'medicaments' }, { model: Prestataire, as: 'prestataire' }] },
                 { model: DocumentJustificatif, as: 'documents' },
                 { model: Beneficiary, as: 'beneficiaire', attributes: ['id', 'nom', 'prenom', 'relation', 'ddn', 'statut'], required: false }
             ],
@@ -525,8 +700,8 @@ const getAllBulletins = async (req, res) => {
             include: [
                 { model: User, as: 'adherent', attributes: ['id', 'matricule', 'nom', 'prenom', 'email'] },
                 { model: User, as: 'admin', attributes: ['id', 'nom', 'prenom'] },
-                { model: ActeMedical, as: 'actes' },
-                { model: Pharmacie, as: 'pharmacie', include: [{ model: Medicament, as: 'medicaments' }] },
+                { model: ActeMedical, as: 'actes', include: [{ model: Prestataire, as: 'prestataire' }] },
+                { model: ActePharmacie, as: 'pharmacie', include: [{ model: Medicament, as: 'medicaments' }, { model: Prestataire, as: 'prestataire' }] },
                 { model: DocumentJustificatif, as: 'documents' },
                 { model: Beneficiary, as: 'beneficiaire', attributes: ['id', 'nom', 'prenom', 'relation', 'ddn', 'statut'], required: false }
             ],
@@ -550,7 +725,7 @@ const getBulletinById = async (req, res) => {
                 { model: User, as: 'adherent' },
                 { model: User, as: 'admin', attributes: ['id', 'nom', 'prenom'] },
                 { model: ActeMedical, as: 'actes', include: [{ model: Prestataire, as: 'prestataire' }] },
-                { model: Pharmacie, as: 'pharmacie', include: [{ model: Medicament, as: 'medicaments' }] },
+                { model: ActePharmacie, as: 'pharmacie', include: [{ model: Medicament, as: 'medicaments' }, { model: Prestataire, as: 'prestataire' }] },
                 { model: DocumentJustificatif, as: 'documents' },
                 { model: Beneficiary, as: 'beneficiaire', attributes: ['id', 'nom', 'prenom', 'relation', 'ddn', 'statut'], required: false },
             ]
@@ -604,7 +779,7 @@ const updateBulletinStatus = async (req, res) => {
             return res.status(400).json({ message: 'Le bulletin doit être "En cours de traitement" pour être marqué comme "Traité".' });
         }
 
-        const phar = await Pharmacie.findOne({
+        const phar = await ActePharmacie.findOne({
             where: { bulletinId: id },
         });
 
@@ -754,20 +929,33 @@ const updateStatutActeMedical = async (req, res) => {
             return res.status(400).json({ message: `Le montant de remboursement (${montant_remboursement}) ne peut pas dépasser les honoraires (${acte.honoraires}).` });
         }
 
+        const oldMontant = acte.montant_remboursement || 0;
+        const newMontant = statut === 2 ? 0 : montant_remboursement;
+        const diff = Number(oldMontant) - Number(newMontant);
 
         await acte.update({
             statut,
             objet_rejet: statut === 2 ? objet_rejet : null,
             motif_rejet: statut === 2 ? motif_rejet : null,
-            montant_remboursement: montant_remboursement,
+            montant_remboursement: newMontant,
         });
 
-        // Mise à jour dynamique du montant_total_remboursé du bulletin et du statut
         const bulletin = await BulletinSoin.findByPk(acte.bulletinId);
+        if (bulletin) {
+            const annee = ReimbursementService.getAnnee(bulletin.date_soin);
+            const cat = RulesEngine.getPlafondCategory(acte);
+            if (diff > 0) {
+                await ConsumptionService.removeConsumption(bulletin.beneficiaireId, annee, cat, diff);
+            } else if (diff < 0) {
+                await ConsumptionService.addConsumption(bulletin.beneficiaireId, annee, cat, Math.abs(diff));
+            }
+        }
+
+        // Mise à jour dynamique du montant_total_remboursé du bulletin et du statut
         if (bulletin) {
             const [totalActes, totalPharmacie] = await Promise.all([
                 ActeMedical.sum('montant_remboursement', { where: { bulletinId: bulletin.id } }),
-                Pharmacie.sum('montant_remboursement', { where: { bulletinId: bulletin.id } })
+                ActePharmacie.sum('montant_remboursement', { where: { bulletinId: bulletin.id } })
             ]);
 
             const updates = {
@@ -805,22 +993,37 @@ const updateStatutMedicament = async (req, res) => {
             return res.status(400).json({ message: 'Ce médicament a déjà été traité.' });
         }
 
+        const oldMontant = med.montant_remboursement || 0;
+        const newMontant = statut === 2 ? 0 : montant_remboursement;
+        const diff = Number(oldMontant) - Number(newMontant);
 
         await med.update({
             statut,
             objet_rejet: statut === 2 ? objet_rejet : null,
             motif_rejet: statut === 2 ? motif_rejet : null,
-            montant_remboursement: montant_remboursement,
+            montant_remboursement: newMontant,
         });
 
+        const pharmacie = await ActePharmacie.findByPk(med.pharmacieId);
+        if (pharmacie) {
+            const bulletin = await BulletinSoin.findByPk(pharmacie.bulletinId);
+            if (bulletin) {
+                const annee = ReimbursementService.getAnnee(bulletin.date_soin);
+                if (diff > 0) {
+                    await ConsumptionService.removeConsumption(bulletin.beneficiaireId, annee, 'PHARMACIE', diff);
+                } else if (diff < 0) {
+                    await ConsumptionService.addConsumption(bulletin.beneficiaireId, annee, 'PHARMACIE', Math.abs(diff));
+                }
+            }
+        }
+
         // Mise à jour dynamique du montant_total_remboursé du bulletin et du statut
-        const pharmacie = await Pharmacie.findByPk(med.pharmacieId);
         if (pharmacie) {
             const bulletin = await BulletinSoin.findByPk(pharmacie.bulletinId);
             if (bulletin) {
                 const [totalActes, totalPharmacie] = await Promise.all([
                     ActeMedical.sum('montant_remboursement', { where: { bulletinId: bulletin.id } }),
-                    Pharmacie.sum('montant_remboursement', { where: { bulletinId: bulletin.id } })
+                    ActePharmacie.sum('montant_remboursement', { where: { bulletinId: bulletin.id } })
                 ]);
 
                 const updates = {

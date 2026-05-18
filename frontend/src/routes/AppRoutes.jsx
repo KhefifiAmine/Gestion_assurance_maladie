@@ -44,7 +44,7 @@ const AppRoutes = () => {
 
             {/* Espace Adhérent (User) */}
             <Route element={
-                <ProtectedRoute allowedRoles={['ADHERENT', 'ADMIN', 'RESPONSABLE_RH']}>
+                <ProtectedRoute allowedRoles={['ADHERENT', 'ADMIN', 'RESPONSABLE_RH', 'SUPER_ADMIN']}>
                     <UserLayout />
                 </ProtectedRoute>
             }>
@@ -60,19 +60,19 @@ const AppRoutes = () => {
 
             {/* Espace Administration (Admin) */}
             <Route path="/admin" element={
-                <ProtectedRoute allowedRoles={['ADMIN', 'RESPONSABLE_RH']}>
+                <ProtectedRoute allowedRoles={['ADMIN', 'RESPONSABLE_RH', 'SUPER_ADMIN']}>
                     <AdminLayout />
                 </ProtectedRoute>
             }>
                 <Route index element={<AdminHomeRedirect />} />
                 <Route path="dashboard" element={<AdminDashboard mode="all" />} />
-                <Route path="users" element={<ProtectedRoute allowedRoles={['RESPONSABLE_RH']}><AdminDashboard mode="all" /></ProtectedRoute>} />
-                <Route path="bulletins" element={<ProtectedRoute allowedRoles={['ADMIN']}><AdminBulletins /></ProtectedRoute>} />
-                <Route path="bulletins/:id" element={<ProtectedRoute allowedRoles={['ADMIN', 'RESPONSABLE_RH']}><BulletinDetailsPage /></ProtectedRoute>} />
-                <Route path="reclamations" element={<ProtectedRoute allowedRoles={['ADMIN']}><AdminReclamation /></ProtectedRoute>} />
-                <Route path="statistiques" element={<ProtectedRoute allowedRoles={['ADMIN', 'RESPONSABLE_RH']}><AdminStats /></ProtectedRoute>} />
-                <Route path="beneficiaires" element={<ProtectedRoute allowedRoles={['RESPONSABLE_RH']}><AdminBeneficiarie /></ProtectedRoute>} />
-                <Route path="logs" element={<ProtectedRoute allowedRoles={["RESPONSABLE_RH"]}><LogsPage /></ProtectedRoute>} /> {/* ← AJOUTER CETTE ROUTE */}
+                <Route path="users" element={<ProtectedRoute allowedRoles={['RESPONSABLE_RH', 'SUPER_ADMIN']}><AdminDashboard mode="all" /></ProtectedRoute>} />
+                <Route path="bulletins" element={<ProtectedRoute allowedRoles={['ADMIN', 'SUPER_ADMIN']}><AdminBulletins /></ProtectedRoute>} />
+                <Route path="bulletins/:id" element={<ProtectedRoute allowedRoles={['ADMIN', 'RESPONSABLE_RH', 'SUPER_ADMIN']}><BulletinDetailsPage /></ProtectedRoute>} />
+                <Route path="reclamations" element={<ProtectedRoute allowedRoles={['ADMIN', 'SUPER_ADMIN']}><AdminReclamation /></ProtectedRoute>} />
+                <Route path="statistiques" element={<ProtectedRoute allowedRoles={['ADMIN', 'RESPONSABLE_RH', 'SUPER_ADMIN']}><AdminStats /></ProtectedRoute>} />
+                <Route path="beneficiaires" element={<ProtectedRoute allowedRoles={['RESPONSABLE_RH', 'SUPER_ADMIN']}><AdminBeneficiarie /></ProtectedRoute>} />
+                <Route path="logs" element={<ProtectedRoute allowedRoles={["RESPONSABLE_RH", "SUPER_ADMIN"]}><LogsPage /></ProtectedRoute>} /> {/* ← AJOUTER CETTE ROUTE */}
             </Route>
 
             {/* Catch-all redirection */}

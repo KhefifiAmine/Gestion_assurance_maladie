@@ -104,20 +104,20 @@ const AdminLayout = () => {
   };
 
   const menuItems = [
-    { name: 'Vue d\'ensemble', path: '/admin/dashboard', icon: LayoutDashboard, roles: ['ADMIN', 'RESPONSABLE_RH'] },
+    { name: 'Vue d\'ensemble', path: '/admin/dashboard', icon: LayoutDashboard, roles: ['ADMIN', 'RESPONSABLE_RH', 'SUPER_ADMIN'] },
     // RH Features
-    { name: 'Comptes & Utilisateurs', path: '/admin/users', icon: Users, roles: ['RESPONSABLE_RH'] },
-    { name: 'Bénéficiaires', path: '/admin/beneficiaires', icon: Users, roles: ['RESPONSABLE_RH'] },
+    { name: 'Comptes & Utilisateurs', path: '/admin/users', icon: Users, roles: ['RESPONSABLE_RH', 'SUPER_ADMIN'] },
+    { name: 'Bénéficiaires', path: '/admin/beneficiaires', icon: Users, roles: ['RESPONSABLE_RH', 'SUPER_ADMIN'] },
 
     // Admin Features
-    { name: 'Bulletins de Soin', path: '/admin/bulletins', icon: FileText, roles: ['ADMIN'] },
-    { name: 'Réclamations', path: '/admin/reclamations', icon: AlertTriangle, roles: ['ADMIN'] },
+    { name: 'Bulletins de Soin', path: '/admin/bulletins', icon: FileText, roles: ['ADMIN', 'SUPER_ADMIN'] },
+    { name: 'Réclamations', path: '/admin/reclamations', icon: AlertTriangle, roles: ['ADMIN', 'SUPER_ADMIN'] },
 
     // Shared feature
-    { name: 'Finances & Stats', path: '/admin/statistiques', icon: BarChart2, roles: ['ADMIN', 'RESPONSABLE_RH'] },
-{ name: 'Journal d\'activité', path: '/admin/logs', icon: Activity, roles: ['RESPONSABLE_RH'] },
+    { name: 'Finances & Stats', path: '/admin/statistiques', icon: BarChart2, roles: ['ADMIN', 'RESPONSABLE_RH', 'SUPER_ADMIN'] },
+    { name: 'Journal d\'activité', path: '/admin/logs', icon: Activity, roles: ['RESPONSABLE_RH', 'SUPER_ADMIN'] },
     // Shortcut back
-    { name: 'Espace Adhérent', path: '/dashboard', icon: UserIcon, roles: ['ADMIN', 'RESPONSABLE_RH'] },
+    { name: 'Espace Adhérent', path: '/dashboard', icon: UserIcon, roles: ['ADMIN', 'RESPONSABLE_RH', 'SUPER_ADMIN'] },
   ];
 
   const filteredMenuItems = menuItems.filter(item => item.roles.includes(user?.role));

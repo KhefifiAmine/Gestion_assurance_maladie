@@ -48,22 +48,29 @@ const verifyToken = async (req, res, next) => {
 };
 
 const isAdmin = (req, res, next) => {
-    if (req.userRole !== 'ADMIN') {
+    if (req.userRole !== 'ADMIN' && req.userRole !== 'SUPER_ADMIN') {
         return res.status(403).json({ message: 'Nécessite le rôle d\'Administrateur!' });
     }
     next();
 };
 
 const isRH = (req, res, next) => {
-    if (req.userRole !== 'RESPONSABLE_RH') {
+    if (req.userRole !== 'RESPONSABLE_RH' && req.userRole !== 'SUPER_ADMIN') {
         return res.status(403).json({ message: 'Nécessite le rôle de Responsable RH!' });
     }
     next();
 };
 
 const isAdminOrRH = (req, res, next) => {
-    if (!['ADMIN', 'RESPONSABLE_RH'].includes(req.userRole)) {
+    if (!['ADMIN', 'RESPONSABLE_RH', 'SUPER_ADMIN'].includes(req.userRole)) {
         return res.status(403).json({ message: 'Nécessite le rôle d\'Administrateur ou Responsable RH!' });
+    }
+    next();
+};
+
+const isSuperAdmin = (req, res, next) => {
+    if (req.userRole !== 'SUPER_ADMIN') {
+        return res.status(403).json({ message: 'Nécessite le rôle de Super Administrateur!' });
     }
     next();
 };
@@ -72,5 +79,6 @@ module.exports = {
     verifyToken,
     isAdmin,
     isRH,
-    isAdminOrRH
+    isAdminOrRH,
+    isSuperAdmin
 };
