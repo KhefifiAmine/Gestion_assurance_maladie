@@ -179,12 +179,11 @@ const analyzeBulletin = async (req, res) => {
       □ Acte incompatible avec la spécialité du prestataire
       □ Plusieurs actes le même jour pour le même patient par le même prestataire (doublon)
       □ Qualité "Enfant" avec date de naissance > 26 ans
-      □ Matricule adhérent invalide (format non conforme)
 
       Retourner :
       - suspicion_locale : true/false
       - niveau_risque : "faible" | "moyen" | "élevé"
-      - resultat_analyse : "Un message clair et bien structuré (en utilisant des sauts de lignes, des puces `-` et des emojis) décrivant le bilan de l'analyse, les anomalies ou la conformité du bulletin."
+      - resultat_analyse : "Un message clair et bien structuré (en utilisant des sauts de lignes) décrivant le bilan de l'analyse, les anomalies ou la conformité du bulletin."
 
       ========================
       📊 NORMALISATION
@@ -329,8 +328,6 @@ const analyzeBulletin = async (req, res) => {
       const jsonMatch = text.match(/\{[\s\S]*\}/);
       const jsonStr = jsonMatch ? jsonMatch[0] : text;
       data = JSON.parse(jsonStr);
-
-      console.log(data);
 
       if (!data.est_document_medical) {
         return res.status(400).json({ message: "Ce document n'est pas un document médical valide." });

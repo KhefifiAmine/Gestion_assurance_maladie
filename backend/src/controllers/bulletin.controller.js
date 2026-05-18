@@ -26,6 +26,74 @@ const cleanupFiles = (files) => {
     }
 };
 
+const findOrCreatePrestataire = async (pData, transaction) => {
+    if (!pData) return null;
+
+    // Recherche par identifiant_unique_mf (MF) ou par telephone
+    const conditions = [];
+    if (pData.identifiant_unique_mf) {
+        conditions.push({ identifiant_unique_mf: pData.identifiant_unique_mf });
+    }
+    if (pData.telephone) {
+        conditions.push({ telephone: pData.telephone });
+    }
+
+    let prestataire = null;
+    if (conditions.length > 0) {
+        prestataire = await Prestataire.findOne({
+            where: { [Op.or]: conditions },
+            transaction
+        });
+    }
+
+    if (!prestataire) {
+        // Création s'il n'existe pas
+        prestataire = await Prestataire.create({
+            identifiant_unique_mf: pData.identifiant_unique_mf || null,
+            nom: pData.nom || null,
+            telephone: pData.telephone || null,
+            adresse: pData.adresse || null,
+            specialite: pData.specialite || pData.specialité || null,
+            gsm: pData.gsm || null
+        }, { transaction });
+    } else {
+        // Mise à jour optionnelle si de nouvelles infos sont disponibles
+        let needsUpdate = false;
+        const updates = {};
+        
+        if (!prestataire.identifiant_unique_mf && pData.identifiant_unique_mf) {
+            updates.identifiant_unique_mf = pData.identifiant_unique_mf;
+            needsUpdate = true;
+        }
+        if (!prestataire.telephone && pData.telephone) {
+            updates.telephone = pData.telephone;
+            needsUpdate = true;
+        }
+        if (!prestataire.nom && pData.nom) {
+            updates.nom = pData.nom;
+            needsUpdate = true;
+        }
+        if (!prestataire.adresse && pData.adresse) {
+            updates.adresse = pData.adresse;
+            needsUpdate = true;
+        }
+        if (!prestataire.specialite && (pData.specialite || pData.specialité)) {
+            updates.specialite = pData.specialite || pData.specialité;
+            needsUpdate = true;
+        }
+        if (!prestataire.gsm && pData.gsm) {
+            updates.gsm = pData.gsm;
+            needsUpdate = true;
+        }
+        
+        if (needsUpdate) {
+            await prestataire.update(updates, { transaction });
+        }
+    }
+
+    return prestataire;
+};
+
 const createBulletin = async (req, res) => {
 
     const t = await sequelize.transaction();
@@ -38,22 +106,12 @@ const createBulletin = async (req, res) => {
             payload = JSON.parse(req.body.data);
         }
 
-        const {
-            numero_bulletin,
-            code_cnam,
-            montant_total,
-            est_apci,
-            suivi_grossesse,
-            date_prevue_accouchement,
-            soins_cadre,
-            date_soin,
-            suspicion_locale,
-            confiance_score,
-            est_signe_adherent,
-            date_depot,
-            actes,
-            pharmacie,
-            pharmacie_detecte
+        const { numero_bulletin, code_cnam, montant_total, est_apci, suivi_grossesse, date_prevue_accouchement, soins_cadre, date_soin, suspicion_locale, confiance_score,
+est_signe_adherent,
+date_depot,
+actes,
+pharmacie,
+pharmacie_detecte
         } = payload;
 
         const date60DaysAgo = new Date();
@@ -124,36 +182,14 @@ const createBulletin = async (req, res) => {
         }, { transaction: t });
 
         for (const acte of actesCalcules) {
-
-            const identifiant_unique_mf =
-                acte.prestataire.identifiant_unique_mf;
-
-            let prestataire = await Prestataire.findOne({
-                where: { identifiant_unique_mf },
-                transaction: t
-            });
-
-            // Création si inexistant
-            if (!prestataire) {
-                prestataire = await Prestataire.create(
-                    {
-                        identifiant_unique_mf: acte.prestataire.identifiant_unique_mf,
-                        nom: acte.prestataire.nom || null,
-                        telephone: acte.prestataire.telephone || null,
-                        adresse: acte.prestataire.adresse || null,
-                        specialite: acte.prestataire.specialite || acte.prestataire.specialité || null,
-                        gsm: acte.prestataire.gsm || null
-                    },
-                    { transaction: t }
-                );
-            }
+            const prestataire = await findOrCreatePrestataire(acte.prestataire, t);
 
             // Création de l'acte lié au prestataire
             await ActeMedical.create(
                 {
                     ...acte,
                     bulletinId: bulletin.id,
-                    prestataireId: prestataire.id
+                    prestataireId: prestataire?.id || null
                 },
                 { transaction: t }
             );
@@ -162,43 +198,17 @@ const createBulletin = async (req, res) => {
         if (pharmacieCalculee) {
             let prestataireId = null;
 
-            if (pharmacieCalculee.prestataire && pharmacieCalculee.prestataire.identifiant_unique_mf) {
-                const mf = pharmacieCalculee.prestataire.identifiant_unique_mf;
-                let prestataire = await Prestataire.findOne({
-                    where: { identifiant_unique_mf: mf },
-                    transaction: t
-                });
+            const pData = pharmacieCalculee.prestataire || {
+                identifiant_unique_mf: pharmacieCalculee.identifiant_unique_mf,
+                nom: pharmacieCalculee.nom,
+                telephone: pharmacieCalculee.telephone,
+                adresse: pharmacieCalculee.adresse,
+                specialite: pharmacieCalculee.specialite,
+                gsm: pharmacieCalculee.gsm
+            };
 
-                if (!prestataire) {
-                    prestataire = await Prestataire.create(
-                        {
-                            identifiant_unique_mf: pharmacieCalculee.prestataire.identifiant_unique_mf,
-                            nom: pharmacieCalculee.prestataire.nom || null,
-                            telephone: pharmacieCalculee.prestataire.telephone || null,
-                            adresse: pharmacieCalculee.prestataire.adresse || null,
-                            specialite: pharmacieCalculee.prestataire.specialite || pharmacieCalculee.prestataire.specialité || null,
-                            gsm: pharmacieCalculee.prestataire.gsm || null
-                        },
-                        { transaction: t }
-                    );
-                }
-                prestataireId = prestataire.id;
-            } else if (pharmacieCalculee.identifiant_unique_mf) {
-                let prestataire = await Prestataire.findOne({
-                    where: { identifiant_unique_mf: pharmacieCalculee.identifiant_unique_mf },
-                    transaction: t
-                });
-
-                if (!prestataire) {
-                    prestataire = await Prestataire.create({
-                        identifiant_unique_mf: pharmacieCalculee.identifiant_unique_mf,
-                        nom: pharmacieCalculee.nom || null,
-                        telephone: pharmacieCalculee.telephone || null,
-                        adresse: pharmacieCalculee.adresse || null,
-                        specialite: pharmacieCalculee.specialite || null,
-                        gsm: pharmacieCalculee.gsm || null
-                    }, { transaction: t });
-                }
+            const prestataire = await findOrCreatePrestataire(pData, t);
+            if (prestataire) {
                 prestataireId = prestataire.id;
             }
 
@@ -236,8 +246,8 @@ const createBulletin = async (req, res) => {
                 const aiVerification = await verifyBulletinWithAI(filesForAi, payload);
                 const finalNiveauRisque = aiVerification.niveau_risque || payload.niveau_risque || 'faible';
                 const finalResultatAnalyse = payload.resultat_analyse
-                    ? `${payload.resultat_analyse} | Vérification IA: ${aiVerification.resultat_analyse}`
-                    : `Vérification IA: ${aiVerification.resultat_analyse}`;
+                    ? `${payload.resultat_analyse} \nVérification IA: ${aiVerification.resultat_analyse}`
+                    : `\nVérification IA: ${aiVerification.resultat_analyse}`;
                 const finalConfiance_score = aiVerification.confiance_score || payload.confiance_score || bulletin.confiance_score || 100;
 
                 await BulletinSoin.update({
@@ -420,13 +430,27 @@ const updateBulletin = async (req, res) => {
 
                 // 2. Upsert (Update ou Create) pour chaque acte
                 for (const acteData of resultActe.actes) {
+                    let prestataireId = acteData.prestataireId;
+
+                    if (acteData.prestataire) {
+                        const prestataire = await findOrCreatePrestataire(acteData.prestataire, t);
+                        if (prestataire) {
+                            prestataireId = prestataire.id;
+                        }
+                    }
+
+                    const mergedActeData = {
+                        ...acteData,
+                        prestataireId
+                    };
+
                     if (acteData.id) {
-                        await ActeMedical.update(acteData, {
+                        await ActeMedical.update(mergedActeData, {
                             where: { id: acteData.id, bulletinId: id },
                             transaction: t
                         });
                     } else {
-                        await ActeMedical.create({ ...acteData, bulletinId: id }, { transaction: t });
+                        await ActeMedical.create({ ...mergedActeData, bulletinId: id }, { transaction: t });
                     }
                 }
             }
@@ -436,43 +460,17 @@ const updateBulletin = async (req, res) => {
                 if (resultPharmacie.pharmacie) {
                     let prestataireId = null;
 
-                    if (resultPharmacie.pharmacie.prestataire && resultPharmacie.pharmacie.prestataire.identifiant_unique_mf) {
-                        const mf = resultPharmacie.pharmacie.prestataire.identifiant_unique_mf;
-                        let prestataire = await Prestataire.findOne({
-                            where: { identifiant_unique_mf: mf },
-                            transaction: t
-                        });
+                    const pData = resultPharmacie.pharmacie.prestataire || {
+                        identifiant_unique_mf: resultPharmacie.pharmacie.identifiant_unique_mf,
+                        nom: resultPharmacie.pharmacie.nom,
+                        telephone: resultPharmacie.pharmacie.telephone,
+                        adresse: resultPharmacie.pharmacie.adresse,
+                        specialite: resultPharmacie.pharmacie.specialite,
+                        gsm: resultPharmacie.pharmacie.gsm
+                    };
 
-                        if (!prestataire) {
-                            prestataire = await Prestataire.create(
-                                {
-                                    identifiant_unique_mf: resultPharmacie.pharmacie.prestataire.identifiant_unique_mf,
-                                    nom: resultPharmacie.pharmacie.prestataire.nom || null,
-                                    telephone: resultPharmacie.pharmacie.prestataire.telephone || null,
-                                    adresse: resultPharmacie.pharmacie.prestataire.adresse || null,
-                                    specialite: resultPharmacie.pharmacie.prestataire.specialite || resultPharmacie.pharmacie.prestataire.specialité || null,
-                                    gsm: resultPharmacie.pharmacie.prestataire.gsm || null
-                                },
-                                { transaction: t }
-                            );
-                        }
-                        prestataireId = prestataire.id;
-                    } else if (resultPharmacie.pharmacie.identifiant_unique_mf) {
-                        let prestataire = await Prestataire.findOne({
-                            where: { identifiant_unique_mf: resultPharmacie.pharmacie.identifiant_unique_mf },
-                            transaction: t
-                        });
-
-                        if (!prestataire) {
-                            prestataire = await Prestataire.create({
-                                identifiant_unique_mf: resultPharmacie.pharmacie.identifiant_unique_mf,
-                                nom: resultPharmacie.pharmacie.nom || null,
-                                telephone: resultPharmacie.pharmacie.telephone || null,
-                                adresse: resultPharmacie.pharmacie.adresse || null,
-                                specialite: resultPharmacie.pharmacie.specialite || null,
-                                gsm: resultPharmacie.pharmacie.gsm || null
-                            }, { transaction: t });
-                        }
+                    const prestataire = await findOrCreatePrestataire(pData, t);
+                    if (prestataire) {
                         prestataireId = prestataire.id;
                     }
 
@@ -1045,6 +1043,33 @@ const updateStatutMedicament = async (req, res) => {
     }
 };
 
+const lookupPrestataire = async (req, res) => {
+    try {
+        const { query } = req.query;
+        if (!query || !query.trim()) {
+            return res.status(400).json({ success: false, message: 'Requête manquante.' });
+        }
+
+        const prestataire = await Prestataire.findOne({
+            where: {
+                [Op.or]: [
+                    { identifiant_unique_mf: query.trim() },
+                    { telephone: query.trim() }
+                ]
+            }
+        });
+
+        if (!prestataire) {
+            return res.status(404).json({ success: false, message: 'Prestataire non trouvé.' });
+        }
+
+        res.status(200).json({ success: true, data: prestataire });
+    } catch (error) {
+        console.error('Error lookup prestataire:', error);
+        res.status(500).json({ success: false, message: 'Erreur serveur.' });
+    }
+};
+
 module.exports = {
     createBulletin,
     getMyBulletins,
@@ -1055,5 +1080,6 @@ module.exports = {
     updateStatutMedicament,
     updateBulletin,
     deleteBulletin,
-    generatePreFilledPDF
+    generatePreFilledPDF,
+    lookupPrestataire
 };

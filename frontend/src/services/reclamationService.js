@@ -71,3 +71,14 @@ export const deleteReclamation = async (id) => {
     });
     return handleResponse(res);
 };
+
+export const sendReclamationMessage = async (id, payload) => {
+    const bodyObj = typeof payload === 'string' ? { content: payload } : payload;
+    const res = await fetch(`${API_BASE}/reclamations/${id}/messages`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify(bodyObj)
+    });
+    const data = await handleResponse(res);
+    return data.data;
+};

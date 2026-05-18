@@ -45,7 +45,7 @@ Format de réponse obligatoire (JSON unique) :
 {
   "niveau_risque": "faible" | "moyen" | "élevé",
   "confiance_score": number, // Score de confiance entre 0 et 100
-  "resultat_analyse": "Bilan de la vérification. Fournis un message clair et bien structuré (en utilisant des retours à la ligne, des puces `-` et des emojis) décrivant les anomalies détectées ou confirmant que les données sont conformes."
+  "resultat_analyse": "Bilan de la vérification. Fournis un message clair et bien structuré (en utilisant des retours à la ligne) décrivant les anomalies détectées ou confirmant que les données sont conformes."
 }
         `;
 

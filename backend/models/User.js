@@ -105,52 +105,78 @@ const User = sequelize.define('User', {
     timestamps: true,
     hooks: {
         beforeCreate: async (user, options) => {
-            // Génération automatique du matricule s'il n'est pas fourni
-            if (!user.matricule || user.matricule.trim() === '') {
-                try {
-                    let prefix = 'ADH';
-                    if (user.role === 'RESPONSABLE_RH') prefix = 'RH';
-                    if (user.role === 'ADMIN') prefix = 'ADM';
-                    if (user.role === 'SUPER_ADMIN') prefix = 'SAD';
 
-                    // On cherche le matricule le plus élevé pour ce préfixe
-                    // On utilise Sequelize.Op.like pour filtrer par préfixe
-                    const { Op } = require('sequelize');
-                    const lastUserWithPrefix = await user.constructor.findOne({
-                        where: {
-                            matricule: {
-                                [Op.like]: `${prefix}%`
-                            }
-                        },
-                        order: [['matricule', 'DESC']]
-                    });
+    // Génération automatique du matricule
+    if (!user.matricule || user.matricule.trim() === '') {
 
-                    let nextNumber = 1;
-                    if (lastUserWithPrefix && lastUserWithPrefix.matricule) {
-                        const strNumber = lastUserWithPrefix.matricule.substring(prefix.length);
-                        const parsedNumber = parseInt(strNumber, 10);
-                        if (!isNaN(parsedNumber)) {
-                            nextNumber = parsedNumber + 1;
-                        }
+        try {
+
+            const { Op } = require('sequelize');
+
+            // 🔥 Format : TT-0001
+            const prefix = 'TT-';
+
+            // Chercher le dernier matricule
+            const lastUser = await user.constructor.findOne({
+                where: {
+                    matricule: {
+                        [Op.like]: `${prefix}%`
                     }
+                },
+                order: [['matricule', 'DESC']]
+            });
 
-                    // On vérifie quand même si ce matricule n'existe pas déjà (sécurité supplémentaire)
-                    let matriculeCandidate = `${prefix}${String(nextNumber).padStart(3, '0')}`;
-                    let exists = await user.constructor.findOne({ where: { matricule: matriculeCandidate } });
+            let nextNumber = 1;
 
-                    while (exists) {
-                        nextNumber++;
-                        matriculeCandidate = `${prefix}${String(nextNumber).padStart(3, '0')}`;
-                        exists = await user.constructor.findOne({ where: { matricule: matriculeCandidate } });
-                    }
+            // Extraire le numéro
+            if (lastUser && lastUser.matricule) {
 
-                    user.matricule = matriculeCandidate;
-                } catch (error) {
-                    console.error("Erreur lors de la génération du matricule:", error);
+                // Exemple : TT-0045 → 0045
+                const strNumber = lastUser.matricule.split('-')[1];
+
+                const parsedNumber = parseInt(strNumber, 10);
+
+                if (!isNaN(parsedNumber)) {
+                    nextNumber = parsedNumber + 1;
                 }
             }
+
+            // Génération matricule
+            let matriculeCandidate =
+                `${prefix}${String(nextNumber).padStart(4, '0')}`;
+
+            // Vérification unicité
+            let exists = await user.constructor.findOne({
+                where: {
+                    matricule: matriculeCandidate
+                }
+            });
+
+            while (exists) {
+
+                nextNumber++;
+
+                matriculeCandidate =
+                    `${prefix}${String(nextNumber).padStart(4, '0')}`;
+
+                exists = await user.constructor.findOne({
+                    where: {
+                        matricule: matriculeCandidate
+                    }
+                });
+            }
+
+            user.matricule = matriculeCandidate;
+
+        } catch (error) {
+
+            console.error(
+                "Erreur lors de la génération du matricule:",
+                error
+            );
         }
     }
-});
+}}}
+);
 
 module.exports = User;

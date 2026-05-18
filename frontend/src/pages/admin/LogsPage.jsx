@@ -426,7 +426,7 @@ export default function LogsPage() {
 
                                             <td className="px-6 py-4">
                                                 <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
-                                                    log.user?.role === 'ADMIN' ? 'bg-red-100 text-red-600' : 
+                                                    ['ADMIN', 'SUPER_ADMIN'].includes(log.user?.role) ? 'bg-red-100 text-red-600' : 
                                                     log.user?.role === 'RESPONSABLE_RH' ? 'bg-blue-100 text-blue-600' :
                                                     'bg-green-100 text-green-600'
                                                 }`}>

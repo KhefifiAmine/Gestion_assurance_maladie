@@ -92,7 +92,7 @@ const FormField = memo(({ label, icon: Icon, children, className = "" }) => (
     </div>
 ));
 
-const ActeItem = memo(({ acte, index, onUpdate, onRemove, structure }) => (
+const ActeItem = memo(({ acte, index, onUpdate, onRemove, structure, onLookup }) => (
     <div className="p-4 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-slate-200 dark:border-slate-700 relative group animate-in slide-in-from-top-2 duration-300">
         <button
             type="button"
@@ -149,7 +149,7 @@ const ActeItem = memo(({ acte, index, onUpdate, onRemove, structure }) => (
             </FormField>
 
             <FormField label="MF Médecin">
-                <input placeholder="MF" className="w-full p-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white" value={acte.prestataire?.identifiant_unique_mf || ''} onChange={e => onUpdate(index, { prestataire: { ...(acte.prestataire || {}), identifiant_unique_mf: e.target.value } })} />
+                <input placeholder="MF" className="w-full p-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white" value={acte.prestataire?.identifiant_unique_mf || ''} onChange={e => onUpdate(index, { prestataire: { ...(acte.prestataire || {}), identifiant_unique_mf: e.target.value } })} onBlur={e => onLookup && onLookup(e.target.value, p => onUpdate(index, { prestataire: { ...(acte.prestataire || {}), identifiant_unique_mf: p.identifiant_unique_mf || '', nom: p.nom || '', telephone: p.telephone || '', adresse: p.adresse || '', specialite: p.specialite || '', gsm: p.gsm || '' } }))} />
             </FormField>
 
             <FormField label="Nom Prestataire">
@@ -157,7 +157,7 @@ const ActeItem = memo(({ acte, index, onUpdate, onRemove, structure }) => (
             </FormField>
 
             <FormField label="Téléphone">
-                <input placeholder="Téléphone" className="w-full p-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white" value={acte.prestataire?.telephone || ''} onChange={e => onUpdate(index, { prestataire: { ...(acte.prestataire || {}), telephone: e.target.value } })} />
+                <input placeholder="Téléphone" className="w-full p-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white" value={acte.prestataire?.telephone || ''} onChange={e => onUpdate(index, { prestataire: { ...(acte.prestataire || {}), telephone: e.target.value } })} onBlur={e => onLookup && onLookup(e.target.value, p => onUpdate(index, { prestataire: { ...(acte.prestataire || {}), identifiant_unique_mf: p.identifiant_unique_mf || '', nom: p.nom || '', telephone: p.telephone || '', adresse: p.adresse || '', specialite: p.specialite || '', gsm: p.gsm || '' } }))} />
             </FormField>
 
             <FormField label="Adresse">
@@ -552,6 +552,24 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
         });
     }, []);
 
+    const handlePrestataireLookup = useCallback(async (queryValue, onFill) => {
+        if (!queryValue || queryValue.trim().length < 3) return;
+        try {
+            const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/bulletins/prestataires/lookup?query=${encodeURIComponent(queryValue.trim())}`, {
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+            });
+            if (res.ok) {
+                const data = await res.json();
+                if (data.success && data.data) {
+                    onFill(data.data);
+                    showToast("Prestataire chargé depuis la base de données !", "success");
+                }
+            }
+        } catch (e) {
+            console.error("Error looking up prestataire:", e);
+        }
+    }, [showToast]);
+
     const handleSubmit = useCallback(async (e) => {
         e.preventDefault();
         
@@ -861,7 +879,7 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
                                                 </div>
                                                 <div className="space-y-3">
                                                     {formData.actes.map((acte, idx) => (
-                                                        <ActeItem key={idx} acte={acte} index={idx} onUpdate={updateActe} onRemove={removeActe} structure={ACTE_STRUCTURE} />
+                                                        <ActeItem key={idx} acte={acte} index={idx} onUpdate={updateActe} onRemove={removeActe} structure={ACTE_STRUCTURE} onLookup={handlePrestataireLookup} />
                                                     ))}
                                                     {formData.actes.length === 0 && <div className="p-8 text-center border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-2xl"><p className="text-slate-400 text-sm font-medium">Aucun acte saisi.</p></div>}
                                                 </div>
@@ -889,13 +907,13 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
                                                     <div className="p-6 bg-blue-50/30 dark:bg-blue-900/10 rounded-2xl border border-blue-100 dark:border-blue-800 space-y-4 animate-in zoom-in-95 duration-200">
                                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                             <FormField label="MF Pharmacie">
-                                                                <input placeholder="MF Pharmacie" className="w-full p-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white" value={formData.pharmacie.prestataire?.identifiant_unique_mf || formData.pharmacie.identifiant_unique_mf || ''} onChange={e => setFormData({ ...formData, pharmacie: { ...formData.pharmacie, identifiant_unique_mf: e.target.value, prestataire: { ...(formData.pharmacie.prestataire || {}), identifiant_unique_mf: e.target.value } } })} />
+                                                                <input placeholder="MF Pharmacie" className="w-full p-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white" value={formData.pharmacie.prestataire?.identifiant_unique_mf || formData.pharmacie.identifiant_unique_mf || ''} onChange={e => setFormData({ ...formData, pharmacie: { ...formData.pharmacie, identifiant_unique_mf: e.target.value, prestataire: { ...(formData.pharmacie.prestataire || {}), identifiant_unique_mf: e.target.value } } })} onBlur={e => handlePrestataireLookup(e.target.value, p => setFormData(prev => ({ ...prev, pharmacie: { ...prev.pharmacie, identifiant_unique_mf: p.identifiant_unique_mf || '', prestataire: { ...(prev.pharmacie.prestataire || {}), identifiant_unique_mf: p.identifiant_unique_mf || '', nom: p.nom || '', telephone: p.telephone || '', adresse: p.adresse || '', specialite: p.specialite || '', gsm: p.gsm || '' } } })))} />
                                                             </FormField>
                                                             <FormField label="Nom Pharmacie">
                                                                 <input placeholder="Nom Pharmacie" className="w-full p-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white" value={formData.pharmacie.prestataire?.nom || ''} onChange={e => setFormData({ ...formData, pharmacie: { ...formData.pharmacie, prestataire: { ...(formData.pharmacie.prestataire || {}), nom: e.target.value } } })} />
                                                             </FormField>
                                                             <FormField label="Téléphone Pharmacie">
-                                                                <input placeholder="Téléphone Pharmacie" className="w-full p-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white" value={formData.pharmacie.prestataire?.telephone || ''} onChange={e => setFormData({ ...formData, pharmacie: { ...formData.pharmacie, prestataire: { ...(formData.pharmacie.prestataire || {}), telephone: e.target.value } } })} />
+                                                                <input placeholder="Téléphone Pharmacie" className="w-full p-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white" value={formData.pharmacie.prestataire?.telephone || ''} onChange={e => setFormData({ ...formData, pharmacie: { ...formData.pharmacie, prestataire: { ...(formData.pharmacie.prestataire || {}), telephone: e.target.value } } })} onBlur={e => handlePrestataireLookup(e.target.value, p => setFormData(prev => ({ ...prev, pharmacie: { ...prev.pharmacie, identifiant_unique_mf: p.identifiant_unique_mf || '', prestataire: { ...(prev.pharmacie.prestataire || {}), identifiant_unique_mf: p.identifiant_unique_mf || '', nom: p.nom || '', telephone: p.telephone || '', adresse: p.adresse || '', specialite: p.specialite || '', gsm: p.gsm || '' } } })))} />
                                                             </FormField>
                                                             <FormField label="Adresse Pharmacie">
                                                                 <input placeholder="Adresse Pharmacie" className="w-full p-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white" value={formData.pharmacie.prestataire?.adresse || ''} onChange={e => setFormData({ ...formData, pharmacie: { ...formData.pharmacie, prestataire: { ...(formData.pharmacie.prestataire || {}), adresse: e.target.value } } })} />

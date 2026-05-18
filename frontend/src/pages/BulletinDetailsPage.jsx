@@ -53,7 +53,7 @@ import {
     RotateCcw
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { getBulletinById, updateBulletinStatus, updateStatutActeMedical } from '../services/bulletinService';
+import { getBulletinById, updateBulletinStatus, updateStatutActeMedical, updateStatutMedicament } from '../services/bulletinService';
 import { useToast } from '../context/ToastContext';
 import {
     getPatientDisplayName,
@@ -63,6 +63,33 @@ import {
 } from '../utils/bulletinDisplay';
 import { UPLOADS_BASE } from '../services/api';
 import ConfirmModal from '../components/ConfirmModal';
+
+const motifsRejetBS = [
+  "Acte non pris en charge selon contrat (APCI)",
+  "Acte non pris en charge",
+  "Acte pris en charge sans tiers payant",
+  "Acte non pratiqué par un médecin",
+  "Contre-visite non conforme",
+  "Honoraire surchargé",
+  "Date surchargée",
+  "Pharmacie prise en charge par tiers payant",
+  "Ordonnance non remboursable",
+  "Consultation gratuite",
+  "BS hors délai / soumission tardive",
+  "Consultation sans ordonnance",
+  "Plafond atteint",
+  "Aucune dépense",
+  "Médicament non remboursable",
+  "Acuité visuelle inchangée",
+  "Traitements non prévus par le contrat",
+  "Labo pris en charge par tiers payant",
+  "Absence d'un pli confidentiel",
+  "BS manque d'informations",
+  "Rature ou surcharge sur le BS",
+  "Honoraires illisibles",
+  "Vignette réutilisée plusieurs fois",
+  "Absence des pièces justificatives"
+];
 
 // Composant pour la timeline de statut
 const StatusTimeline = ({ status }) => {
@@ -259,7 +286,7 @@ const MedicalActCard = ({ acte, index, isAdmin, onProcess, onSave }) => {
                                             Prestataire de santé
                                         </p>
                                         {acte.prestataire.identifiant_unique_mf && (
-                                            <span className="px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-[9px] font-mono font-bold text-slate-500">
+                                            <span className="px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-[15px] font-mono font-bold text-slate-500">
                                                 MF: {acte.prestataire.identifiant_unique_mf}
                                             </span>
                                         )}
@@ -272,6 +299,10 @@ const MedicalActCard = ({ acte, index, isAdmin, onProcess, onSave }) => {
                                         <div className="space-y-1">
                                             <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Spécialité</p>
                                             <p className="text-xs font-black text-slate-800 dark:text-slate-200">{acte.prestataire.specialite || 'Non spécifiée'}</p>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Adresse</p>
+                                            <p className="text-xs font-black text-slate-800 dark:text-slate-200">{acte.prestataire.address || 'Non spécifiée'}</p>
                                         </div>
                                         <div className="space-y-1">
                                             <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Téléphone</p>
@@ -311,10 +342,17 @@ const MedicalActCard = ({ acte, index, isAdmin, onProcess, onSave }) => {
                                     </div>
                                 </div>
                             )}
-                            {(acte.objet_rejet || acte.motif_rejet) && (
+                            {acte.statut === 2 && (acte.objet_rejet || acte.motif_rejet) && (
                                 <div className="p-3 rounded-xl bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-800/20">
-                                    <p className="text-[9px] font-black text-red-600 uppercase mb-1">{acte.objet_rejet || 'Motif de rejet'}</p>
-                                    <p className="text-xs text-red-800 dark:text-red-200">{acte.motif_rejet}</p>
+                                    <div className="flex items-center gap-1.5 mb-1">
+                                        <XCircle size={11} className="text-red-500 flex-shrink-0" />
+                                        <p className="text-[9px] font-black text-red-600 uppercase tracking-wider">
+                                            {acte.objet_rejet || 'Rejet'}
+                                        </p>
+                                    </div>
+                                    {acte.motif_rejet && (
+                                        <p className="text-xs text-red-800 dark:text-red-300 leading-snug pl-4">{acte.motif_rejet}</p>
+                                    )}
                                 </div>
                             )}
                             {acte.description && (
@@ -322,20 +360,16 @@ const MedicalActCard = ({ acte, index, isAdmin, onProcess, onSave }) => {
                                     <p className="text-xs text-slate-600 dark:text-slate-300">{acte.description}</p>
                                 </div>
                             )}
-
-                            {isAdmin && (
+                            {isAdmin && savedStatut === 0 && (
                                 <div className="mt-4 p-4 rounded-2xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 space-y-4">
                                     <div className="flex flex-col gap-2">
                                         <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Décision Administrative</p>
                                         <div className="flex items-center gap-3">
                                             <button
                                                 onClick={() => onProcess(acte.id, 'statut', 1)}
-                                                disabled={isAlreadyProcessed}
                                                 className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${acte.statut === 1
                                                     ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-500/30'
-                                                    : isAlreadyProcessed
-                                                        ? 'bg-slate-100 text-slate-300 cursor-not-allowed'
-                                                        : 'bg-white dark:bg-slate-900 text-slate-400 hover:text-emerald-600 hover:border-emerald-200 border border-transparent'
+                                                    : 'bg-white dark:bg-slate-900 text-slate-400 hover:text-emerald-600 hover:border-emerald-200 border border-transparent'
                                                     }`}
                                             >
                                                 <CheckCircle2 size={14} />
@@ -343,12 +377,9 @@ const MedicalActCard = ({ acte, index, isAdmin, onProcess, onSave }) => {
                                             </button>
                                             <button
                                                 onClick={() => onProcess(acte.id, 'statut', 2)}
-                                                disabled={isAlreadyProcessed}
                                                 className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${acte.statut === 2
                                                     ? 'bg-rose-600 text-white shadow-lg shadow-rose-500/30'
-                                                    : isAlreadyProcessed
-                                                        ? 'bg-slate-100 text-slate-300 cursor-not-allowed'
-                                                        : 'bg-white dark:bg-slate-900 text-slate-400 hover:text-rose-600 hover:border-rose-200 border border-transparent'
+                                                    : 'bg-white dark:bg-slate-900 text-slate-400 hover:text-rose-600 hover:border-rose-200 border border-transparent'
                                                     }`}
                                             >
                                                 <XCircle size={14} />
@@ -359,19 +390,28 @@ const MedicalActCard = ({ acte, index, isAdmin, onProcess, onSave }) => {
 
                                     {acte.statut === 2 && (
                                         <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
-                                            <input
-                                                type="text"
-                                                placeholder="Objet du rejet (ex: Document incomplet)"
-                                                value={acte.objet_rejet || ''}
-                                                onChange={(e) => onProcess(acte.id, 'objet_rejet', e.target.value)}
-                                                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-xs font-bold focus:ring-2 focus:ring-purple-500 outline-none transition-all"
-                                            />
-                                            <textarea
-                                                placeholder="Motif détaillé du rejet..."
-                                                value={acte.motif_rejet || ''}
-                                                onChange={(e) => onProcess(acte.id, 'motif_rejet', e.target.value)}
-                                                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-xs font-bold focus:ring-2 focus:ring-purple-500 outline-none transition-all min-h-[60px] resize-none"
-                                            />
+                                            <div>
+                                                <label className="text-[9px] font-black uppercase text-slate-400 mb-1 block ml-1">Objet du rejet</label>
+                                                <select
+                                                    value={acte.objet_rejet || ''}
+                                                    onChange={(e) => onProcess(acte.id, 'objet_rejet', e.target.value)}
+                                                    className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-xs font-bold focus:ring-2 focus:ring-purple-500 outline-none transition-all"
+                                                >
+                                                    <option value="">-- Sélectionner un objet du rejet --</option>
+                                                    {motifsRejetBS.map((motif, idx) => (
+                                                        <option key={idx} value={motif}>{motif}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label className="text-[9px] font-black uppercase text-slate-400 mb-1 block ml-1">Description (optionnelle)</label>
+                                                <textarea
+                                                    placeholder="Ajouter une description ou des détails supplémentaires..."
+                                                    value={acte.motif_rejet || ''}
+                                                    onChange={(e) => onProcess(acte.id, 'motif_rejet', e.target.value)}
+                                                    className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-xs font-bold focus:ring-2 focus:ring-purple-500 outline-none transition-all min-h-[60px] resize-none"
+                                                />
+                                            </div>
                                         </div>
                                     )}
 
@@ -380,7 +420,6 @@ const MedicalActCard = ({ acte, index, isAdmin, onProcess, onSave }) => {
                                             <label className="text-[9px] font-black uppercase text-slate-400 mb-1 block ml-1">Montant à rembourser (TND)</label>
                                             <input
                                                 type="number"
-                                                disabled={isAlreadyProcessed}
                                                 value={acte.montant_remboursement || 0}
                                                 max={acte.honoraires}
                                                 onChange={(e) => {
@@ -388,19 +427,48 @@ const MedicalActCard = ({ acte, index, isAdmin, onProcess, onSave }) => {
                                                     if (val > acte.honoraires) return;
                                                     onProcess(acte.id, 'montant_remboursement', val);
                                                 }}
-                                                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-xs font-black text-emerald-600 focus:ring-2 focus:ring-emerald-500 outline-none transition-all disabled:opacity-50"
+                                                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-xs font-black text-emerald-600 focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
                                             />
                                         </div>
                                     </div>
 
-                                    <button
-                                        onClick={() => onSave(acte, setSavedStatut)}
-                                        disabled={isAlreadyProcessed || acte.statut === 0}
-                                        className="w-full py-3 bg-slate-900 text-white rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-black transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                                    >
-                                        <Save size={14} />
-                                        Mettre à jour cet acte
-                                    </button>
+                                    {!acte._confirmSave ? (
+                                        <button
+                                            onClick={() => onProcess(acte.id, '_confirmSave', true)}
+                                            disabled={acte.statut === 0}
+                                            className="w-full py-3 bg-slate-900 text-white rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-black transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            <Save size={14} />
+                                            Mettre à jour cet acte
+                                        </button>
+                                    ) : (
+                                        <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/30 space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
+                                            <div className="flex items-center gap-2">
+                                                <AlertTriangle size={16} className="text-amber-500 flex-shrink-0" />
+                                                <p className="text-xs font-bold text-amber-700 dark:text-amber-400">
+                                                    Confirmer la mise à jour de cet acte ? Cette action est <span className="font-black underline">irréversible</span>.
+                                                </p>
+                                            </div>
+                                            <div className="flex gap-3">
+                                                <button
+                                                    onClick={() => onProcess(acte.id, '_confirmSave', false)}
+                                                    className="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 font-black text-[10px] uppercase hover:bg-slate-50 dark:hover:bg-slate-800 transition-all"
+                                                >
+                                                    Annuler
+                                                </button>
+                                                <button
+                                                    onClick={() => {
+                                                        onProcess(acte.id, '_confirmSave', false);
+                                                        onSave(acte, setSavedStatut);
+                                                    }}
+                                                    className="flex-1 py-2.5 bg-slate-900 hover:bg-black text-white rounded-xl font-black text-[10px] uppercase tracking-widest transition-all flex items-center justify-center gap-2"
+                                                >
+                                                    <Save size={12} />
+                                                    Confirmer
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             )}
                             <div className="grid grid-cols-2 gap-3">
@@ -568,7 +636,7 @@ const BulletinDetailsPage = () => {
         setExpandedAiDocs(prev => ({ ...prev, [index]: !prev[index] }));
     };
 
-    const isAdmin = currentUser?.role === 'ADMIN';
+    const isAdmin = currentUser?.role === 'ADMIN' || currentUser?.role === 'SUPER_ADMIN';
 
     const [confirmData, setConfirmData] = useState({
         isOpen: false,
@@ -695,20 +763,22 @@ const BulletinDetailsPage = () => {
             const med = bulletin.pharmacie.medicaments.find(m => m.id === medId);
             if (!med) return;
 
-            const response = await bulletinService.updateStatutMedicament(medId, {
+            const response = await updateStatutMedicament(medId, {
                 statut: status,
-                montant_remboursement: status === 1 ? med.montant_remboursement : 0
+                montant_remboursement: status === 1 ? med.montant_remboursement : 0,
+                objet_rejet: status === 2 ? med.objet_rejet : null,
+                motif_rejet: status === 2 ? med.motif_rejet : null
             });
 
             if (response) {
-                toast.success('Médicament mis à jour');
+                showToast('Médicament mis à jour', 'success');
                 // Rafraîchir les données du bulletin
-                const updatedBulletin = await bulletinService.getBulletinById(id);
+                const updatedBulletin = await getBulletinById(id);
                 setBulletin(updatedBulletin);
             }
         } catch (error) {
             console.error(error);
-            toast.error(error.message || 'Erreur lors de la mise à jour');
+            showToast(error.message || 'Erreur lors de la mise à jour', 'error');
         }
     };
 
@@ -1082,9 +1152,6 @@ const BulletinDetailsPage = () => {
                                                         <Pill size={14} />
                                                         Traitement Pharmacie
                                                     </h3>
-                                                    <span className="px-3 py-1 rounded-full bg-slate-100 text-[9px] font-black text-slate-500 uppercase tracking-widest">
-                                                        Achat: {formatDateFr(bulletin.pharmacie.date_achat)}
-                                                    </span>
                                                 </div>
 
                                                 <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-100 dark:border-slate-700 shadow-sm space-y-6">
@@ -1096,7 +1163,7 @@ const BulletinDetailsPage = () => {
                                                                     Prestataire Pharmacie
                                                                 </p>
                                                                 {(bulletin.pharmacie.prestataire?.identifiant_unique_mf || bulletin.pharmacie.identifiant_unique_mf) && (
-                                                                    <span className="px-2 py-0.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-[9px] font-mono font-bold text-slate-500">
+                                                                    <span className="px-2 py-0.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-[15px] font-mono font-bold text-slate-500">
                                                                         MF: {bulletin.pharmacie.prestataire?.identifiant_unique_mf || bulletin.pharmacie.identifiant_unique_mf}
                                                                     </span>
                                                                 )}
@@ -1192,9 +1259,14 @@ const BulletinDetailsPage = () => {
                                                             <div className="grid grid-cols-1 gap-3">
                                                                 {bulletin.pharmacie.medicaments.map((med, mIdx) => (
                                                                     <div key={med.id || mIdx} className="p-5 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-700 flex flex-col gap-4">
+                                                                        {/* Header row: nom, montant, statut badge */}
                                                                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                                                                             <div className="flex items-center gap-3">
-                                                                                <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600">
+                                                                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                                                                                    med.statut === 1 ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600'
+                                                                                    : med.statut === 2 ? 'bg-rose-100 dark:bg-rose-900/30 text-rose-500'
+                                                                                    : 'bg-blue-100 dark:bg-blue-900/30 text-blue-600'
+                                                                                }`}>
                                                                                     <Pill size={18} />
                                                                                 </div>
                                                                                 <div>
@@ -1219,37 +1291,108 @@ const BulletinDetailsPage = () => {
                                                                                     </div>
                                                                                 )}
                                                                                 {med.statut === 2 && (
-                                                                                    <div className="px-2 py-1 rounded-md bg-rose-100 text-rose-600 text-[9px] font-black uppercase">Rejeté</div>
+                                                                                    <span className="px-3 py-1 rounded-full bg-rose-100 text-rose-600 text-[9px] font-black uppercase tracking-wider">
+                                                                                        Rejeté
+                                                                                    </span>
+                                                                                )}
+                                                                                {med.statut === 0 && (
+                                                                                    <span className="px-3 py-1 rounded-full bg-amber-100 text-amber-600 text-[9px] font-black uppercase tracking-wider">
+                                                                                        En attente
+                                                                                    </span>
                                                                                 )}
                                                                             </div>
                                                                         </div>
 
+                                                                        {/* Rejection banner — shown when rejected */}
+                                                                        {med.statut === 2 && (med.objet_rejet || med.motif_rejet) && (
+                                                                            <div className="p-3 rounded-xl bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-800/20">
+                                                                                <div className="flex items-center gap-1.5 mb-1">
+                                                                                    <XCircle size={11} className="text-red-500 flex-shrink-0" />
+                                                                                    <p className="text-[9px] font-black text-red-600 uppercase tracking-wider">
+                                                                                        {med.objet_rejet || 'Motif de rejet'}
+                                                                                    </p>
+                                                                                </div>
+                                                                                {med.motif_rejet && (
+                                                                                    <p className="text-xs text-red-800 dark:text-red-300 leading-snug pl-4">
+                                                                                        {med.motif_rejet}
+                                                                                    </p>
+                                                                                )}
+                                                                            </div>
+                                                                        )}
                                                                         {isAdmin && med.statut === 0 && (
-                                                                            <div className="pt-4 border-t border-slate-200/50 dark:border-slate-700/50 flex flex-col md:flex-row items-center gap-4">
-                                                                                <div className="flex-1 w-full">
-                                                                                    <input
-                                                                                        type="number"
-                                                                                        step="0.001"
-                                                                                        placeholder="Montant remboursable"
-                                                                                        className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold"
-                                                                                        value={med.montant_remboursement || ''}
-                                                                                        onChange={(e) => handleMedicamentProcessing(med.id, 'montant_remboursement', parseFloat(e.target.value) || 0)}
-                                                                                    />
-                                                                                </div>
-                                                                                <div className="flex gap-2 w-full md:w-auto">
-                                                                                    <button
-                                                                                        onClick={() => handleMedicamentStatusUpdate(med.id, 1)}
-                                                                                        className="flex-1 md:px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-[10px] font-black uppercase transition-all"
-                                                                                    >
-                                                                                        Accepter
-                                                                                    </button>
-                                                                                    <button
-                                                                                        onClick={() => handleMedicamentStatusUpdate(med.id, 2)}
-                                                                                        className="flex-1 md:px-4 py-2 bg-rose-500 hover:bg-rose-600 text-white rounded-xl text-[10px] font-black uppercase transition-all"
-                                                                                    >
-                                                                                        Rejeter
-                                                                                    </button>
-                                                                                </div>
+                                                                            <div className="pt-4 border-t border-slate-200/50 dark:border-slate-700/50 flex flex-col gap-4">
+                                                                                {!med.showRejectionPanel ? (
+                                                                                    <div className="flex flex-col md:flex-row items-center gap-4 w-full animate-in fade-in duration-200">
+                                                                                        <div className="flex-1 w-full">
+                                                                                            <input
+                                                                                                type="number"
+                                                                                                step="0.001"
+                                                                                                placeholder="Montant remboursable"
+                                                                                                className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold"
+                                                                                                value={med.montant_remboursement || ''}
+                                                                                                onChange={(e) => handleMedicamentProcessing(med.id, 'montant_remboursement', parseFloat(e.target.value) || 0)}
+                                                                                            />
+                                                                                        </div>
+                                                                                        <div className="flex gap-2 w-full md:w-auto">
+                                                                                            <button
+                                                                                                onClick={() => handleMedicamentStatusUpdate(med.id, 1)}
+                                                                                                className="flex-1 md:px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-[10px] font-black uppercase transition-all"
+                                                                                            >
+                                                                                                Accepter
+                                                                                            </button>
+                                                                                            <button
+                                                                                                onClick={() => handleMedicamentProcessing(med.id, 'showRejectionPanel', true)}
+                                                                                                className="flex-1 md:px-4 py-2 bg-rose-500 hover:bg-rose-600 text-white rounded-xl text-[10px] font-black uppercase transition-all"
+                                                                                            >
+                                                                                                Rejeter
+                                                                                            </button>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                ) : (
+                                                                                    <div className="flex flex-col gap-3 p-4 bg-rose-50/50 dark:bg-rose-950/10 border border-rose-100 dark:border-rose-950/20 rounded-2xl w-full animate-in fade-in slide-in-from-top-2 duration-300">
+                                                                                        <div className="flex items-center justify-between">
+                                                                                            <span className="text-[10px] font-black text-rose-600 uppercase tracking-widest">Rejet de médicament</span>
+                                                                                            <button
+                                                                                                onClick={() => handleMedicamentProcessing(med.id, 'showRejectionPanel', false)}
+                                                                                                className="text-slate-400 hover:text-slate-600 dark:hover:text-white"
+                                                                                            >
+                                                                                                <X size={14} />
+                                                                                            </button>
+                                                                                        </div>
+
+                                                                                        <div>
+                                                                                            <label className="text-[9px] font-black uppercase text-slate-400 mb-1 block ml-1">Objet du rejet</label>
+                                                                                            <select
+                                                                                                value={med.objet_rejet || ''}
+                                                                                                onChange={(e) => handleMedicamentProcessing(med.id, 'objet_rejet', e.target.value)}
+                                                                                                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-xs font-bold focus:ring-2 focus:ring-purple-500 outline-none transition-all"
+                                                                                            >
+                                                                                                <option value="">-- Sélectionner un objet du rejet --</option>
+                                                                                                {motifsRejetBS.map((motif, idx) => (
+                                                                                                    <option key={idx} value={motif}>{motif}</option>
+                                                                                                ))}
+                                                                                            </select>
+                                                                                        </div>
+
+                                                                                        <div>
+                                                                                            <label className="text-[9px] font-black uppercase text-slate-400 mb-1 block ml-1">Description (optionnelle)</label>
+                                                                                            <textarea
+                                                                                                placeholder="Ajouter une description ou des détails supplémentaires..."
+                                                                                                value={med.motif_rejet || ''}
+                                                                                                onChange={(e) => handleMedicamentProcessing(med.id, 'motif_rejet', e.target.value)}
+                                                                                                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-xs font-bold focus:ring-2 focus:ring-purple-500 outline-none transition-all min-h-[60px] resize-none"
+                                                                                            />
+                                                                                        </div>
+
+                                                                                        <button
+                                                                                            onClick={() => handleMedicamentStatusUpdate(med.id, 2)}
+                                                                                            disabled={!med.objet_rejet}
+                                                                                            className="w-full py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-[10px] font-black uppercase transition-all disabled:opacity-50"
+                                                                                        >
+                                                                                            Confirmer le rejet
+                                                                                        </button>
+                                                                                    </div>
+                                                                                )}
                                                                             </div>
                                                                         )}
                                                                     </div>
@@ -1359,7 +1502,7 @@ const BulletinDetailsPage = () => {
                                                         <FileCheck size={16} className="text-blue-500" />
                                                         <p className="text-[10px] font-black uppercase tracking-wider text-blue-600">Rapport d'analyse détaillé</p>
                                                     </div>
-                                                    <p className="whitespace-pre-wrap text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                                                    <p className="whitespace-pre-wrap text-sm text-slate-600 dark:text-slate-300 leading-relaxed text-left">
                                                         {bulletin.resultat_analyse}
                                                     </p>
                                                 </div>

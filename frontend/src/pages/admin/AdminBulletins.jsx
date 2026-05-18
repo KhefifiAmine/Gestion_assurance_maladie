@@ -373,7 +373,7 @@ const AdminBulletins = () => {
                                         <td className="px-10 py-7">
                                             <div className="flex items-center justify-center gap-3">
                                                 {/* Logic for assignment conflict avoidance */}
-                                                {currentUser?.role === 'ADMIN' && (() => {
+                                                {(currentUser?.role === 'ADMIN' || currentUser?.role === 'SUPER_ADMIN') && (() => {
                                                     const isAssignedToOther = b.adminId && b.adminId !== currentUser?.id && b.statut === 1;
  
                                                     return (

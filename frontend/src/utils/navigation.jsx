@@ -7,7 +7,7 @@ import { useAuth } from '../context/AuthContext';
 export const HomeRedirect = () => {
     const { isAuthenticated, user } = useAuth();
     if (!isAuthenticated) return <Navigate to="/login" replace />;
-    return ['ADMIN', 'RESPONSABLE_RH'].includes(user?.role)
+    return ['ADMIN', 'RESPONSABLE_RH', 'SUPER_ADMIN'].includes(user?.role)
         ? <Navigate to="/admin" replace />
         : <Navigate to="/dashboard" replace />;
 };
@@ -16,6 +16,6 @@ export const HomeRedirect = () => {
 export const AdminHomeRedirect = () => {
     const { user } = useAuth();
     if (user?.role === 'RESPONSABLE_RH') return <Navigate to="users" replace />;
-    if (user?.role === 'ADMIN') return <Navigate to="bulletins" replace />;
+    if (user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN') return <Navigate to="bulletins" replace />;
     return <Navigate to="/dashboard" replace />;
 };

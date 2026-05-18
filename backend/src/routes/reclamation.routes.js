@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { AdherentReclamationController, AdminReclamationController } = require('../controllers/reclamation.controller');
+const { AdherentReclamationController, AdminReclamationController, ReclamationMessageController } = require('../controllers/reclamation.controller');
 const auth = require('../middleware/auth.middleware');
 
 // TOUTES les routes nécessitent d'être au moins connecté
@@ -20,6 +20,9 @@ router.get('/:id', (req, res) => {
 
 router.put('/:id', AdherentReclamationController.update);
 router.delete('/:id', AdherentReclamationController.delete);
+
+// --- ROUTE ECHANGE MESSAGE ---
+router.post('/:id/messages', ReclamationMessageController.sendMessage);
 
 // --- ROUTES ADMIN ---
 router.get('/', auth.isAdmin, AdminReclamationController.listAll);

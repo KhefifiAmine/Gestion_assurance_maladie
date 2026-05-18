@@ -11,7 +11,8 @@ const {
     updateStatutMedicament,
     updateBulletin,
     deleteBulletin,
-    generatePreFilledPDF
+    generatePreFilledPDF,
+    lookupPrestataire
 } = require('../controllers/bulletin.controller');
 
 const uploadWithDuplicateCheck = require('../middleware/duplicate.middleware');
@@ -19,6 +20,7 @@ const uploadWithDuplicateCheck = require('../middleware/duplicate.middleware');
 // Toutes les routes nécessitent une authentification
 router.post('/', verifyToken, uploadWithDuplicateCheck, createBulletin);
 router.get('/my', verifyToken, getMyBulletins);
+router.get('/prestataires/lookup', verifyToken, lookupPrestataire);
 router.put('/:id', verifyToken, uploadWithDuplicateCheck, updateBulletin);
 router.delete('/:id', verifyToken, deleteBulletin);
 router.get('/pre-filled-pdf', verifyToken, generatePreFilledPDF);

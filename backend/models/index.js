@@ -9,6 +9,7 @@ const Prestataire = require('./Prestataire');
 const MaladieConsumption = require('./MaladieConsumption');
 
 const Reclamation = require('./Reclamation');
+const ReclamationMessage = require('./ReclamationMessage');
 
 const Notification = require('./Notification');
 const Journal = require('./Journal');
@@ -73,6 +74,12 @@ Reclamation.belongsTo(User, { foreignKey: 'adminId', as: 'admin' });
 BulletinSoin.hasMany(Reclamation, { foreignKey: 'bulletinId', as: 'reclamations' });
 Reclamation.belongsTo(BulletinSoin, { foreignKey: 'bulletinId', as: 'bulletinSoin' });
 
+Reclamation.hasMany(ReclamationMessage, { foreignKey: 'reclamationId', as: 'messages', onDelete: 'CASCADE' });
+ReclamationMessage.belongsTo(Reclamation, { foreignKey: 'reclamationId' });
+
+User.hasMany(ReclamationMessage, { foreignKey: 'senderId', as: 'messagesEnvoyes' });
+ReclamationMessage.belongsTo(User, { foreignKey: 'senderId', as: 'sender' });
+
 
 
 module.exports = {
@@ -84,6 +91,7 @@ module.exports = {
     ActePharmacie,
     Medicament,
     Reclamation,
+    ReclamationMessage,
     Notification,
     Journal,
     DocumentJustificatif,

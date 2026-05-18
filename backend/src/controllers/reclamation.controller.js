@@ -1,4 +1,4 @@
-const { Reclamation, User, BulletinSoin, Notification, Beneficiary, ActeMedical, ActePharmacie, DocumentJustificatif, Prestataire, Medicament } = require('../../models');
+const { Reclamation, ReclamationMessage, User, BulletinSoin, Notification, Beneficiary, ActeMedical, ActePharmacie, DocumentJustificatif, Prestataire, Medicament } = require('../../models');
 const { sendNotificationEmail } = require('../utils/emailService');
 
 // ==========================================
@@ -68,12 +68,23 @@ const AdherentReclamationController = {
               { model: DocumentJustificatif, as: 'documents' }
             ]
           },
-         
+          {
+            model: ReclamationMessage,
+            as: 'messages',
+            include: [
+              { model: User, as: 'sender', attributes: ['id', 'nom', 'prenom', 'avatar', 'role'] }
+            ]
+          }
         ],
-       
       });
       if (!reclamation) return res.status(404).json({ success: false, message: 'Réclamation non trouvée.' });
-      res.status(200).json({ success: true, data: reclamation });
+      
+      const reclamationJSON = reclamation.toJSON();
+      if (reclamationJSON.messages) {
+        reclamationJSON.messages.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+      }
+      
+      res.status(200).json({ success: true, data: reclamationJSON });
     } catch (error) {
       res.status(500).json({ success: false, message: 'Erreur serveur.' });
     }
@@ -147,17 +158,28 @@ const AdminReclamationController = {
               { model: ActePharmacie, as: 'pharmacie', include: [{ model: Medicament, as: 'medicaments' }, { model: Prestataire, as: 'prestataire' }] },
               { model: DocumentJustificatif, as: 'documents' }
             ]
+          },
+          {
+            model: ReclamationMessage,
+            as: 'messages',
+            include: [
+              { model: User, as: 'sender', attributes: ['id', 'nom', 'prenom', 'avatar', 'role'] }
+            ]
           }
-         
         ],
-       
       });
-
+ 
       if (!reclamation) return res.status(404).json({ success: false, message: 'Réclamation non trouvée.' });
       if (reclamation.adminId && reclamation.adminId !== req.userId) {
         return res.status(200).json({ success: true, data: { ...reclamation.toJSON(), messages: [], isRestricted: true } });
       }
-      res.status(200).json({ success: true, data: reclamation });
+      
+      const reclamationJSON = reclamation.toJSON();
+      if (reclamationJSON.messages) {
+        reclamationJSON.messages.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+      }
+      
+      res.status(200).json({ success: true, data: reclamationJSON });
     } catch (error) {
       res.status(500).json({ success: false, message: 'Erreur serveur.' });
     }
@@ -166,24 +188,18 @@ const AdminReclamationController = {
   updateStatus: async (req, res) => {
     try {
       const { id } = req.params;
-      const { statut, reponseAdmin, priorite } = req.body;
+      const { statut, priorite } = req.body;
       const reclamation = await Reclamation.findByPk(id);
       if (!reclamation) return res.status(404).json({ success: false, message: 'Réclamation non trouvée.' });
 
       if (statut) { reclamation.statut = statut; reclamation.adminId = req.userId; }
-      if (priorite !== undefined) reclamation.priorite = priorite;
-      if (reponseAdmin) {
-        reclamation.reponseAdmin = reponseAdmin;
-        reclamation.dateReponse = new Date();
-        reclamation.adminId = req.userId;
-        reclamation.unread = true;
-      }
+      if (priorite) { reclamation.priorite = priorite; }
       await reclamation.save();
 
       try {
         const adherent = await User.findByPk(reclamation.userId);
         const titre = 'ℹ️ Mise à jour réclamation';
-        const description = `Votre réclamation "${reclamation.objet}" a été mise à jour : ${statut || 'Nouvelle réponse'}`;
+        const description = `Votre réclamation "${reclamation.objet}" a été mise à jour : ${statut || 'Nouvelle priorité'}`;
         await Notification.create({ titre, description, type: 'reclamation', userId: reclamation.userId });
         if (adherent?.email) sendNotificationEmail(adherent.email, titre, description).catch(e => {});
       } catch (e) {}
@@ -195,4 +211,95 @@ const AdminReclamationController = {
   }
 };
 
-module.exports = { AdherentReclamationController, AdminReclamationController };
+const ReclamationMessageController = {
+  sendMessage: async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { content, statusChange, priorityChange } = req.body;
+      const userId = req.userId;
+      const userRole = req.userRole;
+
+      if ((!content || !content.trim()) && !statusChange && !priorityChange) {
+        return res.status(400).json({ success: false, message: 'Le message ne peut pas être vide.' });
+      }
+
+      // Check if reclamation exists
+      const reclamation = await Reclamation.findByPk(id);
+      if (!reclamation) {
+        return res.status(404).json({ success: false, message: 'Réclamation non trouvée.' });
+      }
+
+      // If they are Adherent, check they own the reclamation
+      if (userRole === 'ADHERENT' && reclamation.userId !== userId) {
+        return res.status(403).json({ success: false, message: 'Accès refusé.' });
+      }
+
+      const isAdminMessage = ['ADMIN', 'RESPONSABLE_RH', 'SUPER_ADMIN'].includes(userRole);
+
+      // Determine status changes
+      let finalStatusChange = statusChange;
+      if (isAdminMessage) {
+        if (!finalStatusChange && reclamation.statut !== 'Clôturée') {
+          finalStatusChange = 'Répondu';
+        }
+      } else {
+        // Adherent sent a message
+        if (reclamation.statut === 'Répondu' || reclamation.statut === 'Clôturée') {
+          finalStatusChange = 'En cours';
+        }
+      }
+
+      // Create message
+      const message = await ReclamationMessage.create({
+        reclamationId: id,
+        senderId: userId,
+        content,
+        statusChange: finalStatusChange,
+        priorityChange
+      });
+
+      // Update reclamation adminId if admin replied
+      if (isAdminMessage) {
+        reclamation.adminId = userId;
+        await reclamation.save();
+
+        // Notify adherent
+        try {
+          const adherent = await User.findByPk(reclamation.userId);
+          const titre = '💬 Nouveau message de l\'administration';
+          const description = `Vous avez reçu un nouveau message concernant votre réclamation "${reclamation.objet}"`;
+          await Notification.create({ titre, description, type: 'reclamation', userId: reclamation.userId });
+          if (adherent?.email) sendNotificationEmail(adherent.email, titre, description).catch(e => {});
+        } catch (e) {}
+      } else {
+        // Notify admins
+        try {
+          const adherent = await User.findByPk(userId);
+          const admins = await User.findAll({ where: { role: 'ADMIN' } });
+          const titre = '💬 Nouveau message (Réclamation)';
+          const description = `${adherent?.prenom} ${adherent?.nom} a envoyé un message sur la réclamation "${reclamation.objet}"`;
+          
+          const notifPromises = admins.map(admin => Notification.create({
+            titre,
+            description,
+            type: 'reclamation',
+            userId: admin.id
+          }));
+          await Promise.all(notifPromises);
+        } catch (e) {}
+      }
+
+      // Fetch the created message with sender info to return to client
+      const fullMessage = await ReclamationMessage.findByPk(message.id, {
+        include: [{ model: User, as: 'sender', attributes: ['id', 'nom', 'prenom', 'avatar', 'role'] }]
+      });
+
+      res.status(201).json({ success: true, data: fullMessage });
+    } catch (error) {
+      console.error('SendMessage Err:', error);
+      res.status(500).json({ success: false, message: 'Erreur serveur.' });
+    }
+  }
+};
+
+module.exports = { AdherentReclamationController, AdminReclamationController, ReclamationMessageController };

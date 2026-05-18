@@ -52,7 +52,7 @@ const Medicament = sequelize.define('Medicament', {
         type: DataTypes.INTEGER,
         defaultValue: 0
     },
-    objet_refus: {
+    objet_rejet: {
         type: DataTypes.STRING,
         allowNull: true
     },

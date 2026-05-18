@@ -5,46 +5,43 @@ const Reclamation = sequelize.define('Reclamation', {
     id: {
         type: DataTypes.INTEGER,
         autoIncrement: true,
-        primaryKey: true,
-        allowNull: false
+        primaryKey: true
     },
-    prestataire: {
-        type: DataTypes.STRING,
-        defaultValue: 'GAT'
-    },
-    objet: {
-        type: DataTypes.STRING,
-        allowNull: true
-    },
-    description: {
-        type: DataTypes.TEXT,
-        allowNull: true
-    },
-    statut: {
-        type: DataTypes.ENUM('Ouverte', 'En cours', 'Traitée', 'Clôturée'),
-        defaultValue: 'Ouverte'
-    },
-    reponseAdmin: {
-        type: DataTypes.TEXT,
-        allowNull: true
-    },
-    dateReponse: {
-        type: DataTypes.DATE,
-        allowNull: true
-    },
-    unread: {
-        type: DataTypes.BOOLEAN,
-        defaultValue: false
-    },
-    priorite: {
-        type: DataTypes.INTEGER,
-        allowNull: true
-    },
+
     reference: {
         type: DataTypes.STRING,
-        allowNull: true,
         unique: true
     },
+
+    objet: {
+        type: DataTypes.STRING,
+        allowNull: false
+    },
+
+    description: {
+        type: DataTypes.TEXT,
+        allowNull: false
+    },
+
+    statut: {
+        type: DataTypes.ENUM('Ouverte', 'En cours', 'Répondu', 'Clôturée'),
+        defaultValue: 'Ouverte'
+    },
+
+    priorite: {
+        type: DataTypes.ENUM('Basse', 'Moyenne', 'Haute'),
+        defaultValue: 'Moyenne'
+    },
+
+    userId: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        references: {
+            model: 'users',
+            key: 'id'
+        }
+    },
+
     adminId: {
         type: DataTypes.INTEGER,
         allowNull: true,
@@ -53,15 +50,14 @@ const Reclamation = sequelize.define('Reclamation', {
             key: 'id'
         }
     }
+
 }, {
     tableName: 'reclamations',
     timestamps: true,
+
     hooks: {
-        beforeValidate: async (reclamation) => {
-            if (!reclamation.reference) {
-                const count = await Reclamation.count();
-                reclamation.reference = `REQ-${1000 + count + 1}`;
-            }
+        beforeCreate: (reclamation) => {
+            reclamation.reference = `REQ-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
         }
     }
 });

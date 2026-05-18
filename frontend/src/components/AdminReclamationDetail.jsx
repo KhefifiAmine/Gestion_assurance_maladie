@@ -8,7 +8,8 @@ import {
 
 import {
   getReclamationById,
-  updateReclamationStatus
+  updateReclamationStatus,
+  sendReclamationMessage
 } from '../services/reclamationService';
 import UserDetailsModal from './UserDetailsModal';
 import ConfirmModal from './ConfirmModal';
@@ -18,7 +19,7 @@ const StatusBadge = ({ statut }) => {
   const styles = {
     'Ouverte': 'bg-purple-50 text-purple-600 border-purple-100 dark:bg-purple-900/10 dark:text-purple-400 dark:border-purple-800/30',
     'En cours': 'bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-900/10 dark:text-amber-400 dark:border-amber-800/30',
-    'Traitée': 'bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-900/10 dark:text-emerald-400 dark:border-emerald-800/30',
+    'Répondu': 'bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-900/10 dark:text-emerald-400 dark:border-emerald-800/30',
     'Clôturée': 'bg-slate-50 text-slate-500 border-slate-100 dark:bg-slate-800/40 dark:text-slate-400 dark:border-slate-700/30'
   };
 
@@ -31,15 +32,13 @@ const StatusBadge = ({ statut }) => {
 
 const PriorityBadge = ({ priorite }) => {
   const styles = {
-      1: 'bg-black-50 text-black-500 border-black-100 dark:bg-black-800/40 dark:text-black-400 dark:border-black-700/30',
-      2: 'bg-blue-50 text-blue-600 border-blue-100 dark:bg-blue-900/10 dark:text-blue-400 dark:border-blue-800/30',
-      3: 'bg-orange-50 text-orange-600 border-orange-100 dark:bg-orange-900/10 dark:text-orange-400 dark:border-orange-800/30',
-      4: 'bg-red-50 text-red-600 border-red-100 dark:bg-red-900/10 dark:text-red-400 dark:border-red-800/30'
+      'Basse': 'bg-slate-50 text-slate-550 border-slate-100 dark:bg-slate-800/40 dark:text-slate-400 dark:border-slate-700/30',
+      'Moyenne': 'bg-blue-50 text-blue-600 border-blue-100 dark:bg-blue-900/10 dark:text-blue-400 dark:border-blue-800/30',
+      'Haute': 'bg-orange-50 text-orange-600 border-orange-100 dark:bg-orange-900/10 dark:text-orange-400 dark:border-orange-800/30'
   };
-  const labels = { 1: 'Basse', 2: 'Moyenne', 3: 'Haute', 4: 'Urgente' };
   return (
-      <span className={`px-4 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-full border shadow-inner ${styles[priorite] || styles[1]}`}>
-          Priorité: {labels[priorite] || 'Basse'}
+      <span className={`px-4 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-full border shadow-inner ${styles[priorite] || styles['Moyenne']}`}>
+          Priorité: {priorite || 'Moyenne'}
       </span>
   );
 };
@@ -61,7 +60,7 @@ const AdminReclamationDetail = ({ id, onBack, onReclamationUpdate, allBulletins 
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
   const [isStatusOpen, setIsStatusOpen] = useState(false);
   const [isPriorityOpen, setIsPriorityOpen] = useState(false);
-  const [priority, setPriority] = useState(2);
+  const [priority, setPriority] = useState('Moyenne');
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: '', message: '', type: 'danger', onConfirm: () => { } });
 
   useEffect(() => {
@@ -71,7 +70,7 @@ const AdminReclamationDetail = ({ id, onBack, onReclamationUpdate, allBulletins 
         const fullData = await getReclamationById(id);
         setReclamation(fullData);
         setStatus(fullData.statut);
-        setPriority(fullData.priorite || 2);
+        setPriority(fullData.priorite || 'Moyenne');
       } catch (err) {
         showToast(err.message || "Erreur de chargement", 'error');
       } finally {
@@ -81,42 +80,57 @@ const AdminReclamationDetail = ({ id, onBack, onReclamationUpdate, allBulletins 
     fetchDetails();
   }, [id, showToast]);
 
-  const handleUpdate = () => {
-    if (!replyText.trim() && status === reclamation.statut && priority === reclamation.priorite) {
-      showToast('Modifiez le statut ou ajoutez une réponse.', 'warning');
-      return;
-    }
-    if (status === 'Clôturée' && reclamation.statut !== 'Clôturée') {
-      setConfirmModal({
-        isOpen: true,
-        title: 'Clôturer la réclamation',
-        message: 'Ceci verrouillera le dossier. Continuer ?',
-        type: 'danger',
-        onConfirm: commitUpdate
-      });
-    } else {
-      commitUpdate();
+  const handleSendMessage = async (e) => {
+    e.preventDefault();
+    if (!replyText.trim() || isSubmitting) return;
+
+    setIsSubmitting(true);
+    try {
+      const sentMsg = await sendReclamationMessage(id, replyText);
+      setReclamation(prev => ({
+        ...prev,
+        messages: [...(prev.messages || []), sentMsg],
+        statut: 'En cours'
+      }));
+      setStatus('En cours');
+      setReplyText('');
+      showToast("Message envoyé avec succès !", "success");
+    } catch (err) {
+      showToast(err.message || "Erreur lors de l'envoi", "error");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  const commitUpdate = async () => {
-    setIsSubmitting(true);
+  const handleStatusChange = async (newStatut) => {
     try {
-      const payload = { statut: status, priorite: priority };
-      if (replyText.trim()) payload.reponseAdmin = replyText.trim();
-      
-      const updated = await updateReclamationStatus(id, payload);
-      const updatedLocal = { ...reclamation, ...updated };
-      setReclamation(updatedLocal);
-      if (onReclamationUpdate) onReclamationUpdate(updatedLocal);
-
-      showToast(replyText.trim() ? 'Réponse envoyée' : `Statut mis à jour`, 'success');
-      setReplyText('');
+      const sentMsg = await sendReclamationMessage(id, { statusChange: newStatut });
+      setStatus(newStatut);
+      setReclamation(prev => ({
+        ...prev,
+        statut: newStatut,
+        messages: [...(prev.messages || []), sentMsg]
+      }));
+      if (onReclamationUpdate) onReclamationUpdate({ ...reclamation, statut: newStatut });
+      showToast(`Statut mis à jour : ${newStatut}`, 'success');
     } catch (err) {
-      showToast(err.message || 'Erreur', 'error');
-    } finally {
-      setIsSubmitting(false);
-      setConfirmModal(prev => ({ ...prev, isOpen: false }));
+      showToast(err.message || 'Erreur lors de la mise à jour du statut', 'error');
+    }
+  };
+
+  const handlePriorityChange = async (newPriority) => {
+    try {
+      const sentMsg = await sendReclamationMessage(id, { priorityChange: newPriority });
+      setPriority(newPriority);
+      setReclamation(prev => ({
+        ...prev,
+        priorite: newPriority,
+        messages: [...(prev.messages || []), sentMsg]
+      }));
+      if (onReclamationUpdate) onReclamationUpdate({ ...reclamation, priorite: newPriority });
+      showToast(`Priorité mise à jour`, 'success');
+    } catch (err) {
+      showToast(err.message || 'Erreur lors de la mise à jour de la priorité', 'error');
     }
   };
 
@@ -178,52 +192,157 @@ const AdminReclamationDetail = ({ id, onBack, onReclamationUpdate, allBulletins 
             </div>
           </motion.div>
 
-          {/* Action Panel */}
-          {reclamation.statut !== 'Clôturée' && !reclamation.isRestricted && (
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-white dark:bg-slate-900 p-10 rounded-[3rem] shadow-2xl border-2 border-purple-50 dark:border-purple-900/20 relative overflow-hidden">
-              <div className="relative z-10">
-                <div className="flex items-center gap-5 mb-10">
-                  <div className="w-14 h-14 rounded-2xl bg-purple-600 text-white flex items-center justify-center shadow-2xl shadow-purple-600/30">
-                    <Send size={24} />
-                  </div>
-                  <div>
-                    <h3 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Traitement de la réclamation</h3>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Actions administratives en direct</p>
+          {/* Fil de discussion / Échanges de messages */}
+          {!reclamation.isRestricted ? (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="relative bg-white dark:bg-slate-900 rounded-3xl shadow-xl overflow-hidden border border-slate-100 dark:border-slate-800"
+            >
+              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-purple-500/5 to-transparent rounded-full blur-2xl"></div>
+              
+              <div className="p-6 md:p-8 flex flex-col h-[550px]">
+                <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-100 dark:border-slate-800 shrink-0">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2.5 bg-gradient-to-br from-purple-500 to-indigo-500 rounded-xl shadow-lg shadow-purple-500/25">
+                      <MessageSquare className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="text-base font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                        Discussion / Échanges
+                      </h3>
+                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
+                        Dialogue en direct avec l'adhérent
+                      </p>
+                    </div>
                   </div>
                 </div>
-                
-                <div className="space-y-8">
-                  <div className="space-y-3">
-                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Réponse à l'adhérent</label>
-                    <textarea value={replyText} onChange={e => setReplyText(e.target.value)} rows={5} className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-white/5 rounded-[2rem] p-8 outline-none focus:ring-4 focus:ring-purple-500/10 transition-all font-bold text-slate-700 dark:text-slate-200 text-sm shadow-inner" placeholder="Expliquez la décision..." />
-                  </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Priority & Status dropdowns (simplified logic from original) */}
-                    <div className="space-y-3">
-                      <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Priorité</label>
-                      <select value={priority} onChange={e => setPriority(Number(e.target.value))} className="w-full px-6 py-5 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 font-black text-[10px] uppercase outline-none">
-                        <option value={1}>Basse</option><option value={2}>Moyenne</option><option value={3}>Haute</option><option value={4}>Urgente</option>
-                      </select>
+
+                {/* Messages Area */}
+                <div className="flex-1 overflow-y-auto pr-2 space-y-4 mb-6 custom-scrollbar flex flex-col">
+                  {/* Initial description message */}
+                  <div className="flex items-start gap-3 max-w-[85%] self-start">
+                    <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-850 flex items-center justify-center text-xs font-black text-slate-600 shrink-0">
+                      {reclamation.adherent?.nom?.charAt(0) || 'U'}
                     </div>
-                    <div className="space-y-3">
-                      <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Statut</label>
-                      <select value={status} onChange={e => setStatus(e.target.value)} className="w-full px-6 py-5 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 font-black text-[10px] uppercase outline-none">
-                        <option value="Ouverte">Ouverte</option><option value="En cours">En cours</option><option value="Traitée">Traitée</option><option value="Clôturée">Clôturée</option>
-                      </select>
+                    <div className="space-y-1">
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-xs font-bold text-slate-600 dark:text-slate-400">
+                          {reclamation.adherent ? `${reclamation.adherent.nom} ${reclamation.adherent.prenom}` : 'Adhérent'} (Demande Initiale)
+                        </span>
+                        <span className="text-[9px] text-slate-400">{formatDate(reclamation.createdAt)}</span>
+                      </div>
+                      <div className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-4 py-3 rounded-2xl rounded-tl-none text-sm font-medium">
+                        {reclamation.description}
+                      </div>
                     </div>
                   </div>
 
-                  <button onClick={handleUpdate} disabled={isSubmitting} className="w-full py-6 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-[2rem] font-black text-[11px] uppercase tracking-[0.3em] shadow-2xl transition-all hover:bg-purple-600 hover:text-white active:scale-95 disabled:opacity-50 flex items-center justify-center gap-4">
-                    {isSubmitting ? <RefreshCw className="animate-spin" /> : <ShieldCheck size={22} />}
-                    {isSubmitting ? 'Envoi...' : 'Valider la décision'}
-                  </button>
+                  {/* Message thread */}
+                  {reclamation.messages && reclamation.messages.length > 0 ? (
+                    reclamation.messages.map((msg) => {
+                      const isMe = ['ADMIN', 'SUPER_ADMIN'].includes(msg.sender?.role);
+                      const hasStatusChange = !!msg.statusChange;
+                      const hasPriorityChange = !!msg.priorityChange;
+
+                      return (
+                        <div key={msg.id} className="w-full space-y-3 flex flex-col">
+                          {/* S'il y a un changement de statut ou de priorité, afficher des badges de notification système */}
+                          {(hasStatusChange || hasPriorityChange) && (
+                            <div className="self-center flex flex-wrap justify-center gap-2 my-2 select-none">
+                              {hasStatusChange && (
+                                <span className="px-3 py-1 text-[9px] font-black uppercase tracking-wider bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded-full border border-slate-200/50">
+                                  Statut : {msg.statusChange}
+                                </span>
+                              )}
+                              {hasPriorityChange && (
+                                <span className="px-3 py-1 text-[9px] font-black uppercase tracking-wider bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 rounded-full border border-purple-100/30">
+                                  Priorité : {msg.priorityChange}
+                                </span>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Afficher le contenu du message s'il existe */}
+                          {msg.content && msg.content.trim() && (
+                            <div className={`flex items-start gap-3 max-w-[85%] ${isMe ? 'self-end flex-row-reverse' : 'self-start'}`}>
+                              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-black shrink-0 ${isMe ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600' : 'bg-slate-100 dark:bg-slate-850 text-slate-650'}`}>
+                                {isMe ? 'A' : (reclamation.adherent?.nom?.charAt(0) || 'U')}
+                              </div>
+                              <div className={`space-y-1 ${isMe ? 'text-right' : 'text-left'}`}>
+                                <div className="flex items-baseline gap-2 justify-start">
+                                  <span className="text-xs font-bold text-slate-600 dark:text-slate-400">
+                                    {isMe ? `Vous (${msg.sender?.nom || 'Admin'})` : (reclamation.adherent ? `${reclamation.adherent.nom} ${reclamation.adherent.prenom}` : 'Adhérent')}
+                                  </span>
+                                  <span className="text-[9px] text-slate-400">
+                                    {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                  </span>
+                                </div>
+                                <div className={`px-4 py-3 rounded-2xl text-sm font-medium text-left ${isMe ? 'bg-purple-600 text-white rounded-tr-none shadow-md shadow-purple-600/10' : 'bg-slate-100 dark:bg-slate-800 text-slate-750 dark:text-slate-350 rounded-tl-none'}`}>
+                                  {msg.content}
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })
+                  ) : (
+                    reclamation.reponseAdmin && (
+                      <div className="flex items-start gap-3 max-w-[85%] self-end flex-row-reverse">
+                        <div className="w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center text-xs font-black text-purple-600 shrink-0">
+                          A
+                        </div>
+                        <div className="space-y-1 text-right">
+                          <div className="flex items-baseline gap-2 justify-start">
+                            <span className="text-xs font-bold text-slate-600 dark:text-slate-400">Vous (Réponse Initiale)</span>
+                            <span className="text-[9px] text-slate-400">{reclamation.dateReponse}</span>
+                          </div>
+                          <div className="bg-purple-600 text-white px-4 py-3 rounded-2xl rounded-tr-none text-sm font-medium text-left shadow-md shadow-purple-600/10">
+                            {reclamation.reponseAdmin}
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  )}
                 </div>
+
+                {/* Input Area */}
+                {reclamation.statut !== 'Clôturée' ? (
+                  <form onSubmit={handleSendMessage} className="flex gap-3 pt-4 border-t border-slate-100 dark:border-slate-800 shrink-0">
+                    <input
+                      type="text"
+                      value={replyText}
+                      onChange={(e) => setReplyText(e.target.value)}
+                      placeholder="Tapez votre message de réponse ici..."
+                      className="flex-1 px-5 py-3.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm font-bold focus:ring-4 focus:ring-purple-500/10 focus:border-purple-500 outline-none transition-all dark:text-white"
+                      disabled={isSubmitting}
+                    />
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      type="submit"
+                      disabled={isSubmitting || !replyText.trim()}
+                      className="p-3.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-2xl shadow-lg shadow-purple-500/25 hover:shadow-xl hover:shadow-purple-500/35 transition-all disabled:opacity-50 flex items-center justify-center shrink-0 w-[50px] h-[50px]"
+                    >
+                      {isSubmitting ? (
+                        <RefreshCw className="w-5 h-5 animate-spin" />
+                      ) : (
+                        <Send className="w-5 h-5" />
+                      )}
+                    </motion.button>
+                  </form>
+                ) : (
+                  <div className="p-4 bg-slate-50 dark:bg-slate-800/40 rounded-2xl text-center border border-slate-100 dark:border-slate-700/50 shrink-0">
+                    <p className="text-xs text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">
+                      🔒 Cette réclamation est clôturée. Les échanges sont fermés.
+                    </p>
+                  </div>
+                )}
               </div>
             </motion.div>
-          )}
-
-          {reclamation.isRestricted && (
+          ) : (
             <div className="p-10 bg-amber-50 dark:bg-amber-900/10 rounded-[2rem] border border-amber-200 text-center flex flex-col items-center gap-4">
               <Lock size={40} className="text-amber-600" />
               <p className="font-black text-amber-900 uppercase text-xs tracking-widest">{reclamation.restrictionMessage || "Discussion gérée par un autre administrateur"}</p>
@@ -233,9 +352,47 @@ const AdminReclamationDetail = ({ id, onBack, onReclamationUpdate, allBulletins 
 
         {/* Sidebar Info Blocks */}
         <div className="space-y-8 lg:sticky lg:top-8">
+          {/* Actions Administratives Card */}
+          {!reclamation.isRestricted && (
+            <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-xl border border-slate-100 dark:border-white/5 overflow-hidden">
+              <div className="bg-slate-950 p-6 flex items-center justify-between text-white">
+                <h3 className="text-xs font-black uppercase tracking-widest">Contrôles Administratifs</h3>
+                <ShieldAlert size={18} className="text-purple-500" />
+              </div>
+              <div className="p-8 space-y-6">
+                <div className="space-y-2.5">
+                  <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Statut du dossier</label>
+                  <select
+                    value={status}
+                    onChange={(e) => handleStatusChange(e.target.value)}
+                    className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 font-bold text-xs uppercase outline-none focus:ring-4 focus:ring-purple-500/10 transition-all"
+                  >
+                    <option value="Ouverte">Ouverte</option>
+                    <option value="En cours">En cours</option>
+                    <option value="Répondu">Répondu</option>
+                    <option value="Clôturée">Clôturée</option>
+                  </select>
+                </div>
+
+                <div className="space-y-2.5">
+                  <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Niveau de Priorité</label>
+                  <select
+                    value={priority}
+                    onChange={(e) => handlePriorityChange(e.target.value)}
+                    className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 font-bold text-xs uppercase outline-none focus:ring-4 focus:ring-purple-500/10 transition-all"
+                  >
+                    <option value="Basse">Basse</option>
+                    <option value="Moyenne">Moyenne</option>
+                    <option value="Haute">Haute</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Adhérent Profile Card */}
           <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-xl border border-slate-100 dark:border-white/5 overflow-hidden">
-             <div className="bg-slate-900 p-6 flex items-center justify-between text-white">
+             <div className="bg-slate-905 p-6 flex items-center justify-between text-white" style={{ backgroundColor: '#0f172a' }}>
                 <h3 className="text-xs font-black uppercase tracking-widest">Profil Adhérent</h3>
                 <ShieldCheck size={18} className="text-emerald-500" />
              </div>

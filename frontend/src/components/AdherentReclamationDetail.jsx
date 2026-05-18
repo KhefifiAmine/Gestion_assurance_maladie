@@ -10,7 +10,8 @@ import {
 
 import {
   getReclamationById,
-  deleteReclamation
+  deleteReclamation,
+  sendReclamationMessage
 } from '../services/reclamationService';
 import ConfirmModal from './ConfirmModal';
 import { useToast } from '../context/ToastContext';
@@ -33,9 +34,9 @@ const StatusBadge = ({ statut }) => {
       textColor: 'text-blue-600',
       bgColor: 'bg-blue-50'
     },
-    'Traitée': { 
+    'Répondu': { 
       icon: CheckCircle2,
-      label: 'Traitée',
+      label: 'Répondu',
       gradient: 'from-emerald-500 to-teal-500',
       bgGlow: 'shadow-emerald-500/20',
       textColor: 'text-emerald-600',
@@ -74,6 +75,29 @@ const AdherentReclamationDetail = ({ id, onBack, onEdit, allBulletins = [], onRe
   const [reclamation, setReclamation] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: '', message: '', type: 'danger', onConfirm: () => { } });
+  const [newMessage, setNewMessage] = useState('');
+  const [isSending, setIsSending] = useState(false);
+
+  const handleSendMessage = async (e) => {
+    e.preventDefault();
+    if (!newMessage.trim() || isSending) return;
+
+    setIsSending(true);
+    try {
+      const sentMsg = await sendReclamationMessage(id, newMessage);
+      setReclamation(prev => ({
+        ...prev,
+        messages: [...(prev.messages || []), sentMsg],
+        statut: prev.statut === 'Traitée' || prev.statut === 'Clôturée' ? 'Ouverte' : prev.statut
+      }));
+      setNewMessage('');
+      showToast("Message envoyé !", "success");
+    } catch (err) {
+      showToast(err.message || "Erreur lors de l'envoi", "error");
+    } finally {
+      setIsSending(false);
+    }
+  };
 
   useEffect(() => {
     const fetchDetails = async () => {
@@ -251,41 +275,153 @@ const AdherentReclamationDetail = ({ id, onBack, onEdit, allBulletins = [], onRe
               </div>
             </motion.div>
 
-            {/* Réponse admin */}
-            <AnimatePresence>
-              {reclamation.reponseAdmin && (
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  className="relative bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/20 dark:to-teal-950/20 rounded-3xl shadow-xl overflow-hidden border-2 border-emerald-200 dark:border-emerald-800/30"
-                >
-                  <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500 to-teal-500"></div>
-                  
-                  <div className="p-6 md:p-8">
-                    <div className="flex items-start gap-4 mb-6">
-                      <div className="p-2.5 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-xl shadow-lg shadow-emerald-500/25">
-                        <ShieldCheck className="w-5 h-5 text-white" />
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="text-base font-black uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
-                          Réponse de l'administration
-                        </h3>
-                        <p className="text-xs text-emerald-600 dark:text-emerald-500 mt-1">
-                          {reclamation.dateReponse}
-                        </p>
-                      </div>
+            {/* Fil de discussion / Échanges de messages */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="relative bg-white dark:bg-slate-900 rounded-3xl shadow-xl overflow-hidden border border-slate-100 dark:border-slate-800"
+            >
+              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-indigo-500/5 to-transparent rounded-full blur-2xl"></div>
+              
+              <div className="p-6 md:p-8 flex flex-col h-[550px]">
+                <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-100 dark:border-slate-800 shrink-0">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2.5 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-xl shadow-lg shadow-indigo-500/25">
+                      <MessageSquare className="w-5 h-5 text-white" />
                     </div>
-                    
-                    <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-emerald-100 dark:border-emerald-900/30 shadow-inner">
-                      <p className="text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
-                        {reclamation.reponseAdmin}
+                    <div>
+                      <h3 className="text-base font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                        Discussion / Échanges
+                      </h3>
+                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
+                        Échangez directement avec le support
                       </p>
                     </div>
                   </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+                </div>
+
+                {/* Messages Area */}
+                <div className="flex-1 overflow-y-auto pr-2 space-y-4 mb-6 custom-scrollbar flex flex-col">
+                  {/* Initial description message */}
+                  <div className="flex items-start gap-3 max-w-[85%] self-start">
+                    <div className="w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center text-xs font-black text-purple-600 shrink-0">
+                      U
+                    </div>
+                    <div className="space-y-1">
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-xs font-bold text-slate-600 dark:text-slate-400">Vous (Demande Initiale)</span>
+                        <span className="text-[9px] text-slate-400">{reclamation.createdAt}</span>
+                      </div>
+                      <div className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-4 py-3 rounded-2xl rounded-tl-none text-sm font-medium">
+                        {reclamation.description}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Message thread */}
+                  {reclamation.messages && reclamation.messages.length > 0 ? (
+                    reclamation.messages.map((msg) => {
+                      const isMe = !['ADMIN', 'RESPONSABLE_RH', 'SUPER_ADMIN'].includes(msg.sender?.role);
+                      const hasStatusChange = !!msg.statusChange;
+                      const hasPriorityChange = !!msg.priorityChange;
+
+                      return (
+                        <div key={msg.id} className="w-full space-y-3 flex flex-col">
+                          {/* S'il y a un changement de statut ou de priorité, afficher des badges de notification système */}
+                          {(hasStatusChange || hasPriorityChange) && (
+                            <div className="self-center flex flex-wrap justify-center gap-2 my-2 select-none">
+                              {hasStatusChange && (
+                                <span className="px-3 py-1 text-[9px] font-black uppercase tracking-wider bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded-full border border-slate-200/50">
+                                  Statut : {msg.statusChange}
+                                </span>
+                              )}
+                              {hasPriorityChange && (
+                                <span className="px-3 py-1 text-[9px] font-black uppercase tracking-wider bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 rounded-full border border-purple-100/30">
+                                  Priorité : {msg.priorityChange}
+                                </span>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Afficher le contenu du message s'il existe */}
+                          {msg.content && msg.content.trim() && (
+                            <div className={`flex items-start gap-3 max-w-[85%] ${isMe ? 'self-end flex-row-reverse' : 'self-start'}`}>
+                              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-black shrink-0 ${isMe ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600' : 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600'}`}>
+                                {isMe ? 'U' : 'A'}
+                              </div>
+                              <div className={`space-y-1 ${isMe ? 'text-right' : 'text-left'}`}>
+                                <div className="flex items-baseline gap-2 justify-start">
+                                  <span className="text-xs font-bold text-slate-600 dark:text-slate-400">
+                                    {isMe ? 'Vous' : `Support GAT (${msg.sender?.nom || 'Admin'})`}
+                                  </span>
+                                  <span className="text-[9px] text-slate-400">
+                                    {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                  </span>
+                                </div>
+                                <div className={`px-4 py-3 rounded-2xl text-sm font-medium text-left ${isMe ? 'bg-emerald-500 text-white rounded-tr-none shadow-md shadow-emerald-500/10' : 'bg-indigo-50 dark:bg-indigo-900/40 text-slate-700 dark:text-slate-300 rounded-tl-none border border-indigo-100/30'}`}>
+                                  {msg.content}
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })
+                  ) : (
+                    reclamation.reponseAdmin && (
+                      <div className="flex items-start gap-3 max-w-[85%] self-start">
+                        <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-xs font-black text-indigo-600 shrink-0">
+                          A
+                        </div>
+                        <div className="space-y-1">
+                          <div className="flex items-baseline gap-2">
+                            <span className="text-xs font-bold text-slate-600 dark:text-slate-400">Support GAT</span>
+                            <span className="text-[9px] text-slate-400">{reclamation.dateReponse}</span>
+                          </div>
+                          <div className="bg-indigo-50 dark:bg-indigo-900/40 text-slate-700 dark:text-slate-300 px-4 py-3 rounded-2xl rounded-tl-none text-sm font-medium border border-indigo-100/30">
+                            {reclamation.reponseAdmin}
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  )}
+                </div>
+
+                {/* Input Area */}
+                {reclamation.statut !== 'Clôturée' ? (
+                  <form onSubmit={handleSendMessage} className="flex gap-3 pt-4 border-t border-slate-100 dark:border-slate-800 shrink-0">
+                    <input
+                      type="text"
+                      value={newMessage}
+                      onChange={(e) => setNewMessage(e.target.value)}
+                      placeholder="Tapez votre message ici..."
+                      className="flex-1 px-5 py-3.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm font-bold focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all dark:text-white"
+                      disabled={isSending}
+                    />
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      type="submit"
+                      disabled={isSending || !newMessage.trim()}
+                      className="p-3.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-2xl shadow-lg shadow-indigo-500/25 hover:shadow-xl hover:shadow-indigo-500/35 transition-all disabled:opacity-50 flex items-center justify-center shrink-0 w-[50px] h-[50px]"
+                    >
+                      {isSending ? (
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                      ) : (
+                        <Send className="w-5 h-5" />
+                      )}
+                    </motion.button>
+                  </form>
+                ) : (
+                  <div className="p-4 bg-slate-50 dark:bg-slate-800/40 rounded-2xl text-center border border-slate-100 dark:border-slate-700/50 shrink-0">
+                    <p className="text-xs text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">
+                      🔒 Cette réclamation est clôturée. Les échanges sont fermés.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </motion.div>
           </div>
 
           {/* Colonne latérale */}
