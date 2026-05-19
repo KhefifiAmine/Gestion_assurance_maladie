@@ -796,6 +796,11 @@ const updateBulletinStatus = async (req, res) => {
             return res.status(404).json({ message: 'Bulletin non trouvé' });
         }
 
+        // Empêcher un admin de traiter son propre bulletin
+        if (bulletin.userId === adminId) {
+            return res.status(403).json({ message: "Vous ne pouvez pas traiter votre propre bulletin de soin." });
+        }
+
         // Contrainte : ne pouvez pas modifier le statut du bulletin au traité (2) sans être en cours (1)
         if (statut === 2 && bulletin.statut !== 1) {
             return res.status(400).json({ message: 'Le bulletin doit être "En cours de traitement" pour être marqué comme "Traité".' });
@@ -946,6 +951,15 @@ const updateStatutActeMedical = async (req, res) => {
             return res.status(400).json({ message: 'Cet acte médical a déjà été traité et ne peut plus être modifié.' });
         }
 
+        const bulletin = await BulletinSoin.findByPk(acte.bulletinId);
+        if (!bulletin) {
+            return res.status(404).json({ message: 'Bulletin associé non trouvé' });
+        }
+
+        if (bulletin.userId === req.userId) {
+            return res.status(403).json({ message: "Vous ne pouvez pas traiter les actes médicaux de votre propre bulletin de soin." });
+        }
+
         // Contrainte : le montant de remboursement ne peut pas dépasser les honoraires
         if (statut === 1 && montant_remboursement > acte.honoraires) {
             return res.status(400).json({ message: `Le montant de remboursement (${montant_remboursement}) ne peut pas dépasser les honoraires (${acte.honoraires}).` });
@@ -962,7 +976,6 @@ const updateStatutActeMedical = async (req, res) => {
             montant_remboursement: newMontant,
         });
 
-        const bulletin = await BulletinSoin.findByPk(acte.bulletinId);
         if (bulletin) {
             const annee = ReimbursementService.getAnnee(bulletin.date_soin);
             const cat = RulesEngine.getPlafondCategory(acte);
@@ -1015,6 +1028,20 @@ const updateStatutMedicament = async (req, res) => {
             return res.status(400).json({ message: 'Ce médicament a déjà été traité.' });
         }
 
+        const pharmacie = await ActePharmacie.findByPk(med.pharmacieId);
+        if (!pharmacie) {
+            return res.status(404).json({ message: 'Pharmacie associée non trouvée' });
+        }
+
+        const bulletin = await BulletinSoin.findByPk(pharmacie.bulletinId);
+        if (!bulletin) {
+            return res.status(404).json({ message: 'Bulletin associé non trouvé' });
+        }
+
+        if (bulletin.userId === req.userId) {
+            return res.status(403).json({ message: "Vous ne pouvez pas traiter les médicaments de votre propre bulletin de soin." });
+        }
+
         const oldMontant = med.montant_remboursement || 0;
         const newMontant = statut === 2 ? 0 : montant_remboursement;
         const diff = Number(oldMontant) - Number(newMontant);
@@ -1026,41 +1053,30 @@ const updateStatutMedicament = async (req, res) => {
             montant_remboursement: newMontant,
         });
 
-        const pharmacie = await ActePharmacie.findByPk(med.pharmacieId);
-        if (pharmacie) {
-            const bulletin = await BulletinSoin.findByPk(pharmacie.bulletinId);
-            if (bulletin) {
-                const annee = ReimbursementService.getAnnee(bulletin.date_soin);
-                if (diff > 0) {
-                    await ConsumptionService.removeConsumption(bulletin.beneficiaireId, annee, 'PHARMACIE', diff);
-                } else if (diff < 0) {
-                    await ConsumptionService.addConsumption(bulletin.beneficiaireId, annee, 'PHARMACIE', Math.abs(diff));
-                }
-            }
+        const annee = ReimbursementService.getAnnee(bulletin.date_soin);
+        if (diff > 0) {
+            await ConsumptionService.removeConsumption(bulletin.beneficiaireId, annee, 'PHARMACIE', diff);
+        } else if (diff < 0) {
+            await ConsumptionService.addConsumption(bulletin.beneficiaireId, annee, 'PHARMACIE', Math.abs(diff));
         }
 
         // Mise à jour dynamique du montant_total_remboursé du bulletin et du statut
-        if (pharmacie) {
-            const bulletin = await BulletinSoin.findByPk(pharmacie.bulletinId);
-            if (bulletin) {
-                const [totalActes, totalPharmacie] = await Promise.all([
-                    ActeMedical.sum('montant_remboursement', { where: { bulletinId: bulletin.id } }),
-                    ActePharmacie.sum('montant_remboursement', { where: { bulletinId: bulletin.id } })
-                ]);
+        const [totalActes, totalPharmacie] = await Promise.all([
+            ActeMedical.sum('montant_remboursement', { where: { bulletinId: bulletin.id } }),
+            ActePharmacie.sum('montant_remboursement', { where: { bulletinId: bulletin.id } })
+        ]);
 
-                const updates = {
-                    montant_total_remboursé: (totalActes || 0) + (totalPharmacie || 0)
-                };
+        const updates = {
+            montant_total_remboursé: (totalActes || 0) + (totalPharmacie || 0)
+        };
 
-                if (bulletin.statut === 0) {
-                    updates.statut = 1;
-                    updates.adminId = req.userId;
-                    updates.date_traitement = new Date();
-                }
-
-                await bulletin.update(updates);
-            }
+        if (bulletin.statut === 0) {
+            updates.statut = 1;
+            updates.adminId = req.userId;
+            updates.date_traitement = new Date();
         }
+
+        await bulletin.update(updates);
 
         res.status(200).json(med);
     } catch (error) {

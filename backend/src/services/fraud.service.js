@@ -1,5 +1,18 @@
-const { BulletinSoin, ActeMedical, User, FraudAlert, Prestataire, ActePharmacie, Medicament, sequelize } = require('../../models');
+const { BulletinSoin, ActeMedical, User, FraudAlert, Prestataire, ActePharmacie, Medicament, Beneficiary, sequelize } = require('../../models');
 const { Op } = require('sequelize');
+
+const PEDIATRIC_KEYWORDS = [
+    'nourrisson', 'bébé', 'bebe', 'pediatrique', 'pédiatrique', 'nourisson',
+    'sirop pédiatrique', 'gouttes buvables', 'suspension buvable', 'nourrissons', 'nourissons',
+    'physiomer', 'novolac', 'nursy', 'gallia', 'physiomer baby', 'doliprane pédiatrique',
+    'primalac', 'aptamil', 'guigoz', 'modilac', 'pediakid'
+];
+
+const ADULT_KEYWORDS = [
+    'tahor', 'lipitor', 'crestor', 'viagra', 'cialis', 'levitra', 'proscar', 'chibro-proscar',
+    'cardio', 'amiodarone', 'plavix', 'kardegic', 'coversyl', 'aprosvel', 'bisoprolol', 'amlor',
+    'exforge', 'vastarel', 'previscan', 'sintrom', 'eliquis', 'xarelto', 'detensiel', 'tenormine'
+];
 
 class FraudService {
 
@@ -20,7 +33,8 @@ class FraudService {
             duplicates_detected: 0,
             doctor_concentration: 0,
             nomadisme_medical: 0,
-            trafic_medicaments: 0
+            trafic_medicaments: 0,
+            incoherence_age_medicament: 0
         };
 
         const date30DaysAgo = new Date();
@@ -207,6 +221,51 @@ class FraudService {
             }
         }
 
+        // 7. Incohérence d'âge entre bénéficiaire et médicaments (Bébé vs Adulte)
+        let hasPediatricMed = false;
+        let hasAdultOnlyMed = false;
+        let pediatricMedName = '';
+        let adultMedName = '';
+
+        if (bulletin.pharmacie && bulletin.pharmacie.medicaments && bulletin.pharmacie.medicaments.length > 0) {
+            for (const med of bulletin.pharmacie.medicaments) {
+                if (!med.nom_medicament) continue;
+                const nameLower = med.nom_medicament.toLowerCase();
+
+                const isPediatric = PEDIATRIC_KEYWORDS.some(kw => nameLower.includes(kw));
+                if (isPediatric) {
+                    hasPediatricMed = true;
+                    pediatricMedName = med.nom_medicament;
+                }
+
+                const isAdultOnly = ADULT_KEYWORDS.some(kw => nameLower.includes(kw));
+                if (isAdultOnly) {
+                    hasAdultOnlyMed = true;
+                    adultMedName = med.nom_medicament;
+                }
+            }
+        }
+
+        if (bulletin.beneficiaire && bulletin.beneficiaire.ddn) {
+            const birthDate = new Date(bulletin.beneficiaire.ddn);
+            const ageInMilliseconds = new Date() - birthDate;
+            const ageInYears = ageInMilliseconds / (1000 * 60 * 60 * 24 * 365.25);
+
+            // Bébé avec traitement adulte
+            if (ageInYears < 2 && hasAdultOnlyMed) {
+                sqlRulesScore += 80;
+                reasons.push(`Incohérence d'âge détectée : Le bénéficiaire est un nourrisson/bébé (${Math.round(ageInYears * 12)} mois) mais s'est vu prescrire un médicament réservé aux adultes (${adultMedName}).`);
+                metrics.incoherence_age_medicament = 1;
+            }
+
+            // Adulte avec traitement bébé/pédiatrique
+            if (ageInYears >= 18 && hasPediatricMed) {
+                sqlRulesScore += 50;
+                reasons.push(`Incohérence d'âge détectée : Le bénéficiaire est un adulte (${Math.floor(ageInYears)} ans) mais le bulletin contient un médicament pédiatrique/bébé (${pediatricMedName}).`);
+                metrics.incoherence_age_medicament = 1;
+            }
+        }
+
         return {
             score: Math.min(100, sqlRulesScore),
             reasons,
@@ -299,6 +358,11 @@ class FraudService {
     static async calculateFraudScore(bulletinId) {
         const bulletin = await BulletinSoin.findByPk(bulletinId, {
             include: [
+                {
+                    model: Beneficiary,
+                    as: 'beneficiaire',
+                    required: false
+                },
                 {
                     model: ActeMedical,
                     as: 'actes',

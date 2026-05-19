@@ -37,7 +37,7 @@ Vérifie en particulier :
 1. Les dates (date de soin, dates des actes).
 2. Les montants (honoraires des actes, montants des médicaments, montant total).
 3. Les informations sur le professionnel de santé et la pharmacie (matricule fiscal, présence du cachet et de la signature).
-4. La cohérence médicale (ex: actes saisis correspondant à la spécialité, cohérence entre patient et actes).
+4. La cohérence médicale (ex: actes saisis correspondant à la spécialité, cohérence d'âge entre patient et médicaments comme prescrire un médicament pédiatrique/bébé à un adulte ou un traitement adulte à un nourrisson/bébé).
 
 Si des différences, des altérations suspectes, ou des incohérences majeures sont détectées, tu dois augmenter le niveau de risque.
 

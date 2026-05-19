@@ -632,6 +632,8 @@ const BulletinDetailsPage = () => {
     };
 
     const isAdmin = currentUser?.role === 'ADMIN' || currentUser?.role === 'SUPER_ADMIN';
+    const isOwnBulletin = bulletin?.userId === currentUser?.id;
+    const canProcess = isAdmin && !isOwnBulletin;
 
     const [confirmData, setConfirmData] = useState({
         isOpen: false,
@@ -848,7 +850,7 @@ const BulletinDetailsPage = () => {
                         </div>
 
                         <div className="flex items-center gap-3">
-                            {isAdmin && (
+                            {canProcess && (
                                 <div className="flex items-center gap-2">
                                     <motion.button
                                         whileHover={{ scale: 1.02 }}
@@ -902,6 +904,19 @@ const BulletinDetailsPage = () => {
                         >
                             <StatusTimeline status={bulletin.statut} />
                         </motion.div>
+
+                        {isOwnBulletin && isAdmin && (
+                            <motion.div
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/30 flex items-center gap-3 text-amber-700 dark:text-amber-400 shadow-sm"
+                            >
+                                <AlertTriangle size={18} className="flex-shrink-0" />
+                                <span className="text-xs font-bold">
+                                    Ce bulletin de soin vous appartient. En tant qu'adhérent, vous ne pouvez pas traiter ou valider votre propre dossier.
+                                </span>
+                            </motion.div>
+                        )}
 
                         {/* Amount Cards */}
                         <motion.div
@@ -1121,7 +1136,7 @@ const BulletinDetailsPage = () => {
                                                             key={acte.id || idx}
                                                             acte={acte}
                                                             index={idx}
-                                                            isAdmin={isAdmin}
+                                                            isAdmin={canProcess}
                                                             onProcess={handleActProcessing}
                                                             onSave={handleSingleActSave}
                                                         />
@@ -1223,7 +1238,7 @@ const BulletinDetailsPage = () => {
                                                             <p className="text-[9px] font-black text-emerald-600 uppercase mb-1">Remboursement</p>
                                                             <input
                                                                 type="number"
-                                                                disabled={bulletin.pharmacie.statut !== 0}
+                                                                disabled={bulletin.pharmacie.statut !== 0 || !canProcess}
                                                                 value={bulletin.pharmacie.montant_remboursement || 0}
                                                                 max={bulletin.pharmacie.montant_pharmacie || bulletin.pharmacie.montant || 0}
                                                                 onChange={(e) => {
@@ -1318,7 +1333,7 @@ const BulletinDetailsPage = () => {
                                                                                 )}
                                                                             </div>
                                                                         )}
-                                                                        {isAdmin && med.statut === 0 && (
+                                                                        {canProcess && med.statut === 0 && (
                                                                             <div className="pt-4 border-t border-slate-200/50 dark:border-slate-700/50 flex flex-col gap-4">
                                                                                 {!med.showRejectionPanel ? (
                                                                                     <div className="flex flex-col md:flex-row items-center gap-4 w-full animate-in fade-in duration-200">
