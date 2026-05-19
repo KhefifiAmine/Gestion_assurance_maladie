@@ -917,7 +917,7 @@ const BulletinDetailsPage = () => {
                             >
                                 <AlertTriangle size={18} className="flex-shrink-0" />
                                 <span className="text-xs font-bold">
-                                    Ce bulletin de soin vous appartient. En tant qu'adhérent, vous ne pouvez pas traiter ou valider votre propre dossier.
+                                    Attention : Ce bulletin vous appartient. Vous ne pouvez pas traiter ou valider votre propre dossier.
                                 </span>
                             </motion.div>
                         )}
