@@ -436,28 +436,11 @@ const updateBulletin = async (req, res) => {
                 // 2. Upsert (Update ou Create) pour chaque acte
                 for (const acteData of resultActe.actes) {
                     let prestataireId = acteData.prestataireId;
-                    if (acteData.prestataire && acteData.prestataire.identifiant_unique_mf) {
-                        const mf = acteData.prestataire.identifiant_unique_mf;
-                        let prestataire = await Prestataire.findOne({
-                            where: { identifiant_unique_mf: mf },
-                            transaction: t
-                        });
-
-                        const prestataireData = {
-                            identifiant_unique_mf: mf,
-                            nom: acteData.prestataire.nom || null,
-                            telephone: acteData.prestataire.telephone || null,
-                            adresse: acteData.prestataire.adresse || null,
-                            specialite: acteData.prestataire.specialite || acteData.prestataire.specialité || null,
-                            gsm: acteData.prestataire.gsm || null
-                        };
-
-                        if (!prestataire) {
-                            prestataire = await Prestataire.create(prestataireData, { transaction: t });
-                        } else {
-                            await prestataire.update(prestataireData, { transaction: t });
+                    if (acteData.prestataire) {
+                        const prestataire = await findOrCreatePrestataire(acteData.prestataire, t);
+                        if (prestataire) {
+                            prestataireId = prestataire.id;
                         }
-                        prestataireId = prestataire.id;
                     }
 
                     const medicalActeData = {
@@ -796,6 +779,7 @@ const updateBulletinStatus = async (req, res) => {
             return res.status(404).json({ message: 'Bulletin non trouvé' });
         }
 
+
         // Empêcher un admin de traiter son propre bulletin
         if (bulletin.userId === adminId) {
             return res.status(403).json({ message: "Vous ne pouvez pas traiter votre propre bulletin de soin." });
@@ -946,6 +930,11 @@ const updateStatutActeMedical = async (req, res) => {
             return res.status(404).json({ message: 'Acte médical non trouvé' });
         }
 
+        const bulletion = await BulletinSoin.findByPk(acte.bulletinId);
+        if (bulletion && bulletion.userId === req.userId) {
+            return res.status(403).json({ message: 'Vous ne pouvez pas traiter les actes médicaux de votre propre bulletin de soin.' });
+        }
+
         // Contrainte : ne peut pas modifier un acte déjà traité
         if (acte.statut !== 0) {
             return res.status(400).json({ message: 'Cet acte médical a déjà été traité et ne peut plus être modifié.' });
@@ -1024,6 +1013,14 @@ const updateStatutMedicament = async (req, res) => {
             return res.status(404).json({ message: 'Médicament non trouvé' });
         }
 
+        const pharmacies = await ActePharmacie.findByPk(med.pharmacieId);
+        if (pharmacies) {
+            const bulletin = await BulletinSoin.findByPk(pharmacies.bulletinId);
+            if (bulletin && bulletin.userId === req.userId) {
+                return res.status(403).json({ message: 'Vous ne pouvez pas traiter les médicaments de votre propre bulletin de soin.' });
+            }
+        }
+
         if (med.statut !== 0) {
             return res.status(400).json({ message: 'Ce médicament a déjà été traité.' });
         }
@@ -1092,20 +1089,33 @@ const lookupPrestataire = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Requête manquante.' });
         }
 
-        const prestataire = await Prestataire.findOne({
+        const searchTerm = `%${query.trim()}%`;
+        const prestataires = await Prestataire.findAll({
             where: {
                 [Op.or]: [
-                    { identifiant_unique_mf: query.trim() },
-                    { telephone: query.trim() }
+                    { identifiant_unique_mf: { [Op.like]: searchTerm } },
+                    { nom: { [Op.like]: searchTerm } },
+                    { telephone: { [Op.like]: searchTerm } }
                 ]
-            }
+            },
+            limit: 10
         });
 
-        if (!prestataire) {
+        // Exact match check for backward compatibility
+        const exactMatch = prestataires.find(p =>
+            (p.identifiant_unique_mf && p.identifiant_unique_mf.toLowerCase() === query.trim().toLowerCase()) ||
+            (p.telephone && p.telephone === query.trim())
+        );
+
+        if (prestataires.length === 0) {
             return res.status(404).json({ success: false, message: 'Prestataire non trouvé.' });
         }
 
-        res.status(200).json({ success: true, data: prestataire });
+        res.status(200).json({
+            success: true,
+            data: exactMatch || prestataires[0],
+            results: prestataires
+        });
     } catch (error) {
         console.error('Error lookup prestataire:', error);
         res.status(500).json({ success: false, message: 'Erreur serveur.' });

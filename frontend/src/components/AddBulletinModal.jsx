@@ -92,93 +92,221 @@ const FormField = memo(({ label, icon: Icon, children, className = "" }) => (
     </div>
 ));
 
-const ActeItem = memo(({ acte, index, onUpdate, onRemove, structure, onLookup }) => (
-    <div className="p-4 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-slate-200 dark:border-slate-700 relative group animate-in slide-in-from-top-2 duration-300">
-        <button
-            type="button"
-            onClick={() => onRemove(index)}
-            className="absolute -top-2 -right-2 p-1.5 bg-red-100 dark:bg-red-900/30 text-red-500 rounded-full opacity-0 group-hover:opacity-100 transition-all hover:scale-110 z-10"
-        >
-            <X size={14} />
-        </button>
+const PrestataireSearchInput = memo(({ label, placeholder, value, onChange, onSelectPrestataire, className = "" }) => {
+    const [suggestions, setSuggestions] = useState([]);
+    const [showSuggestions, setShowSuggestions] = useState(false);
+    const [loading, setLoading] = useState(false);
+    const containerRef = useRef(null);
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-            <FormField label="Nature de l'acte">
-                <select 
-                    className="w-full p-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white font-bold" 
-                    value={acte.acte || ''} 
-                    onChange={e => onUpdate(index, { acte: e.target.value })}
-                >
-                    <option value="">Sélectionner...</option>
-                    {Object.keys(structure).map(k => <option key={k} value={k}>{k}</option>)}
-                </select>
-            </FormField>
+    useEffect(() => {
+        const handleClickOutside = (e) => {
+            if (containerRef.current && !containerRef.current.contains(e.target)) {
+                setShowSuggestions(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
-            <FormField label="Cote / Code">
-                <select 
-                    className="w-full p-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white font-bold" 
-                    value={acte.cote || ''} 
-                    onChange={e => onUpdate(index, { cote: e.target.value })}
-                >
-                    <option value="">Cote...</option>
-                    {acte.acte && structure[acte.acte]?.map(c => <option key={c} value={c}>{c}</option>)}
-                </select>
-            </FormField>
-            {acte.acte === "Dentaire" ? (
-                <>
-                    <FormField label="Code acte">
-                        <input 
-                            placeholder="Code de l'acte" 
-                            className="w-full p-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white font-black" 
-                            value={acte.code_acte || ''} 
-                            onChange={e => onUpdate(index, { code_acte: e.target.value })} 
-                        />
-                    </FormField>
-                    
-                    <FormField label="N° Dent">
-                        <input placeholder="Ex: 14" className="w-full p-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white" value={acte.numero_dent || ''} onChange={e => onUpdate(index, { numero_dent: e.target.value })} />
-                    </FormField>
-                </>
-            ) : <></>}
-            <FormField label="Date">
-                <input type="date" className="w-full p-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white" value={acte.date_acte || ''} onChange={e => onUpdate(index, { date_acte: e.target.value })} />
-            </FormField>
+    const handleSearchChange = async (e) => {
+        const val = e.target.value;
+        onChange(val);
 
-            <FormField label="Honoraires (TND)">
-                <input type="number" step="0.1" className="w-full p-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white font-black text-purple-600" value={acte.honoraires || 0} onChange={e => onUpdate(index, { honoraires: Number(e.target.value) })} />
-            </FormField>
+        if (!val || val.trim().length < 2) {
+            setSuggestions([]);
+            setShowSuggestions(false);
+            return;
+        }
 
-            <FormField label="MF Médecin">
-                <input placeholder="MF" className="w-full p-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white" value={acte.prestataire?.identifiant_unique_mf || ''} onChange={e => onUpdate(index, { prestataire: { ...(acte.prestataire || {}), identifiant_unique_mf: e.target.value } })} onBlur={e => onLookup && onLookup(e.target.value, p => onUpdate(index, { prestataire: { ...(acte.prestataire || {}), identifiant_unique_mf: p.identifiant_unique_mf || '', nom: p.nom || '', telephone: p.telephone || '', adresse: p.adresse || '', specialite: p.specialite || '', gsm: p.gsm || '' } }))} />
-            </FormField>
+        setLoading(true);
+        try {
+            const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/bulletins/prestataires/lookup?query=${encodeURIComponent(val.trim())}`, {
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+            });
+            if (res.ok) {
+                const data = await res.json();
+                if (data.success && data.results) {
+                    setSuggestions(data.results);
+                    setShowSuggestions(true);
+                } else {
+                    setSuggestions([]);
+                }
+            } else {
+                setSuggestions([]);
+            }
+        } catch (e) {
+            console.error("Error searching prestataires:", e);
+            setSuggestions([]);
+        } finally {
+            setLoading(false);
+        }
+    };
 
-            <FormField label="Nom Prestataire">
-                <input placeholder="Nom" className="w-full p-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white" value={acte.prestataire?.nom || ''} onChange={e => onUpdate(index, { prestataire: { ...(acte.prestataire || {}), nom: e.target.value } })} />
-            </FormField>
+    return (
+        <div ref={containerRef} className={`space-y-1 relative ${className}`}>
+            {label && (
+                <label className="text-[10px] font-black uppercase text-slate-400 ml-1 flex items-center gap-2">
+                    {label}
+                </label>
+            )}
+            <div className="relative">
+                <input
+                    placeholder={placeholder}
+                    className="w-full p-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white font-bold"
+                    value={value || ''}
+                    onChange={handleSearchChange}
+                    onFocus={() => {
+                        if (suggestions.length > 0) setShowSuggestions(true);
+                    }}
+                />
+                {loading && (
+                    <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                        <div className="w-3 h-3 border-2 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
+                    </div>
+                )}
+            </div>
 
-            <FormField label="Téléphone">
-                <input placeholder="Téléphone" className="w-full p-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white" value={acte.prestataire?.telephone || ''} onChange={e => onUpdate(index, { prestataire: { ...(acte.prestataire || {}), telephone: e.target.value } })} onBlur={e => onLookup && onLookup(e.target.value, p => onUpdate(index, { prestataire: { ...(acte.prestataire || {}), identifiant_unique_mf: p.identifiant_unique_mf || '', nom: p.nom || '', telephone: p.telephone || '', adresse: p.adresse || '', specialite: p.specialite || '', gsm: p.gsm || '' } }))} />
-            </FormField>
+            {showSuggestions && suggestions.length > 0 && (
+                <div className="absolute z-[9999] w-full mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl overflow-hidden max-h-48 overflow-y-auto animate-in fade-in slide-in-from-top-1 duration-200">
+                    {suggestions.map((p) => (
+                        <button
+                            key={p.id}
+                            type="button"
+                            className="w-full p-2 text-left hover:bg-purple-50 dark:hover:bg-purple-900/20 flex flex-col transition-colors border-b border-slate-50 dark:border-slate-700/50"
+                            onClick={() => {
+                                onSelectPrestataire(p);
+                                setShowSuggestions(false);
+                            }}
+                        >
+                            <span className="text-xs font-bold text-slate-700 dark:text-slate-200">
+                                {p.nom}
+                            </span>
+                            <span className="text-[9px] text-slate-400 font-medium">
+                                MF: {p.identifiant_unique_mf || 'N/A'} • Tél: {p.telephone || 'N/A'}
+                            </span>
+                            {p.specialite && (
+                                <span className="text-[8px] text-purple-500 font-bold uppercase tracking-tight">
+                                    {p.specialite}
+                                </span>
+                            )}
+                        </button>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+});
 
-            <FormField label="Adresse">
-                <input placeholder="Adresse" className="w-full p-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white" value={acte.prestataire?.adresse || ''} onChange={e => onUpdate(index, { prestataire: { ...(acte.prestataire || {}), adresse: e.target.value } })} />
-            </FormField>
+const ActeItem = memo(({ acte, index, onUpdate, onRemove, structure, onLookup }) => {
+    const handleSelectPrestataire = (p) => {
+        onUpdate(index, {
+            prestataire: {
+                identifiant_unique_mf: p.identifiant_unique_mf || '',
+                nom: p.nom || '',
+                telephone: p.telephone || '',
+                adresse: p.adresse || '',
+                specialite: p.specialite || '',
+                gsm: p.gsm || ''
+            }
+        });
+    };
 
-            <FormField label="Spécialité">
-                <input placeholder="Spécialité" className="w-full p-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white" value={acte.prestataire?.specialite || ''} onChange={e => onUpdate(index, { prestataire: { ...(acte.prestataire || {}), specialite: e.target.value } })} />
-            </FormField>
+    return (
+        <div className="p-4 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-slate-200 dark:border-slate-700 relative group animate-in slide-in-from-top-2 duration-300">
+            <button
+                type="button"
+                onClick={() => onRemove(index)}
+                className="absolute -top-2 -right-2 p-1.5 bg-red-100 dark:bg-red-900/30 text-red-500 rounded-full opacity-0 group-hover:opacity-100 transition-all hover:scale-110 z-10"
+            >
+                <X size={14} />
+            </button>
 
-            <FormField label="GSM">
-                <input placeholder="GSM" className="w-full p-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white" value={acte.prestataire?.gsm || ''} onChange={e => onUpdate(index, { prestataire: { ...(acte.prestataire || {}), gsm: e.target.value } })} />
-            </FormField>
-            
-            <div className="flex items-center gap-2 mt-2">
-                <input type="checkbox" id={`cachet-${index}`} className="w-3 h-3 rounded text-purple-600" checked={!!acte.est_cachet} onChange={e => onUpdate(index, { est_cachet: e.target.checked })} />
-                <label htmlFor={`cachet-${index}`} className="text-[9px] font-bold text-slate-500">Cachet/Signature</label>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                <FormField label="Nature de l'acte">
+                    <select 
+                        className="w-full p-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white font-bold" 
+                        value={acte.acte || ''} 
+                        onChange={e => onUpdate(index, { acte: e.target.value })}
+                    >
+                        <option value="">Sélectionner...</option>
+                        {Object.keys(structure).map(k => <option key={k} value={k}>{k}</option>)}
+                    </select>
+                </FormField>
+
+                <FormField label="Cote / Code">
+                    <select 
+                        className="w-full p-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white font-bold" 
+                        value={acte.cote || ''} 
+                        onChange={e => onUpdate(index, { cote: e.target.value })}
+                    >
+                        <option value="">Cote...</option>
+                        {acte.acte && structure[acte.acte]?.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                </FormField>
+                {acte.acte === "Dentaire" ? (
+                    <>
+                        <FormField label="Code acte">
+                            <input 
+                                placeholder="Code de l'acte" 
+                                className="w-full p-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white font-black" 
+                                value={acte.code_acte || ''} 
+                                onChange={e => onUpdate(index, { code_acte: e.target.value })} 
+                            />
+                        </FormField>
+                        
+                        <FormField label="N° Dent">
+                            <input placeholder="Ex: 14" className="w-full p-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white" value={acte.numero_dent || ''} onChange={e => onUpdate(index, { numero_dent: e.target.value })} />
+                        </FormField>
+                    </>
+                ) : <></>}
+                <FormField label="Date">
+                    <input type="date" className="w-full p-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white" value={acte.date_acte || ''} onChange={e => onUpdate(index, { date_acte: e.target.value })} />
+                </FormField>
+
+                <FormField label="Honoraires (TND)">
+                    <input type="number" step="0.1" className="w-full p-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white font-black text-purple-600" value={acte.honoraires || 0} onChange={e => onUpdate(index, { honoraires: Number(e.target.value) })} />
+                </FormField>
+
+                <PrestataireSearchInput 
+                    label="MF Médecin"
+                    placeholder="MF"
+                    value={acte.prestataire?.identifiant_unique_mf || ''}
+                    onChange={val => onUpdate(index, { prestataire: { ...(acte.prestataire || {}), identifiant_unique_mf: val } })}
+                    onSelectPrestataire={handleSelectPrestataire}
+                />
+
+                <PrestataireSearchInput 
+                    label="Nom Prestataire"
+                    placeholder="Nom"
+                    value={acte.prestataire?.nom || ''}
+                    onChange={val => onUpdate(index, { prestataire: { ...(acte.prestataire || {}), nom: val } })}
+                    onSelectPrestataire={handleSelectPrestataire}
+                />
+
+                <FormField label="Téléphone">
+                    <input placeholder="Téléphone" className="w-full p-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white" value={acte.prestataire?.telephone || ''} onChange={e => onUpdate(index, { prestataire: { ...(acte.prestataire || {}), telephone: e.target.value } })} onBlur={e => onLookup && onLookup(e.target.value, p => handleSelectPrestataire(p))} />
+                </FormField>
+
+                <FormField label="Adresse">
+                    <input placeholder="Adresse" className="w-full p-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white" value={acte.prestataire?.adresse || ''} onChange={e => onUpdate(index, { prestataire: { ...(acte.prestataire || {}), adresse: e.target.value } })} />
+                </FormField>
+
+                <FormField label="Spécialité">
+                    <input placeholder="Spécialité" className="w-full p-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white" value={acte.prestataire?.specialite || ''} onChange={e => onUpdate(index, { prestataire: { ...(acte.prestataire || {}), specialite: e.target.value } })} />
+                </FormField>
+
+                <FormField label="GSM">
+                    <input placeholder="GSM" className="w-full p-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white" value={acte.prestataire?.gsm || ''} onChange={e => onUpdate(index, { prestataire: { ...(acte.prestataire || {}), gsm: e.target.value } })} />
+                </FormField>
+                
+                <div className="flex items-center gap-2 mt-2">
+                    <input type="checkbox" id={`cachet-${index}`} className="w-3 h-3 rounded text-purple-600" checked={!!acte.est_cachet} onChange={e => onUpdate(index, { est_cachet: e.target.checked })} />
+                    <label htmlFor={`cachet-${index}`} className="text-[9px] font-bold text-slate-500">Cachet/Signature</label>
+                </div>
             </div>
         </div>
-    </div>
-));
+    );
+});
 
 const MedicamentItem = memo(({ med, index, onUpdate, onRemove }) => (
     <div className="p-4 bg-white dark:bg-slate-900/50 rounded-xl border border-blue-100 dark:border-blue-800 relative group animate-in slide-in-from-top-2 duration-300">
@@ -1013,12 +1141,20 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
                                                 {formData.pharmacie_detecte && (
                                                     <div className="p-6 bg-blue-50/30 dark:bg-blue-900/10 rounded-2xl border border-blue-100 dark:border-blue-800 space-y-4 animate-in zoom-in-95 duration-200">
                                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                            <FormField label="MF Pharmacie">
-                                                                <input placeholder="MF Pharmacie" className="w-full p-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white" value={formData.pharmacie.prestataire?.identifiant_unique_mf || formData.pharmacie.identifiant_unique_mf || ''} onChange={e => setFormData({ ...formData, pharmacie: { ...formData.pharmacie, identifiant_unique_mf: e.target.value, prestataire: { ...(formData.pharmacie.prestataire || {}), identifiant_unique_mf: e.target.value } } })} onBlur={e => handlePrestataireLookup(e.target.value, p => setFormData(prev => ({ ...prev, pharmacie: { ...prev.pharmacie, identifiant_unique_mf: p.identifiant_unique_mf || '', prestataire: { ...(prev.pharmacie.prestataire || {}), identifiant_unique_mf: p.identifiant_unique_mf || '', nom: p.nom || '', telephone: p.telephone || '', adresse: p.adresse || '', specialite: p.specialite || '', gsm: p.gsm || '' } } })))} />
-                                                            </FormField>
-                                                            <FormField label="Nom Pharmacie">
-                                                                <input placeholder="Nom Pharmacie" className="w-full p-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white" value={formData.pharmacie.prestataire?.nom || ''} onChange={e => setFormData({ ...formData, pharmacie: { ...formData.pharmacie, prestataire: { ...(formData.pharmacie.prestataire || {}), nom: e.target.value } } })} />
-                                                            </FormField>
+                                                            <PrestataireSearchInput 
+                                                                label="MF Pharmacie"
+                                                                placeholder="MF Pharmacie"
+                                                                value={formData.pharmacie.prestataire?.identifiant_unique_mf || formData.pharmacie.identifiant_unique_mf || ''}
+                                                                onChange={val => setFormData({ ...formData, pharmacie: { ...formData.pharmacie, identifiant_unique_mf: val, prestataire: { ...(formData.pharmacie.prestataire || {}), identifiant_unique_mf: val } } })}
+                                                                onSelectPrestataire={p => setFormData(prev => ({ ...prev, pharmacie: { ...prev.pharmacie, identifiant_unique_mf: p.identifiant_unique_mf || '', prestataire: { ...(prev.pharmacie.prestataire || {}), identifiant_unique_mf: p.identifiant_unique_mf || '', nom: p.nom || '', telephone: p.telephone || '', adresse: p.adresse || '', specialite: p.specialite || '', gsm: p.gsm || '' } } }))}
+                                                            />
+                                                            <PrestataireSearchInput 
+                                                                label="Nom Pharmacie"
+                                                                placeholder="Nom Pharmacie"
+                                                                value={formData.pharmacie.prestataire?.nom || ''}
+                                                                onChange={val => setFormData({ ...formData, pharmacie: { ...formData.pharmacie, prestataire: { ...(formData.pharmacie.prestataire || {}), nom: val } } })}
+                                                                onSelectPrestataire={p => setFormData(prev => ({ ...prev, pharmacie: { ...prev.pharmacie, identifiant_unique_mf: p.identifiant_unique_mf || '', prestataire: { ...(prev.pharmacie.prestataire || {}), identifiant_unique_mf: p.identifiant_unique_mf || '', nom: p.nom || '', telephone: p.telephone || '', adresse: p.adresse || '', specialite: p.specialite || '', gsm: p.gsm || '' } } }))}
+                                                            />
                                                             <FormField label="Téléphone Pharmacie">
                                                                 <input placeholder="Téléphone Pharmacie" className="w-full p-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white" value={formData.pharmacie.prestataire?.telephone || ''} onChange={e => setFormData({ ...formData, pharmacie: { ...formData.pharmacie, prestataire: { ...(formData.pharmacie.prestataire || {}), telephone: e.target.value } } })} onBlur={e => handlePrestataireLookup(e.target.value, p => setFormData(prev => ({ ...prev, pharmacie: { ...prev.pharmacie, identifiant_unique_mf: p.identifiant_unique_mf || '', prestataire: { ...(prev.pharmacie.prestataire || {}), identifiant_unique_mf: p.identifiant_unique_mf || '', nom: p.nom || '', telephone: p.telephone || '', adresse: p.adresse || '', specialite: p.specialite || '', gsm: p.gsm || '' } } })))} />
                                                             </FormField>

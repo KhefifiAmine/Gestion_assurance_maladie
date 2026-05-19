@@ -255,6 +255,10 @@ const updateStatus = async (req, res) => {
             return res.status(404).json({ message: 'Bénéficiaire non trouvé.' });
         }
 
+        if (beneficiary.userId === req.userId) {
+            return res.status(403).json({ message: 'Vous ne pouvez pas traiter vos propres bénéficiaires.' });
+        }
+
         beneficiary.statut = statut;
         if (statut === 'Rejeté') {
             beneficiary.objetRefus = objetRefus || null;

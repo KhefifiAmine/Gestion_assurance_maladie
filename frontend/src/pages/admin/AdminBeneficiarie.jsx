@@ -6,7 +6,7 @@ import { getAllBeneficiaries, deleteBeneficiary, updateStatus } from '../../serv
 import ConfirmModal from '../../components/ConfirmModal';
 import BeneficiaryDetailsModal from '../../components/BeneficiaryDetailsModal';
 import {
-    Users, Trash2, CheckCircle, XCircle, Clock, FileText, Search, LayoutGrid, List, X, Download, Eye, Info, ExternalLink
+    Users, Trash2, CheckCircle, XCircle, Clock, FileText, Search, LayoutGrid, List, X, Download, Eye, Info, ExternalLink, Lock
 } from 'lucide-react';
 import UserDetailsModal from '../../components/UserDetailsModal';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -14,17 +14,17 @@ import { motion, AnimatePresence } from 'framer-motion';
 const AdminBeneficiarie = () => {
 
     const motifs = [
-      "Document obligatoire manquant ou incomplet",
-      "Pièce justificative non conforme ou illisible",
-      "Informations incohérentes entre les documents fournis",
-      "Document expiré ou non valide",
-      "Justificatif de situation familiale manquant ou invalide",
-      "Justificatif de scolarité ou dépendance non fourni ou non valide",
-      "Attestation administrative manquante ou expirée",
-      "Non-respect des conditions d’éligibilité du bénéficiaire",
-      "Absence de preuve suffisante pour valider le statut du bénéficiaire"
+        "Document obligatoire manquant ou incomplet",
+        "Pièce justificative non conforme ou illisible",
+        "Informations incohérentes entre les documents fournis",
+        "Document expiré ou non valide",
+        "Justificatif de situation familiale manquant ou invalide",
+        "Justificatif de scolarité ou dépendance non fourni ou non valide",
+        "Attestation administrative manquante ou expirée",
+        "Non-respect des conditions d’éligibilité du bénéficiaire",
+        "Absence de preuve suffisante pour valider le statut du bénéficiaire"
     ];
-    
+
     const { user } = useAuth();
     const { showToast } = useToast();
     const [beneficiaries, setBeneficiaries] = useState([]);
@@ -188,14 +188,14 @@ const AdminBeneficiarie = () => {
                                     >
                                         <td className="px-6 py-4">
                                             <div className="flex flex-col">
-                                                <button 
+                                                <button
                                                     onClick={() => b.user && setSelectedUserForDetails(b.user)}
                                                     className="text-sm font-bold text-slate-700 uppercase hover:text-purple-600 transition-colors text-left"
                                                 >
                                                     {b.user ? `${b.user.prenom} ${b.user.nom}` : b.userId}
                                                 </button>
                                                 <div className="flex items-center gap-2">
-                                                    <span 
+                                                    <span
                                                         onClick={() => b.user && setSelectedUserForDetails(b.user)}
                                                         className="text-[10px] font-black opacity-70 uppercase cursor-pointer hover:text-purple-600 transition-colors"
                                                     >
@@ -264,7 +264,7 @@ const AdminBeneficiarie = () => {
                                                 >
                                                     <Info size={18} />
                                                 </button>
-                                                {b.statut === 'En attente' && (
+                                                {b.statut === 'En attente' && b.userId !== user?.id && (
                                                     <>
                                                         <button
                                                             onClick={() => { setBeneficiaryToValidate(b); setShowValidateConfirm(true); }}
@@ -275,6 +275,11 @@ const AdminBeneficiarie = () => {
                                                         </button>
                                                         <button onClick={() => { setBeneficiaryToReject(b); setShowRejectModal(true); }} title="Refuser" className="p-2.5 rounded-xl bg-red-100 text-red-600 hover:bg-red-600 hover:text-white transition-all"><XCircle size={18} /></button>
                                                     </>
+                                                )}
+                                                {b.statut === 'En attente' && b.userId === user?.id && (
+                                                    <div className="p-2.5 rounded-xl bg-amber-50 text-amber-600 dark:bg-amber-950/20 dark:text-amber-400 border border-amber-200 dark:border-amber-900/30 flex items-center justify-center animate-pulse" title="Auto-approbation interdite">
+                                                        <Lock size={18} />
+                                                    </div>
                                                 )}
                                             </div>
                                         </td>

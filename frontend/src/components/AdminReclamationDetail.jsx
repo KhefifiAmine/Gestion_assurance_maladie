@@ -14,6 +14,7 @@ import {
 import UserDetailsModal from './UserDetailsModal';
 import ConfirmModal from './ConfirmModal';
 import { useToast } from '../context/ToastContext';
+import { useAuth } from '../context/AuthContext';
 
 const StatusBadge = ({ statut }) => {
   const styles = {
@@ -51,6 +52,7 @@ const formatDate = (dateStr) => {
 
 const AdminReclamationDetail = ({ id, onBack, onReclamationUpdate, allBulletins = [] }) => {
   const { showToast } = useToast();
+  const { user: currentUser } = useAuth();
   const navigate = useNavigate();
   const [reclamation, setReclamation] = useState(null);
   const [status, setStatus] = useState('Ouverte');
@@ -353,7 +355,7 @@ const AdminReclamationDetail = ({ id, onBack, onReclamationUpdate, allBulletins 
         {/* Sidebar Info Blocks */}
         <div className="space-y-8 lg:sticky lg:top-8">
           {/* Actions Administratives Card */}
-          {!reclamation.isRestricted && (
+          {!reclamation.isRestricted && reclamation?.userId !== currentUser?.id && (
             <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-xl border border-slate-100 dark:border-white/5 overflow-hidden">
               <div className="bg-slate-950 p-6 flex items-center justify-between text-white">
                 <h3 className="text-xs font-black uppercase tracking-widest">Contrôles Administratifs</h3>
@@ -387,6 +389,14 @@ const AdminReclamationDetail = ({ id, onBack, onReclamationUpdate, allBulletins 
                   </select>
                 </div>
               </div>
+            </div>
+          )}
+
+          {reclamation?.userId === currentUser?.id && (
+            <div className="bg-amber-50 dark:bg-amber-950/10 p-6 rounded-[2.5rem] border border-amber-200 dark:border-amber-800/30 text-center flex flex-col items-center gap-2">
+              <Lock size={24} className="text-amber-600 dark:text-amber-400" />
+              <p className="font-black text-amber-900 dark:text-amber-400 uppercase text-[10px] tracking-widest">Auto-traitement interdit</p>
+              <p className="text-[11px] text-amber-700 dark:text-amber-300 font-medium">Vous ne pouvez pas modifier le statut ou la priorité de votre propre réclamation.</p>
             </div>
           )}
 

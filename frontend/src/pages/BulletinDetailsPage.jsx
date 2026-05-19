@@ -635,6 +635,7 @@ const BulletinDetailsPage = () => {
     const isOwnBulletin = bulletin?.userId === currentUser?.id;
     const canProcess = isAdmin && !isOwnBulletin;
 
+
     const [confirmData, setConfirmData] = useState({
         isOpen: false,
         status: null,

@@ -192,6 +192,10 @@ const AdminReclamationController = {
       const reclamation = await Reclamation.findByPk(id);
       if (!reclamation) return res.status(404).json({ success: false, message: 'Réclamation non trouvée.' });
 
+      if (reclamation.userId === req.userId) {
+        return res.status(403).json({ success: false, message: 'Vous ne pouvez pas traiter votre propre réclamation.' });
+      }
+
       if (statut) { reclamation.statut = statut; reclamation.adminId = req.userId; }
       if (priorite) { reclamation.priorite = priorite; }
       await reclamation.save();
@@ -234,7 +238,7 @@ const ReclamationMessageController = {
         return res.status(403).json({ success: false, message: 'Accès refusé.' });
       }
 
-      const isAdminMessage = ['ADMIN', 'RESPONSABLE_RH', 'SUPER_ADMIN'].includes(userRole);
+      const isAdminMessage = ['ADMIN', 'RESPONSABLE_RH', 'SUPER_ADMIN'].includes(userRole) && reclamation.userId !== userId;
 
       // Determine status changes
       let finalStatusChange = statusChange;
