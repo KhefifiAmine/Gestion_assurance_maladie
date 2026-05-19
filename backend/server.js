@@ -1,8 +1,9 @@
 const express = require("express");
 const cors = require("cors");
-require("dotenv").config();
 const morgan = require("morgan");
-
+if (process.env.NODE_ENV !== "production") {
+  require("dotenv").config();
+}
 const { sequelize } = require("./models");
 
 // Routes
