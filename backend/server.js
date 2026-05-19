@@ -55,7 +55,7 @@ app.use("/uploads", express.static("uploads"));
    CHECK ENV VARIABLES
 ======================== */
 const requiredEnvVars = ["JWT_SECRET", "DB_HOST", "DB_USER", "DB_PASSWORD", "DB_NAME"];
-const missingEnvVars = requiredEnvVars.filter(v => !process.env[v]);
+const missingEnvVars = requiredEnvVars.filter(v => process.env[v] === undefined);
 
 if (missingEnvVars.length > 0) {
   throw new Error("Variables manquantes: " + missingEnvVars.join(", "));

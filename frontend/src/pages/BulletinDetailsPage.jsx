@@ -730,7 +730,9 @@ const BulletinDetailsPage = () => {
             const data = await getBulletinById(id);
             setBulletin(data);
         } catch (error) {
-            showToast(error.message || "Erreur lors de la mise à jour de l'acte", "error");
+            console.error(error);
+            const errorMessage = error.response?.data?.message || error.message || "Erreur lors de la mise à jour de l'acte";
+            showToast(errorMessage, "error");
         } finally {
             setLoading(false);
         }
@@ -780,7 +782,8 @@ const BulletinDetailsPage = () => {
             }
         } catch (error) {
             console.error(error);
-            showToast(error.message || 'Erreur lors de la mise à jour', 'error');
+            const errorMessage = error.response?.data?.message || error.message || 'Erreur lors de la mise à jour du médicament';
+            showToast(errorMessage, "error");
         }
     };
 
