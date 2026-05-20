@@ -1,4 +1,4 @@
-export const API_BASE = (import.meta.env.VITE_API_URL || 'https://gestionassurancemaladie-production.up.railway.app/api').replace(/\/$/, '');
+export const API_BASE = (import.meta.env.VITE_API_URL || 'https://romantic-acceptance-production-5a3c.up.railway.app/api').replace(/\/$/, '');
 export const UPLOADS_BASE = (import.meta.env.VITE_UPLOADS_URL || API_BASE.replace(/\/api$/, '')).replace(/\/$/, '');
 
 
