@@ -1,20 +1,15 @@
 // utils/emailService.js
 const nodemailer = require('nodemailer');
 
-const isConfigured = () => {
-  return process.env.EMAIL_USER &&
-    process.env.EMAIL_USER !== 'votre_email@gmail.com' &&
-    process.env.EMAIL_PASS &&
-    process.env.EMAIL_PASS !== 'votre_mot_de_passe_application';
-};
-
-const transporter = isConfigured() ? nodemailer.createTransport({
-  service: 'Gmail',
+const transporter = nodemailer.createTransport({
+  host: "smtp.gmail.com",
+  port: 465,
+  secure: true,
   auth: {
     user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS
-  }
-}) : null;
+    pass: process.env.EMAIL_PASS,
+  },
+});
 
 const sendResetEmail = async (email, code) => {
 
