@@ -20,7 +20,8 @@ import {
   ChevronsLeft,
   ChevronsRight,
   Bell,
-  CheckCheck
+  CheckCheck,
+  HardDrive
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useToast } from '../context/ToastContext';
@@ -117,6 +118,7 @@ const AdminLayout = () => {
     // Shared feature
     { name: 'Finances & Stats', path: '/admin/statistiques', icon: BarChart2, roles: ['ADMIN', 'RESPONSABLE_RH', 'SUPER_ADMIN'] },
     { name: 'Journal d\'activité', path: '/admin/logs', icon: Activity, roles: ['RESPONSABLE_RH', 'SUPER_ADMIN'] },
+    { name: 'Sauvegardes DB', path: '/admin/backups', icon: HardDrive, roles: ['SUPER_ADMIN'] },
     // Shortcut back
     { name: 'Espace Adhérent', path: '/dashboard', icon: UserIcon, roles: ['ADMIN', 'RESPONSABLE_RH', 'SUPER_ADMIN'] },
   ];

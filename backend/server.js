@@ -19,9 +19,12 @@ const beneficiaryRoutes = require("./src/routes/beneficiary.routes");
 const notificationRoutes = require("./src/routes/notification.routes");
 const logRoutes = require("./src/routes/logRoutes");
 const reimbursementRoutes = require("./src/routes/reimbursement.routes");
+const backupRoutes = require("./src/routes/backup.routes");
+const { scheduleAutoBackups } = require("./src/services/backup.service");
 
 // Middleware custom
 const journalMiddleware = require("./src/middleware/journal.middleware");
+const { globalLimiter } = require("./src/middleware/rateLimite.middleware");
 
 const app = express();
 
@@ -31,6 +34,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(journalMiddleware);
+app.use(globalLimiter);
 app.use(morgan(":method :url :status :res[content-length] - :response-time ms"));
 
 /* ========================
@@ -48,6 +52,7 @@ app.use("/api/beneficiaries", beneficiaryRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/logs", logRoutes);
 app.use("/api/reimbursement", reimbursementRoutes);
+app.use("/api/backups", backupRoutes);
 
 app.use("/uploads", express.static("uploads"));
 
@@ -77,6 +82,7 @@ sequelize.authenticate()
 
     app.listen(PORT, "0.0.0.0", () => {
       console.log(`🚀 Serveur lancé sur port ${PORT}`);
+      scheduleAutoBackups();
     });
   })
   .catch((err) => {

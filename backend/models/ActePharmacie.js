@@ -37,10 +37,6 @@ const ActePharmacie = sequelize.define('ActePharmacie', {
         allowNull: false,
         defaultValue: false
     },
-    date_achat: {
-        type: DataTypes.DATEONLY,
-        allowNull: true
-    },
     date_cachet_signature: {
         type: DataTypes.DATEONLY,
         allowNull: true

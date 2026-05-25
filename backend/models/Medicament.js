@@ -43,11 +43,6 @@ const Medicament = sequelize.define('Medicament', {
         allowNull: false,
         defaultValue: 0.0
     },
-    est_remboursable: {
-        type: DataTypes.BOOLEAN,
-        allowNull: false,
-        defaultValue: true
-    },
     statut: {
         type: DataTypes.INTEGER,
         defaultValue: 0

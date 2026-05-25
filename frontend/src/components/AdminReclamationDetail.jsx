@@ -400,28 +400,6 @@ const AdminReclamationDetail = ({ id, onBack, onReclamationUpdate, allBulletins 
             </div>
           )}
 
-          {/* Adhérent Profile Card */}
-          <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-xl border border-slate-100 dark:border-white/5 overflow-hidden">
-             <div className="bg-slate-905 p-6 flex items-center justify-between text-white" style={{ backgroundColor: '#0f172a' }}>
-                <h3 className="text-xs font-black uppercase tracking-widest">Profil Adhérent</h3>
-                <ShieldCheck size={18} className="text-emerald-500" />
-             </div>
-             <div className="p-8">
-                <div className="flex items-center gap-4 mb-6 pb-6 border-b border-slate-50">
-                  <div className="w-14 h-14 rounded-xl bg-slate-100 flex items-center justify-center text-xl font-black text-slate-400 uppercase">{reclamation?.adherent?.nom?.charAt(0)}</div>
-                  <div>
-                    <h4 className="font-black text-slate-900 dark:text-white leading-tight">{reclamation?.adherent?.nom} {reclamation?.adherent?.prenom}</h4>
-                    <p className="text-[9px] font-black text-purple-600 uppercase tracking-widest mt-1">ID: {reclamation?.adherent?.matricule}</p>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-3 mb-6">
-                  <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-xl"><p className="text-[8px] font-black text-slate-400 uppercase mb-1">Ville</p><p className="font-black text-[10px]">{reclamation?.adherent?.ville || 'N/A'}</p></div>
-                  <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-xl"><p className="text-[8px] font-black text-slate-400 uppercase mb-1">Sexe</p><p className="font-black text-[10px]">{reclamation?.adherent?.sexe || 'M'}</p></div>
-                </div>
-                <button onClick={() => setIsUserModalOpen(true)} className="w-full py-4 bg-slate-50 dark:bg-slate-800 rounded-xl font-black text-[9px] uppercase tracking-widest hover:bg-slate-900 hover:text-white transition-all">Consulter Fiche</button>
-             </div>
-          </div>
-
           {/* Dossier Médical Card */}
           <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-xl border border-slate-100 dark:border-white/5 overflow-hidden">
              <div className="bg-purple-600 p-6 flex items-center justify-between text-white">

@@ -2,12 +2,13 @@ const express = require('express');
 const router = express.Router();
 const { AdherentReclamationController, AdminReclamationController, ReclamationMessageController } = require('../controllers/reclamation.controller');
 const auth = require('../middleware/auth.middleware');
+const { reclamationLimiter } = require('../middleware/rateLimite.middleware');
 
 // TOUTES les routes nécessitent d'être au moins connecté
 router.use(auth.verifyToken);
 
 // --- ROUTES ADHÉRENT ---
-router.post('/', AdherentReclamationController.create);
+router.post('/', reclamationLimiter, AdherentReclamationController.create);
 router.get('/myreclamations', AdherentReclamationController.listMy);
 
 // Dispatcher intelligent pour les détails selon le rôle
@@ -22,7 +23,7 @@ router.put('/:id', AdherentReclamationController.update);
 router.delete('/:id', AdherentReclamationController.delete);
 
 // --- ROUTE ECHANGE MESSAGE ---
-router.post('/:id/messages', ReclamationMessageController.sendMessage);
+router.post('/:id/messages', reclamationLimiter, ReclamationMessageController.sendMessage);
 
 // --- ROUTES ADMIN ---
 router.get('/', auth.isAdmin, AdminReclamationController.listAll);

@@ -25,6 +25,7 @@ import GATVitrine from '../pages/GATVitrine';
 import LogsPage from '../pages/admin/LogsPage'; // ← AJOUTER CET IMPORT
 import BulletinDetailsPage from '../pages/BulletinDetailsPage';
 import ReimbursementRulesPage from '../pages/admin/ReimbursementRulesPage';
+import BackupPage from '../pages/admin/BackupPage';
 
 const AppRoutes = () => {
     return (
@@ -75,6 +76,7 @@ const AppRoutes = () => {
                 <Route path="beneficiaires" element={<ProtectedRoute allowedRoles={['RESPONSABLE_RH', 'SUPER_ADMIN']}><AdminBeneficiarie /></ProtectedRoute>} />
                 <Route path="logs" element={<ProtectedRoute allowedRoles={["RESPONSABLE_RH", "SUPER_ADMIN"]}><LogsPage /></ProtectedRoute>} /> {/* ← AJOUTER CETTE ROUTE */}
                 <Route path="rules" element={<ProtectedRoute allowedRoles={['ADMIN', 'SUPER_ADMIN']}><ReimbursementRulesPage /></ProtectedRoute>} />
+                <Route path="backups" element={<ProtectedRoute allowedRoles={['SUPER_ADMIN']}><BackupPage /></ProtectedRoute>} />
             </Route>
 
             {/* Catch-all redirection */}

@@ -2,12 +2,12 @@ const { GoogleGenerativeAI } = require("@google/generative-ai");
 const fs = require("fs");
 
 function fileToGenerativePart(filePath, mimeType) {
-  return {
-    inlineData: {
-      data: fs.readFileSync(filePath).toString("base64"),
-      mimeType,
-    },
-  };
+    return {
+        inlineData: {
+            data: fs.readFileSync(filePath).toString("base64"),
+            mimeType,
+        },
+    };
 }
 
 const verifyBulletinWithAI = async (files, payload) => {
@@ -26,27 +26,152 @@ const verifyBulletinWithAI = async (files, payload) => {
         const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
 
         const prompt = `
-Tu es un expert certifié en analyse de bulletins de soins tunisiens et en détection de fraude.
-On t'a soumis des documents (images ou PDFs) correspondant à un bulletin de soins, ainsi que les données saisies par l'utilisateur.
+            Tu es un expert certifié en :
+            - analyse de bulletins de soins tunisiens,
+            - détection de fraude documentaire,
+            - contrôle de cohérence médicale,
+            - audit des remboursements CNAM / assurances santé.
 
-Données saisies par l'utilisateur :
-${JSON.stringify(payload, null, 2)}
+            On t'a soumis :
+            1. Des documents médicaux (images ou PDFs) correspondant à un bulletin de soins, ordonnances, factures, feuilles de pharmacie ou justificatifs médicaux.
+            2. Les données saisies par l'utilisateur.
 
-Ta mission est de VERIFIER rigoureusement si les données saisies correspondent exactement aux informations VISIBLES sur les documents fournis.
-Vérifie en particulier :
-1. Les dates (date de soin, dates des actes).
-2. Les montants (honoraires des actes, montants des médicaments, montant total).
-3. Les informations sur le professionnel de santé et la pharmacie (matricule fiscal, présence du cachet et de la signature).
-4. La cohérence médicale (ex: actes saisis correspondant à la spécialité, cohérence d'âge entre patient et médicaments comme prescrire un médicament pédiatrique/bébé à un adulte ou un traitement adulte à un nourrisson/bébé).
+            Données saisies par l'utilisateur :
+            ${JSON.stringify(payload, null, 2)}
 
-Si des différences, des altérations suspectes, ou des incohérences majeures sont détectées, tu dois augmenter le niveau de risque.
+            Ta mission est de VERIFIER rigoureusement si les données saisies correspondent EXACTEMENT aux informations VISIBLES sur les documents fournis.
 
-Format de réponse obligatoire (JSON unique) :
-{
-  "niveau_risque": "faible" | "moyen" | "élevé",
-  "confiance_score": number, // Score de confiance entre 0 et 100
-  "resultat_analyse": "Bilan de la vérification. Fournis un message clair et bien structuré (en utilisant des retours à la ligne) décrivant les anomalies détectées ou confirmant que les données sont conformes."
-}
+            Tu dois analyser :
+
+            ========================
+            1. Vérification documentaire
+            ========================
+            - Vérifier que toutes les informations saisies existent réellement sur les documents.
+            - Détecter les modifications suspectes :
+            - texte modifié,
+            - montants altérés,
+            - dates incohérentes,
+            - polices différentes,
+            - zones floues ou masquées,
+            - superpositions,
+            - coupures d’image,
+            - incohérences d’alignement,
+            - signatures ou cachets copiés/collés.
+            - Vérifier la présence obligatoire :
+            - cachet du médecin/pharmacie,
+            - signature,
+            - matricule fiscal,
+            - numéro RPPS / identifiant professionnel si visible.
+
+            ========================
+            2. Vérification des dates
+            ========================
+            - Vérifier :
+            - date du soin,
+            - dates des actes,
+            - dates des ordonnances,
+            - dates des factures pharmacie.
+            - Détecter :
+            - dates impossibles,
+            - actes réalisés après émission,
+            - incohérences chronologiques,
+            - documents expirés,
+            - plusieurs actes impossibles le même jour.
+
+            ========================
+            3. Vérification des montants
+            ========================
+            - Vérifier :
+            - honoraires des actes,
+            - prix des médicaments,
+            - total facture,
+            - montants remboursables,
+            - quantités.
+            - Détecter :
+            - montants anormalement élevés,
+            - doublons de facturation,
+            - actes surfacturés,
+            - prix incompatibles avec les tarifs habituels,
+            - erreurs de calcul,
+            - incohérences entre sous-total et total.
+
+            ========================
+            4. Vérification médicale
+            ========================
+            Analyser la cohérence médicale globale :
+
+            - Vérifier si les actes médicaux correspondent à la spécialité du médecin.
+            Exemple :
+            - un dentiste ne doit pas facturer un acte cardiologique,
+            - un pédiatre ne doit pas réaliser un acte gynécologique adulte.
+
+            - Vérifier si les médicaments sont adaptés :
+            - à l’âge du patient,
+            - au sexe du patient,
+            - à la pathologie mentionnée,
+            - au dosage,
+            - à la forme pharmaceutique.
+
+            Détecter :
+            - médicament pédiatrique prescrit à un adulte,
+            - traitement adulte prescrit à un nourrisson,
+            - dosages dangereux ou incohérents,
+            - médicaments incompatibles avec l’âge,
+            - médicaments inhabituels pour la maladie déclarée,
+            - quantités anormales,
+            - traitements contradictoires,
+            - actes médicaux inutiles ou incohérents.
+
+            ========================
+            5. Détection de fraude avancée
+            ========================
+            Détecter les signaux de fraude potentiels :
+            - documents réutilisés,
+            - duplication d’actes,
+            - montants artificiellement gonflés,
+            - actes fictifs,
+            - médicaments excessifs,
+            - incohérences entre écriture manuscrite et impression,
+            - absence de cachet,
+            - signature suspecte,
+            - ordonnance falsifiée,
+            - même facture utilisée plusieurs fois,
+            - informations manquantes volontairement.
+
+            ========================
+            6. Score de risque
+            ========================
+            Attribuer un niveau de risque :
+            - "faible"
+            - "moyen"
+            - "élevé"
+
+            Le niveau doit dépendre :
+            - du nombre d’anomalies,
+            - de leur gravité,
+            - de la probabilité de fraude,
+            - du niveau d’incohérence médicale et financière.
+
+            ========================
+            7. Format de réponse obligatoire
+            ========================
+
+            Réponds UNIQUEMENT avec un JSON valide.
+
+            Format obligatoire :
+
+            {
+            "niveau_risque": "faible" | "moyen" | "élevé",
+            "confiance_score": number,
+            "resultat_analyse": "Analyse détaillée et structurée avec retours à la ligne. (structuré selon le type anomalies_detectees, verifications_valides, et les sections de vérification documentaire, des dates, des montants, médicale, et de fraude avancée)"
+            }
+
+            Règles importantes :
+            - Ne jamais inventer une information absente du document.
+            - Si une donnée est illisible ou absente, le préciser explicitement.
+            - Être strict et prudent.
+            - En cas de doute sérieux, augmenter le niveau de risque.
+            - Si le document semble falsifié, l’indiquer clairement.
         `;
 
         const parts = [{ text: prompt }];

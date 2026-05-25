@@ -865,50 +865,7 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
         }
 
         try {
-            let dataToSend = formData;
-            if (isEdit) {
-                // Envoyer seulement les champs modifiés
-                dataToSend = {};
-                const businessFields = [
-                    'numero_bulletin', 'code_cnam', 'date_soin', 'montant_total',
-                    'qualite_malade', 'nom_prenom_malade', 'est_apci', 'suivi_grossesse',
-                    'date_prevue_accouchement', 'soins_cadre', 'est_signe_adherent',
-                    'pharmacie', 'actes', 'beneficiaireId', 'pharmacie_detecte', 'fichiers'
-                ];
-
-                businessFields.forEach(key => {
-                    if (formData[key] !== undefined) {
-                        let initialValue = initialData[key];
-                        
-                        // Normalisation
-                        if (key === 'date_soin' || key === 'date_prevue_accouchement') {
-                            initialValue = formatDateForInput(initialValue);
-                        } else if (key === 'pharmacie') {
-                            initialValue = initialData.pharmacie ? {
-                                ...initialData.pharmacie,
-                                date: formatDateForInput(initialData.pharmacie.date || initialData.pharmacie.date_achat),
-                                montant_pharmacie: Number(initialData.pharmacie.montant_pharmacie || initialData.pharmacie.montant || 0),
-                                medicaments: initialData.pharmacie.medicaments || []
-                            } : initialFormState.pharmacie;
-                        } else if (key === 'actes') {
-                            initialValue = initialData.actes || [];
-                        } else if (key === 'montant_total') {
-                            initialValue = Number(initialValue || 0);
-                        }
-
-                        if (JSON.stringify(formData[key]) !== JSON.stringify(initialValue)) {
-                            dataToSend[key] = formData[key];
-                        }
-                    }
-                });
-
-                if (Object.keys(dataToSend).length === 0 && selectedFiles.length === 0) {
-                    showToast("Aucune modification à enregistrer", "info");
-                    onClose();
-                    return;
-                }
-            }
-
+            const dataToSend = formData;
             const result = isEdit ? await updateBulletin(initialData.id, dataToSend, selectedFiles) : await createBulletin(formData, selectedFiles);
             onSubmit(result.bulletin);
             showToast(isEdit ? "Bulletin mis à jour !" : "Bulletin enregistré !", "success");
