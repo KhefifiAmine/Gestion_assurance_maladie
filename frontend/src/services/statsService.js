@@ -1,16 +1,9 @@
-import { API_BASE } from './api';
-
-const authHeaders = () => ({
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${localStorage.getItem('token')}`
-});
+import { API_BASE, handleResponse } from './api';
 
 export const getAdminStats = async () => {
     const res = await fetch(`${API_BASE}/stats/admin`, {
         method: 'GET',
-        headers: authHeaders()
+        credentials: 'include'
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || 'Erreur lors de la récupération des stats.');
-    return data;
+    return handleResponse(res);
 };

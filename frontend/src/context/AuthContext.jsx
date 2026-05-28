@@ -5,24 +5,22 @@ const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
-    const [token, setToken] = useState(() => localStorage.getItem('token'));
     const [loading, setLoading] = useState(true);
 
     // Effet pour initialiser l'authentification
     useEffect(() => {
         const initAuth = async () => {
-            if (token) {
-                try {
-                    const profile = await fetchProfile();
-                    setUser(profile);
-                } catch {
-                    logout();
-                }
+            try {
+                const profile = await fetchProfile();
+                setUser(profile);
+            } catch {
+                setUser(null);
+            } finally {
+                setLoading(false);
             }
-            setLoading(false);
         };
         initAuth();
-    }, [token]);
+    }, []);
 
     // Effet pour écouter les erreurs d'authentification globales (ex: compte bloqué)
     useEffect(() => {
@@ -31,7 +29,6 @@ export const AuthProvider = ({ children }) => {
             if (isBlocked) {
                 // On peut forcer la déconnexion immédiate
                 logout();
-                // Le toast sera affiché par le composant qui a fait l'appel ou on peut en ajouter un ici si on a accès au contexte
             } else {
                 // Token expiré ou autre 401 standard
                 logout();
@@ -42,9 +39,7 @@ export const AuthProvider = ({ children }) => {
         return () => window.removeEventListener('auth-error', handleAuthError);
     }, []);
 
-    const login = (tokenValue, userData) => {
-        localStorage.setItem('token', tokenValue);
-        setToken(tokenValue);
+    const login = (userData) => {
         setUser(userData);
     };
 
@@ -56,8 +51,6 @@ export const AuthProvider = ({ children }) => {
                 console.error("Erreur appel API deconnexion:", err);
             }
         }
-        localStorage.removeItem('token');
-        setToken(null);
         setUser(null);
     };
 
@@ -70,10 +63,10 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
-    const isAuthenticated = !!token && !!user;
+    const isAuthenticated = !!user;
 
     return (
-        <AuthContext.Provider value={{ user, token, loading, isAuthenticated, login, logout, refreshUser }}>
+        <AuthContext.Provider value={{ user, loading, isAuthenticated, login, logout, refreshUser }}>
             {children}
         </AuthContext.Provider>
     );

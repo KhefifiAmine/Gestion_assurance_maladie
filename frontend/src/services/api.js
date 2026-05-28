@@ -1,27 +1,14 @@
 export const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace(/\/$/, '');
 export const UPLOADS_BASE = (import.meta.env.VITE_UPLOADS_URL || API_BASE.replace(/\/api$/, '')).replace(/\/$/, '');
 
-
-// Helper: récupérer le token stocké
-const getToken = () => localStorage.getItem('token');
-
-// Helper pour les requêtes authentifiées
-const authHeaders = () => ({
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${getToken()}`
-});
-
 // Helper: gérer les erreurs de réponse globalement
 export const handleResponse = async (res) => {
     const data = await res.json();
 
     if (res.status === 401) {
-        // On déclenche un événement personnalisé pour que AuthContext puisse réagir
         window.dispatchEvent(new CustomEvent('auth-error', {
             detail: { message: data.message, isBlocked: data.isBlocked }
         }));
-
-
     }
 
     if (!res.ok) {
@@ -35,6 +22,7 @@ export const loginUser = async (email, password, isAdminLogin = false) => {
     const res = await fetch(`${API_BASE}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ email, password, isAdminLogin })
     });
     return handleResponse(res);
@@ -44,6 +32,7 @@ export const logoutUser = async (userId) => {
     const res = await fetch(`${API_BASE}/auth/logout`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ userId })
     });
     return handleResponse(res);
@@ -63,6 +52,7 @@ export const registerUser = async (formData) => {
     const res = await fetch(`${API_BASE}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify(payload)
     });
     return handleResponse(res);
@@ -73,6 +63,7 @@ export const forgotPassword = async (email) => {
     const res = await fetch(`${API_BASE}/reset-password/forgot-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ email })
     });
     return handleResponse(res);
@@ -82,6 +73,7 @@ export const verifyResetCode = async (code) => {
     const res = await fetch(`${API_BASE}/reset-password/verify-reset-code`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ code })
     });
     return handleResponse(res);
@@ -91,6 +83,7 @@ export const resetPassword = async (code, newPassword) => {
     const res = await fetch(`${API_BASE}/reset-password/reset-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ code, newPassword })
     });
     return handleResponse(res);
@@ -102,7 +95,7 @@ export const resetPassword = async (code, newPassword) => {
 export const fetchProfile = async () => {
     const res = await fetch(`${API_BASE}/profile`, {
         method: 'GET',
-        headers: authHeaders()
+        credentials: 'include'
     });
     const data = await handleResponse(res);
     return data.user;
@@ -122,9 +115,7 @@ export const updateProfile = async (profileData, avatarFile = null) => {
 
     const res = await fetch(`${API_BASE}/profile`, {
         method: 'PUT',
-        headers: {
-            'Authorization': `Bearer ${getToken()}`
-        },
+        credentials: 'include',
         body: formData
     });
     const data = await handleResponse(res);
@@ -134,7 +125,8 @@ export const updateProfile = async (profileData, avatarFile = null) => {
 export const changePassword = async (ancienMdp, nouveauMdp) => {
     const res = await fetch(`${API_BASE}/profile/change-password`, {
         method: 'PUT',
-        headers: authHeaders(),
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ ancienMdp, nouveauMdp })
     });
     return handleResponse(res);
@@ -143,7 +135,7 @@ export const changePassword = async (ancienMdp, nouveauMdp) => {
 // ─── REIMBURSEMENT RULES ──────────────────────────────────────────────────────
 export const fetchReimbursementRules = async () => {
     const res = await fetch(`${API_BASE}/reimbursement/rules`, {
-        headers: authHeaders()
+        credentials: 'include'
     });
     return handleResponse(res);
 };
@@ -151,7 +143,8 @@ export const fetchReimbursementRules = async () => {
 export const updateReimbursementRules = async (rulesData) => {
     const res = await fetch(`${API_BASE}/reimbursement/rules`, {
         method: 'PUT',
-        headers: authHeaders(),
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify(rulesData)
     });
     return handleResponse(res);

@@ -13,7 +13,6 @@ const Login = () => {
     const [showPassword, setShowPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [emailError, setEmailError] = useState('');
-    const isAdmin = window.location.pathname.includes('/admin');
 
     const { login: authLogin } = useAuth();
     const { showToast } = useToast();
@@ -43,7 +42,7 @@ const Login = () => {
         try {
             setIsLoading(true);
             const data = await loginUser(credentials.email, credentials.password);
-            authLogin(data.token, data.user);
+            authLogin(data.user);
             showToast(`Bienvenue, ${data.user.nom}!`, "success");
             navigate("/dashboard");
         } catch (err) {
@@ -54,7 +53,7 @@ const Login = () => {
     };
 
     return (
-        <div className={`bg-white dark:bg-slate-800 ${isAdmin ? 'p-3 md:p-5 max-w-[340px]' : 'p-4 md:p-8 max-w-[400px]'} mx-auto rounded-[1.2rem] shadow-2xl border border-slate-50 dark:border-slate-700 transition-all`}>
+        <div className="bg-white dark:bg-slate-800 p-4 md:p-8 max-w-[400px] mx-auto rounded-[1.2rem] shadow-2xl border border-slate-50 dark:border-slate-700 transition-all">
             {/* Top Branding Section */}
             <div className="flex items-center justify-center gap-4 lg:gap-8 mb-8 lg:mb-10 mt-2 lg:mt-4">
                 {/* Logo 1: GAT Assurances */}
@@ -75,23 +74,23 @@ const Login = () => {
                 </div>
             </div>
 
-            {/* Badge Sécurisé (Style BTK) - Plus compact pour admin */}
-            <div className={`flex justify-center ${isAdmin ? 'mb-3' : 'mb-4'}`}>
-                <div className={`flex items-center gap-2 bg-[#e8f2ff] dark:bg-blue-900/30 ${isAdmin ? 'px-3 py-1' : 'px-4 py-1.5'} rounded-full border border-blue-50 dark:border-blue-800`}>
-                    <ShieldCheck className={`${isAdmin ? 'w-3' : 'w-3.5'} h-${isAdmin ? '3' : '3.5'} text-[#005aab]`} />
-                    <span className={`${isAdmin ? 'text-[9px]' : 'text-[10px]'} font-bold text-[#004a8d] dark:text-blue-300 uppercase tracking-widest`}>
-                        {isAdmin ? 'Admin Secure' : 'Secure Access'}
+            {/* Badge Sécurisé (Style BTK) */}
+            <div className="flex justify-center mb-4">
+                <div className="flex items-center gap-2 bg-[#e8f2ff] dark:bg-blue-900/30 px-4 py-1.5 rounded-full border border-blue-50 dark:border-blue-800">
+                    <ShieldCheck className="w-3.5 h-3.5 text-[#005aab]" />
+                    <span className="text-[10px] font-bold text-[#004a8d] dark:text-blue-300 uppercase tracking-widest">
+                        Secure Access
                     </span>
                 </div>
             </div>
 
             {/* Titres */}
-            <div className={`text-center ${isAdmin ? 'mb-5' : 'mb-6'}`}>
-                <h2 className={`${isAdmin ? 'text-lg' : 'text-xl'} font-black text-slate-900 dark:text-white mb-0.5 tracking-tight`}>
-                    {isAdmin ? 'Portail Admin' : 'Connexion'}
+            <div className="text-center mb-6">
+                <h2 className="text-xl font-black text-slate-900 dark:text-white mb-0.5 tracking-tight">
+                    Connexion
                 </h2>
                 <p className="text-slate-400 dark:text-slate-500 text-[11px] md:text-sm font-medium">
-                    {isAdmin ? 'Accès réservé au personnel' : 'Espace de gestion Assurance Maladie'}
+                    Espace de gestion Assurance Maladie
                 </p>
             </div>
 
@@ -151,14 +150,14 @@ const Login = () => {
                 <button
                     type="submit"
                     disabled={isLoading}
-                    className={`w-full ${isAdmin ? 'py-3' : 'py-3.5'} bg-purple-600 hover:bg-purple-700 active:scale-[0.98] disabled:opacity-70 text-white rounded-xl font-bold text-sm shadow-xl shadow-purple-500/10 transition-all flex items-center justify-center gap-2 group mt-1`}
+                    className="w-full py-3.5 bg-purple-600 hover:bg-purple-700 active:scale-[0.98] disabled:opacity-70 text-white rounded-xl font-bold text-sm shadow-xl shadow-purple-500/10 transition-all flex items-center justify-center gap-2 group mt-1"
                 >
                     {isLoading ? (
                         <Loader2 className="animate-spin" size={18} />
                     ) : (
                         <>
-                            <span>{isAdmin ? 'S\'identifier' : 'Se connecter'} </span>
-                            <ArrowRight size={isAdmin ? 16 : 18} className="group-hover:translate-x-1 transition-transform" />
+                            <span>Se connecter </span>
+                            <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
                         </>
                     )}
                 </button>

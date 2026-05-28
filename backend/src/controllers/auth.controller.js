@@ -137,30 +137,34 @@ const login = async (req, res) => {
         // Check if user exists
         const user = await User.findOne({ where: { email: normalizedEmail } });
         if (!user) {
-            return res.status(401).json({ message: 'Email ou mot de passe incorrect.' });
+            return res.status(401).json({ message: 'Identifiants invalides ou accès non autorisé.' });
         }
 
-        // Restriction: Seuls les adhérents peuvent se connecter via cette route
-        // (L'admin et le RH utilisent une autre interface/logique si nécessaire, 
-        // ou on peut simplement vérifier le flag in request if we want to distinguish)
-        if (req.body.isAdminLogin !== true && ['ADMIN', 'RESPONSABLE_RH'].includes(user.role)) {
-            return res.status(403).json({ message: 'Email ou mot de passe incorrect.' });
+        const isAdminRole = ['ADMIN', 'RESPONSABLE_RH', 'SUPER_ADMIN'].includes(user.role);
+
+        // 🛡️ Vérification croisée stricte : message générique pour ne pas "fuiter" le rôle
+        if (req.body.isAdminLogin === true && !isAdminRole) {
+            return res.status(401).json({ message: 'Identifiants invalides ou accès non autorisé.' });
+        }
+
+        if (req.body.isAdminLogin !== true && isAdminRole) {
+            return res.status(401).json({ message: 'Identifiants invalides ou accès non autorisé.' });
         }
 
         // 1. Check if the account has a password set BEFORE validation to avoid server crash
         if (!user.mot_de_passe) {
-            return res.status(401).json({ message: 'Aucun mot de passe n\'est configuré pour ce compte. Veuillez contacter l\'administration.' });
+            return res.status(401).json({ message: 'Identifiants invalides ou accès non autorisé.' });
         }
 
         // 2. Validate password
         const validPassword = await comparePassword(password, user.mot_de_passe);
         if (!validPassword) {
-            return res.status(401).json({ message: 'Email ou mot de passe incorrect.' });
+            return res.status(401).json({ message: 'Identifiants invalides ou accès non autorisé.' });
         }
 
         // 3. Checking status (On ne vérifie plus le statut 0 pour permettre l'accès direct)
         if (user.statut === 2) {
-            return res.status(403).json({ message: 'L\'accès à ce compte a été refusé par un administrateur.' });
+            return res.status(403).json({ message: 'L\'accès à ce compte a été refusé par un administrateur. Veuillez contacter l\'administration.' });
         }
         if (user.statut === 3) {
             return res.status(403).json({
@@ -199,9 +203,17 @@ const login = async (req, res) => {
             console.error('Failed to log login action:', err);
         }
 
+        // Définir le token dans un cookie HTTP-Only (inaccessible depuis JavaScript)
+        // SameSite: 'Lax' compatible avec le développement local (pas de HTTPS requis)
+        res.cookie('token', token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production', // HTTPS seulement en prod
+            sameSite: 'Lax',
+            maxAge: 24 * 60 * 60 * 1000 // 1 jour (correspondant à l'expiration JWT)
+        });
+
         res.status(200).json({
             message: 'Connexion réussie',
-            token,
             user: {
                 id: user.id,
                 email: user.email,
@@ -220,7 +232,6 @@ const login = async (req, res) => {
 const logout = async (req, res) => {
     try {
         const { Journal } = require('../../models');
-        // Set req.userId so journalMiddleware can also see it, though we do it explicitly
         req.userId = req.body.userId;
 
         await Journal.create({
@@ -228,6 +239,9 @@ const logout = async (req, res) => {
             userId: req.body.userId,
             adresse_ip: req.ip || req.connection?.remoteAddress || '127.0.0.1'
         });
+
+        // Effacer le cookie HTTP-Only
+        res.clearCookie('token', { httpOnly: true, sameSite: 'Lax', secure: process.env.NODE_ENV === 'production' });
 
         res.status(200).json({ message: 'Déconnexion réussie' });
     } catch (error) {

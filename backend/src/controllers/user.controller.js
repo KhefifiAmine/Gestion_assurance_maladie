@@ -70,6 +70,13 @@ const updateUserStatus = async (req, res) => {
 
         const previousStatus = user.statut;
 
+        // ── Capturer l'ancienne valeur AVANT modification ─────────────────────
+        req._ancienneValeur = JSON.stringify({
+            statut: user.statut,
+            objet_blocage: user.objet_blocage,
+            motif_blocage: user.motif_blocage
+        });
+
 
         // Handle raison
         if (statut === 2 || statut === 3) {
@@ -85,33 +92,30 @@ const updateUserStatus = async (req, res) => {
         if (previousStatus === 0 && statut === 1) {
             const plainPassword = generateRandomPassword();
             const hashedPassword = await hashPassword(plainPassword);
-            const result = await sendApprovalEmail(user.email);
-            if (!result) {
-                return res.status(500).json({ message: 'Erreur lors de l\'envoi de l\'email d\'approbation' });
-            }
             user.statut = statut;
             user.mot_de_passe = hashedPassword;
-            // Background email sending
+            // Envoi email en arrière-plan (non bloquant)
+            sendApprovalEmail(user.email).catch(err =>
+                console.error('Erreur envoi email approbation (arrière-plan):', err)
+            );
         }
 
         // If transitioning from Pending (0) to Rejected (2)
         if (previousStatus === 0 && statut === 2) {
-            // Background email sending
-            const result = await sendRejectionEmail(user.email, objet, raison);
-            if (!result) {
-                return res.status(500).json({ message: 'Erreur lors de l\'envoi de l\'email de refus' });
-            }
             user.statut = statut;
+            // Envoi email en arrière-plan (non bloquant)
+            sendRejectionEmail(user.email, objet, raison).catch(err =>
+                console.error('Erreur envoi email refus (arrière-plan):', err)
+            );
         }
 
         // If transitioning from Active (1) to Blocked (3)
         if (previousStatus === 1 && statut === 3) {
-            // Background email sending
-            const result = await sendBlockEmail(user.email, objet, raison);
-            if (!result) {
-                return res.status(500).json({ message: 'Erreur lors de l\'envoi de l\'email de blocage' });
-            }
             user.statut = statut;
+            // Envoi email en arrière-plan (non bloquant)
+            sendBlockEmail(user.email, objet, raison).catch(err =>
+                console.error('Erreur envoi email blocage (arrière-plan):', err)
+            );
         }
 
         await user.save();
@@ -144,6 +148,11 @@ const updateUserRole = async (req, res) => {
         if (!user) {
             return res.status(404).json({ message: 'Utilisateur non trouvé.' });
         }
+
+        // ── Capturer l'ancienne valeur AVANT modification ─────────────────────
+        req._ancienneValeur = JSON.stringify({
+            role: user.role
+        });
 
         user.role = role;
         await user.save();

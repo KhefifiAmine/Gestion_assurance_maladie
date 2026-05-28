@@ -167,17 +167,21 @@ const deleteBackup = (filename) => {
   return false;
 };
 
+// ── Heure du backup automatique (source unique de vérité) ───────────────────
+const BACKUP_SCHEDULE_HOUR = 2;
+const BACKUP_SCHEDULE_MINUTE = 0;
+
 /**
- * Schedules automatic daily database backups at 2:00 AM.
+ * Schedules automatic daily database backups at configured time.
  */
 const scheduleAutoBackups = () => {
   const ONE_DAY = 24 * 60 * 60 * 1000;
   
   const now = new Date();
   const nextBackup = new Date(now);
-  nextBackup.setHours(2, 0, 0, 0); // 2:00 AM
+  nextBackup.setHours(BACKUP_SCHEDULE_HOUR, BACKUP_SCHEDULE_MINUTE, 0, 0);
   
-  if (now.getHours() >= 2) {
+  if (now.getTime() >= nextBackup.getTime()) {
     nextBackup.setDate(nextBackup.getDate() + 1);
   }
   
@@ -203,5 +207,7 @@ module.exports = {
   listBackups,
   deleteBackup,
   scheduleAutoBackups,
-  BACKUP_DIR
+  BACKUP_DIR,
+  BACKUP_SCHEDULE_HOUR,
+  BACKUP_SCHEDULE_MINUTE
 };

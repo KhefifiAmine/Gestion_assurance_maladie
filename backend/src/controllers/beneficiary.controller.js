@@ -8,12 +8,12 @@ const { sendNotificationEmail } = require('../utils/emailService');
 const getMyBeneficiaries = async (req, res) => {
     try {
         const beneficiaries = await Beneficiary.findAll({
-            where: { 
+            where: {
                 userId: req.userId,
                 relation: {
                     [Op.ne]: 'Titulaire'
                 }
-             },
+            },
             order: [['createdAt', 'ASC']]
         });
         res.status(200).json(beneficiaries);
@@ -210,7 +210,7 @@ const updateBeneficiary = async (req, res) => {
                     }
                 } catch (e) {
                     const filePath = path.join(__dirname, '../../uploads', beneficiary.document);
-                    if (fs.existsSync(filePath)) await fs.promises.unlink(filePath).catch(() => {});
+                    if (fs.existsSync(filePath)) await fs.promises.unlink(filePath).catch(() => { });
                 }
             }
             beneficiary.document = JSON.stringify(req.files.map(f => f.filename));
@@ -229,7 +229,7 @@ const updateBeneficiary = async (req, res) => {
 // Récupérer tous les bénéficiaires (Admin/RH)
 const getAllBeneficiaries = async (req, res) => {
     try {
-        const beneficiaries = await Beneficiary.findAll({ 
+        const beneficiaries = await Beneficiary.findAll({
             where: { relation: { [Op.ne]: 'Titulaire' } },
             include: [{
                 model: User,
@@ -258,6 +258,13 @@ const updateStatus = async (req, res) => {
         if (beneficiary.userId === req.userId) {
             return res.status(403).json({ message: 'Vous ne pouvez pas traiter vos propres bénéficiaires.' });
         }
+
+        // ── Capturer l'ancienne valeur AVANT modification ─────────────────────
+        req._ancienneValeur = JSON.stringify({
+            statut: beneficiary.statut,
+            objetRefus: beneficiary.objetRefus,
+            motifRefus: beneficiary.motifRefus
+        });
 
         beneficiary.statut = statut;
         if (statut === 'Rejeté') {

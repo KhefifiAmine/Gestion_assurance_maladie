@@ -1,19 +1,12 @@
 import { API_BASE, handleResponse } from './api';
 
-const getToken = () => localStorage.getItem('token');
-
-const authHeaders = () => ({
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${getToken()}`
-});
-
 /**
  * Trigger a manual database backup (POST /api/backups)
  */
 export const triggerBackup = async () => {
     const res = await fetch(`${API_BASE}/backups`, {
         method: 'POST',
-        headers: authHeaders()
+        credentials: 'include'
     });
     return handleResponse(res);
 };
@@ -23,7 +16,7 @@ export const triggerBackup = async () => {
  */
 export const fetchBackups = async () => {
     const res = await fetch(`${API_BASE}/backups`, {
-        headers: authHeaders()
+        credentials: 'include'
     });
     return handleResponse(res);
 };
@@ -37,8 +30,7 @@ export const downloadBackup = (filename) => {
     const link = document.createElement('a');
     link.href = url;
     link.setAttribute('download', filename);
-    // Auth header via URL is not possible directly; use fetch + blob
-    return fetch(url, { headers: { 'Authorization': `Bearer ${getToken()}` } })
+    return fetch(url, { credentials: 'include' })
         .then(res => {
             if (!res.ok) throw new Error('Téléchargement échoué');
             return res.blob();
@@ -59,7 +51,7 @@ export const downloadBackup = (filename) => {
 export const deleteBackup = async (filename) => {
     const res = await fetch(`${API_BASE}/backups/${encodeURIComponent(filename)}`, {
         method: 'DELETE',
-        headers: authHeaders()
+        credentials: 'include'
     });
     return handleResponse(res);
 };

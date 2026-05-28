@@ -52,6 +52,7 @@ export default function BackupPage() {
     const dark = theme === 'dark';
 
     const [backups, setBackups] = useState([]);
+    const [scheduleTime, setScheduleTime] = useState('02:00'); // valeur par défaut
     const [loading, setLoading] = useState(false);
     const [creating, setCreating] = useState(false);
     const [downloadingFile, setDownloadingFile] = useState(null);
@@ -63,6 +64,8 @@ export default function BackupPage() {
         try {
             const res = await fetchBackups();
             setBackups(res.data || []);
+            // Lire l'heure réelle depuis l'API (plus de valeur hardcodée)
+            if (res.scheduleTime) setScheduleTime(res.scheduleTime);
         } catch (err) {
             showToast('Erreur lors du chargement des sauvegardes.', 'error');
         } finally {
@@ -184,7 +187,7 @@ export default function BackupPage() {
                     },
                     {
                         label: 'Prochain Backup Auto',
-                        value: '02:00',
+                        value: scheduleTime,
                         unit: 'chaque nuit',
                         icon: Calendar,
                         color: 'from-purple-500 to-violet-600',
@@ -388,7 +391,7 @@ export default function BackupPage() {
                         </p>
                         <div className={`flex items-center gap-1.5 text-[10px] font-black ${dark ? 'text-emerald-400' : 'text-emerald-600'}`}>
                             <ShieldAlert size={12} />
-                            Backup automatique quotidien à 02h00
+                            Backup automatique quotidien à {scheduleTime}
                         </div>
                     </div>
                 )}
@@ -407,7 +410,7 @@ export default function BackupPage() {
                         icon: Clock,
                         color: 'from-purple-500 to-violet-600',
                         title: 'Planification automatique',
-                        desc: 'Un backup complet est déclenché automatiquement chaque nuit à 02h00 sans intervention manuelle.'
+                        desc: `Un backup complet est déclenché automatiquement chaque nuit à ${scheduleTime} sans intervention manuelle.`
                     },
                     {
                         icon: CheckCircle2,

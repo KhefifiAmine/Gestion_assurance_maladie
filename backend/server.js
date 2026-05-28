@@ -1,5 +1,7 @@
 const express = require("express");
+const helmet = require("helmet");
 const cors = require("cors");
+const cookieParser = require("cookie-parser");
 const morgan = require("morgan");
 if (process.env.NODE_ENV !== "production") {
   require("dotenv").config();
@@ -31,7 +33,28 @@ const app = express();
 /* ========================
    MIDDLEWARES
 ======================== */
-app.use(cors());
+// Activation des en-têtes sécurisés (Clickjacking, XSS mineurs, Sniffing MIME)
+// crossOriginResourcePolicy: false permet aux images du dossier upload d'être vues par le front-end React
+app.use(helmet({ crossOriginResourcePolicy: false }));
+// CORS : autoriser le frontend Vite avec credentials (requis pour les cookies HTTP-Only)
+const ALLOWED_ORIGINS = [
+  'http://localhost:5173',
+  'http://localhost:5174',
+  'http://127.0.0.1:5173',
+  process.env.FRONTEND_URL
+].filter(Boolean);
+app.use(cors({
+  origin: (origin, callback) => {
+    // Autoriser les requêtes sans origin (Postman, curl, etc.) et les origins listées
+    if (!origin || ALLOWED_ORIGINS.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Origine CORS non autorisée : ' + origin));
+    }
+  },
+  credentials: true  // Indispensable pour les cookies HTTP-Only
+}));
+app.use(cookieParser()); // Parse les cookies entrants
 app.use(express.json());
 app.use(journalMiddleware);
 app.use(globalLimiter);

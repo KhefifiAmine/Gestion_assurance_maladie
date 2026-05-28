@@ -486,7 +486,7 @@ const updateBulletin = async (req, res) => {
             }
 
             const medsData = resultPharmacie.pharmacie.medicaments || [];
-            
+
             if (payload.pharmacie !== undefined) {
                 const incomingMedIds = medsData.filter(m => m.id).map(m => m.id);
                 await Medicament.destroy({
@@ -801,6 +801,11 @@ const updateBulletinStatus = async (req, res) => {
                 return res.status(400).json({ message: 'Tous les actes médicaux et la pharmacie doivent être traités avant de clôturer le bulletin.' });
             }
         }
+
+        // ── Capturer l'ancienne valeur AVANT modification ─────────────────────
+        req._ancienneValeur = JSON.stringify({
+            statut: bulletin.statut,
+        });
 
         bulletin.statut = statut;
         bulletin.adminId = adminId;

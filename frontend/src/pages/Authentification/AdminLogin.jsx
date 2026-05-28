@@ -8,7 +8,6 @@ import { Mail, Lock, Eye, EyeOff, ArrowRight, ShieldAlert, Loader2, Key, Star, S
 
 import logoGat from '../../assets/logo_gat.png';
 import ttLogo from '../../assets/Tunisie_Telecom.jpg';
-import adminBg from '../../assets/admin_login.png';
 
 const AdminLogin = () => {
     const [credentials, setCredentials] = useState({ email: '', password: '' });
@@ -38,7 +37,7 @@ const AdminLogin = () => {
                 showToast("Accès refusé. Portail restreint.", "error");
                 return;
             }
-            authLogin(data.token, data.user);
+            authLogin(data.user);
             showToast(`Bienvenue, ${data.user.nom}`, "success");
             navigate("/admin/dashboard");
         } catch (err) {

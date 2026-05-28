@@ -1,6 +1,7 @@
 const path = require('path');
 const fs = require('fs');
 const backupService = require('../services/backup.service');
+const { BACKUP_SCHEDULE_HOUR, BACKUP_SCHEDULE_MINUTE } = backupService;
 
 /**
  * Triggers a manual database backup (hybrid native/JS fallback).
@@ -32,9 +33,12 @@ const triggerManualBackup = async (req, res) => {
 const getAllBackups = async (req, res) => {
   try {
     const backups = backupService.listBackups();
+    // Construire l'heure de planification au format HH:MM pour le frontend
+    const scheduleTime = `${String(BACKUP_SCHEDULE_HOUR).padStart(2, '0')}:${String(BACKUP_SCHEDULE_MINUTE).padStart(2, '0')}`;
     return res.status(200).json({
       success: true,
-      data: backups
+      data: backups,
+      scheduleTime  // Expose l'heure réelle du backup auto
     });
   } catch (error) {
     console.error('[BackupController] Error listing backups:', error);

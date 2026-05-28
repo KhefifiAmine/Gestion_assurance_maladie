@@ -1,16 +1,11 @@
 import { API_BASE, handleResponse } from './api';
 
-const getToken = () => localStorage.getItem('token');
-
-const authHeaders = () => ({
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${getToken()}`
-});
+const jsonHeaders = { 'Content-Type': 'application/json' };
 
 export const getReclamations = async () => {
     const res = await fetch(`${API_BASE}/reclamations`, {
         method: 'GET',
-        headers: authHeaders()
+        credentials: 'include'
     });
     const data = await handleResponse(res);
     return data.data; 
@@ -19,7 +14,7 @@ export const getReclamations = async () => {
 export const getMyReclamations = async () => {
     const res = await fetch(`${API_BASE}/reclamations/myreclamations`, {
         method: 'GET',
-        headers: authHeaders()
+        credentials: 'include'
     });
     const data = await handleResponse(res);
     return data.data; 
@@ -28,7 +23,7 @@ export const getMyReclamations = async () => {
 export const getReclamationById = async (id) => {
     const res = await fetch(`${API_BASE}/reclamations/${id}`, {
         method: 'GET',
-        headers: authHeaders()
+        credentials: 'include'
     });
     const data = await handleResponse(res);
     return data.data;
@@ -37,7 +32,8 @@ export const getReclamationById = async (id) => {
 export const createReclamation = async (payload) => {
     const res = await fetch(`${API_BASE}/reclamations`, {
         method: 'POST',
-        headers: authHeaders(),
+        headers: jsonHeaders,
+        credentials: 'include',
         body: JSON.stringify(payload)
     });
     const data = await handleResponse(res);
@@ -47,7 +43,8 @@ export const createReclamation = async (payload) => {
 export const updateReclamation = async (id, payload) => {
     const res = await fetch(`${API_BASE}/reclamations/${id}`, {
         method: 'PUT',
-        headers: authHeaders(),
+        headers: jsonHeaders,
+        credentials: 'include',
         body: JSON.stringify(payload)
     });
     const data = await handleResponse(res);
@@ -57,7 +54,8 @@ export const updateReclamation = async (id, payload) => {
 export const updateReclamationStatus = async (id, payload) => {
     const res = await fetch(`${API_BASE}/reclamations/${id}/status`, {
         method: 'PUT',
-        headers: authHeaders(),
+        headers: jsonHeaders,
+        credentials: 'include',
         body: JSON.stringify(payload)
     });
     const data = await handleResponse(res);
@@ -67,7 +65,7 @@ export const updateReclamationStatus = async (id, payload) => {
 export const deleteReclamation = async (id) => {
     const res = await fetch(`${API_BASE}/reclamations/${id}`, {
         method: 'DELETE',
-        headers: authHeaders()
+        credentials: 'include'
     });
     return handleResponse(res);
 };
@@ -76,7 +74,8 @@ export const sendReclamationMessage = async (id, payload) => {
     const bodyObj = typeof payload === 'string' ? { content: payload } : payload;
     const res = await fetch(`${API_BASE}/reclamations/${id}/messages`, {
         method: 'POST',
-        headers: authHeaders(),
+        headers: jsonHeaders,
+        credentials: 'include',
         body: JSON.stringify(bodyObj)
     });
     const data = await handleResponse(res);

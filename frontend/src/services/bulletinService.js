@@ -2,16 +2,7 @@ import { API_BASE, handleResponse } from './api';
 
 const API_URL = `${API_BASE}/bulletins`;
 
-const getAuthHeaders = () => {
-    const token = localStorage.getItem('token');
-    return {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-    };
-};
-
 export const createBulletin = async (bulletinData, files = []) => {
-    const token = localStorage.getItem('token');
     const formData = new FormData();
 
     // On ajoute toutes les données du bulletin dans un champ 'data'
@@ -26,9 +17,7 @@ export const createBulletin = async (bulletinData, files = []) => {
 
     const response = await fetch(API_URL, {
         method: 'POST',
-        headers: {
-            'Authorization': `Bearer ${token}`
-        },
+        credentials: 'include',
         body: formData,
     });
 
@@ -36,7 +25,6 @@ export const createBulletin = async (bulletinData, files = []) => {
 };
 
 export const updateBulletin = async (id, bulletinData, files = []) => {
-    const token = localStorage.getItem('token');
     const formData = new FormData();
 
     formData.append('data', JSON.stringify(bulletinData));
@@ -49,9 +37,7 @@ export const updateBulletin = async (id, bulletinData, files = []) => {
 
     const response = await fetch(`${API_URL}/${id}`, {
         method: 'PUT',
-        headers: {
-            'Authorization': `Bearer ${token}`
-        },
+        credentials: 'include',
         body: formData,
     });
 
@@ -61,7 +47,7 @@ export const updateBulletin = async (id, bulletinData, files = []) => {
 export const deleteBulletin = async (id) => {
     const response = await fetch(`${API_URL}/${id}`, {
         method: 'DELETE',
-        headers: getAuthHeaders(),
+        credentials: 'include',
     });
 
     return handleResponse(response);
@@ -70,7 +56,7 @@ export const deleteBulletin = async (id) => {
 export const getMyBulletins = async () => {
     const response = await fetch(`${API_URL}/my`, {
         method: 'GET',
-        headers: getAuthHeaders(),
+        credentials: 'include',
     });
 
     return handleResponse(response);
@@ -79,7 +65,7 @@ export const getMyBulletins = async () => {
 export const getAllBulletins = async () => {
     const response = await fetch(`${API_URL}/all`, {
         method: 'GET',
-        headers: getAuthHeaders(),
+        credentials: 'include',
     });
 
     return handleResponse(response);
@@ -88,7 +74,7 @@ export const getAllBulletins = async () => {
 export const getBulletinById = async (id) => {
     const response = await fetch(`${API_URL}/${id}`, {
         method: 'GET',
-        headers: getAuthHeaders(),
+        credentials: 'include',
     });
 
     return handleResponse(response);
@@ -97,7 +83,8 @@ export const getBulletinById = async (id) => {
 export const updateBulletinStatus = async (id, statut, data = {}) => {
     const response = await fetch(`${API_URL}/${id}/status`, {
         method: 'PUT',
-        headers: getAuthHeaders(),
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ statut, ...data }),
     });
 
@@ -107,7 +94,8 @@ export const updateBulletinStatus = async (id, statut, data = {}) => {
 export const updateStatutActeMedical = async (id, data) => {
     const response = await fetch(`${API_URL}/acte/${id}/status`, {
         method: 'PUT',
-        headers: getAuthHeaders(),
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify(data),
     });
 
@@ -117,7 +105,8 @@ export const updateStatutActeMedical = async (id, data) => {
 export const updateStatutMedicament = async (id, data) => {
     const response = await fetch(`${API_URL}/medicament/${id}/status`, {
         method: 'PUT',
-        headers: getAuthHeaders(),
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify(data),
     });
 
@@ -125,7 +114,6 @@ export const updateStatutMedicament = async (id, data) => {
 };
 
 export const analyzeBulletinIA = async (files) => {
-    const token = localStorage.getItem('token');
     const formData = new FormData();
 
     if (Array.isArray(files)) {
@@ -138,9 +126,7 @@ export const analyzeBulletinIA = async (files) => {
 
     const response = await fetch(`${API_BASE}/ai/analyze-bulletin`, {
         method: 'POST',
-        headers: {
-            'Authorization': `Bearer ${token}`
-        },
+        credentials: 'include',
         body: formData
     });
 
@@ -148,12 +134,9 @@ export const analyzeBulletinIA = async (files) => {
 };
 
 export const downloadPreFilledBulletin = async () => {
-    const token = localStorage.getItem('token');
     const response = await fetch(`${API_URL}/pre-filled-pdf`, {
         method: 'GET',
-        headers: {
-            'Authorization': `Bearer ${token}`
-        },
+        credentials: 'include',
     });
 
     if (!response.ok) {

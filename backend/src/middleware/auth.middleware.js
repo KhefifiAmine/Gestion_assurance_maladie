@@ -3,14 +3,19 @@ const { User } = require('../../models');
 const JWT_SECRET = process.env.JWT_SECRET;
 
 const verifyToken = async (req, res, next) => {
-    const authHeader = req.headers['authorization'];
-    if (!authHeader) {
-        return res.status(403).json({ message: 'Aucun token fourni!' });
+    // 1. Priorité au cookie HTTP-Only (sécurisé)
+    // 2. Fallback sur l'en-tête Authorization (Postman / API externe)
+    let token = req.cookies?.token || null;
+
+    if (!token) {
+        const authHeader = req.headers['authorization'];
+        if (authHeader && authHeader.startsWith('Bearer ')) {
+            token = authHeader.split(' ')[1];
+        }
     }
 
-    const token = authHeader.split(' ')[1]; // Format: Bearer <token>
     if (!token) {
-        return res.status(403).json({ message: 'Format du token invalide!' });
+        return res.status(403).json({ message: 'Aucun token fourni!' });
     }
 
     try {

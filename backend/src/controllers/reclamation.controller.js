@@ -58,8 +58,8 @@ const AdherentReclamationController = {
         where: { id, userId: req.userId },
         include: [
           { model: User, as: 'admin', attributes: ['nom', 'prenom'] },
-          { 
-            model: BulletinSoin, as: 'bulletinSoin', 
+          {
+            model: BulletinSoin, as: 'bulletinSoin',
             attributes: ['id', 'numero_bulletin', 'statut', 'montant_total', 'date_depot', 'createdAt', 'code_cnam', 'date_soin'],
             include: [
               { model: Beneficiary, as: 'beneficiaire', attributes: ['id', 'nom', 'prenom', 'relation', 'ddn', 'statut'] },
@@ -78,12 +78,12 @@ const AdherentReclamationController = {
         ],
       });
       if (!reclamation) return res.status(404).json({ success: false, message: 'Réclamation non trouvée.' });
-      
+
       const reclamationJSON = reclamation.toJSON();
       if (reclamationJSON.messages) {
         reclamationJSON.messages.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
       }
-      
+
       res.status(200).json({ success: true, data: reclamationJSON });
     } catch (error) {
       res.status(500).json({ success: false, message: 'Erreur serveur.' });
@@ -96,6 +96,12 @@ const AdherentReclamationController = {
       const reclamation = await Reclamation.findOne({ where: { id, userId: req.userId } });
       if (!reclamation) return res.status(404).json({ success: false, message: 'Réclamation non trouvée.' });
       if (reclamation.statut !== 'Ouverte') return res.status(403).json({ success: false, message: 'Réclamation déjà traitée.' });
+
+      // ── Capturer l'ancienne valeur AVANT modification ─────────────────────
+      req._ancienneValeur = JSON.stringify({
+          objet: reclamation.objet,
+          description: reclamation.description
+      });
 
       const { objet, description } = req.body;
       if (objet) reclamation.objet = objet;
@@ -149,7 +155,7 @@ const AdminReclamationController = {
         include: [
           { model: User, as: 'adherent', attributes: ['id', 'nom', 'prenom', 'matricule', 'email', 'telephone', 'ddn', 'adresse', 'ville', 'role', 'statut', 'sexe'] },
           { model: User, as: 'admin', attributes: ['id', 'nom', 'prenom'] },
-          { 
+          {
             model: BulletinSoin, as: 'bulletinSoin',
             attributes: ['id', 'numero_bulletin', 'code_cnam', 'qualite_malade', 'montant_total', 'statut', 'date_depot', 'createdAt', 'date_soin'],
             include: [
@@ -168,17 +174,17 @@ const AdminReclamationController = {
           }
         ],
       });
- 
+
       if (!reclamation) return res.status(404).json({ success: false, message: 'Réclamation non trouvée.' });
       if (reclamation.adminId && reclamation.adminId !== req.userId) {
         return res.status(200).json({ success: true, data: { ...reclamation.toJSON(), messages: [], isRestricted: true } });
       }
-      
+
       const reclamationJSON = reclamation.toJSON();
       if (reclamationJSON.messages) {
         reclamationJSON.messages.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
       }
-      
+
       res.status(200).json({ success: true, data: reclamationJSON });
     } catch (error) {
       res.status(500).json({ success: false, message: 'Erreur serveur.' });
@@ -196,6 +202,12 @@ const AdminReclamationController = {
         return res.status(403).json({ success: false, message: 'Vous ne pouvez pas traiter votre propre réclamation.' });
       }
 
+      // ── Capturer l'ancienne valeur AVANT modification ─────────────────────
+      req._ancienneValeur = JSON.stringify({
+        statut: reclamation.statut,
+        priorite: reclamation.priorite
+      });
+
       if (statut) { reclamation.statut = statut; reclamation.adminId = req.userId; }
       if (priorite) { reclamation.priorite = priorite; }
       await reclamation.save();
@@ -205,8 +217,8 @@ const AdminReclamationController = {
         const titre = 'ℹ️ Mise à jour réclamation';
         const description = `Votre réclamation "${reclamation.objet}" a été mise à jour : ${statut || 'Nouvelle priorité'}`;
         await Notification.create({ titre, description, type: 'reclamation', userId: reclamation.userId });
-        if (adherent?.email) sendNotificationEmail(adherent.email, titre, description).catch(e => {});
-      } catch (e) {}
+        if (adherent?.email) sendNotificationEmail(adherent.email, titre, description).catch(e => { });
+      } catch (e) { }
 
       res.status(200).json({ success: true, data: reclamation });
     } catch (error) {
@@ -253,6 +265,12 @@ const ReclamationMessageController = {
         }
       }
 
+      // ── Capturer l'ancienne valeur AVANT modification ─────────────────────
+      req._ancienneValeur = JSON.stringify({
+        statut: reclamation.statut,
+        priorite: reclamation.priorite
+      });
+
       // Create message
       const message = await ReclamationMessage.create({
         reclamationId: id,
@@ -273,8 +291,8 @@ const ReclamationMessageController = {
           const titre = '💬 Nouveau message de l\'administration';
           const description = `Vous avez reçu un nouveau message concernant votre réclamation "${reclamation.objet}"`;
           await Notification.create({ titre, description, type: 'reclamation', userId: reclamation.userId });
-          if (adherent?.email) sendNotificationEmail(adherent.email, titre, description).catch(e => {});
-        } catch (e) {}
+          if (adherent?.email) sendNotificationEmail(adherent.email, titre, description).catch(e => { });
+        } catch (e) { }
       } else {
         // Notify admins
         try {
@@ -282,7 +300,7 @@ const ReclamationMessageController = {
           const admins = await User.findAll({ where: { role: 'ADMIN' } });
           const titre = '💬 Nouveau message (Réclamation)';
           const description = `${adherent?.prenom} ${adherent?.nom} a envoyé un message sur la réclamation "${reclamation.objet}"`;
-          
+
           const notifPromises = admins.map(admin => Notification.create({
             titre,
             description,
@@ -290,7 +308,7 @@ const ReclamationMessageController = {
             userId: admin.id
           }));
           await Promise.all(notifPromises);
-        } catch (e) {}
+        } catch (e) { }
       }
 
       // Fetch the created message with sender info to return to client

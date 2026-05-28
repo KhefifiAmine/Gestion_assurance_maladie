@@ -261,11 +261,100 @@ const sendLoginNotificationEmail = async (email, prenom) => {
   }
 };
 
+/**
+ * Envoie une alerte email au Super Admin lors du dépassement du rate limit.
+ * @param {string} superAdminEmail - Email du super admin
+ * @param {string} ip - Adresse IP de l'attaquant
+ * @param {string} limiterName - Nom du limiteur déclenché
+ * @param {string} path - Chemin de la requête bloquée
+ */
+const sendRateLimitAlertEmail = async (superAdminEmail, ip, limiterName, path) => {
+  const date = new Date().toLocaleString('fr-FR', { timeZone: 'Africa/Tunis' });
+
+  const mailOptions = {
+    from: `"CareCover - Sécurité" <${process.env.EMAIL_USER}>`,
+    to: superAdminEmail,
+    subject: '🚨 Alerte Sécurité — Dépassement de limite de requêtes',
+    html: `
+      <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 620px; margin: 0 auto; border: 1px solid #eee; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 16px rgba(0,0,0,0.08);">
+        
+        <!-- Header -->
+        <div style="background: linear-gradient(135deg, #7f1d1d 0%, #dc2626 100%); padding: 28px 30px; text-align: center;">
+          <h2 style="color: #ffffff; margin: 0; font-size: 22px; letter-spacing: 1px;">🚨 Alerte Sécurité</h2>
+          <p style="color: rgba(255,255,255,0.75); margin: 6px 0 0; font-size: 13px;">CareCover — Système de Détection d'Abus</p>
+        </div>
+
+        <!-- Body -->
+        <div style="padding: 32px 30px;">
+          <p style="color: #1e293b; font-size: 16px; font-weight: 600; margin-top: 0;">
+            Une adresse IP a dépassé la limite de requêtes autorisées.
+          </p>
+          <p style="color: #475569; font-size: 14px; line-height: 1.6;">
+            Une tentative d'abus ou d'attaque potentielle a été détectée et automatiquement bloquée par le système de protection de <strong>CareCover</strong>.
+          </p>
+
+          <!-- Details Card -->
+          <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 12px; padding: 20px; margin: 24px 0;">
+            <p style="margin: 0 0 16px; color: #991b1b; font-size: 13px; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">
+              📋 Détails de l'incident
+            </p>
+            <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+              <tr>
+                <td style="padding: 8px 0; color: #64748b; width: 40%; font-weight: 600;">🌐 Adresse IP</td>
+                <td style="padding: 8px 0; color: #0f172a; font-family: monospace; font-weight: 700; font-size: 15px;">${ip}</td>
+              </tr>
+              <tr style="border-top: 1px solid #fecaca;">
+                <td style="padding: 8px 0; color: #64748b; font-weight: 600;">🔒 Limiteur déclenché</td>
+                <td style="padding: 8px 0; color: #dc2626; font-weight: 600;">${limiterName}</td>
+              </tr>
+              <tr style="border-top: 1px solid #fecaca;">
+                <td style="padding: 8px 0; color: #64748b; font-weight: 600;">📍 Route ciblée</td>
+                <td style="padding: 8px 0; color: #1e293b; font-family: monospace;">${path}</td>
+              </tr>
+              <tr style="border-top: 1px solid #fecaca;">
+                <td style="padding: 8px 0; color: #64748b; font-weight: 600;">🕐 Date & heure</td>
+                <td style="padding: 8px 0; color: #1e293b;">${date}</td>
+              </tr>
+            </table>
+          </div>
+
+          <p style="color: #475569; font-size: 14px; line-height: 1.6;">
+            Si cette activité vous semble suspecte, veuillez vérifier les journaux système et envisager de <strong>bloquer définitivement cette adresse IP</strong>.
+          </p>
+        </div>
+
+        <!-- Footer -->
+        <div style="background: #f8fafc; padding: 18px 30px; border-top: 1px solid #e2e8f0; text-align: center;">
+          <p style="color: #94a3b8; font-size: 11px; margin: 0;">
+            Alerte automatique du système CareCover. Ne pas répondre à cet email.
+          </p>
+        </div>
+      </div>
+    `
+  };
+
+  try {
+    if (!transporter) {
+      console.log('--- MOCK EMAIL (RATE LIMIT ALERT) ---');
+      console.log(`To: ${superAdminEmail} | IP: ${ip} | Limiteur: ${limiterName} | Route: ${path}`);
+      console.log('-------------------------------------');
+      return true;
+    }
+    await transporter.sendMail(mailOptions);
+    console.log(`[RateLimit] Alerte email envoyée au super admin (IP: ${ip}, Limiteur: ${limiterName})`);
+    return true;
+  } catch (error) {
+    console.error('[RateLimit] Erreur envoi alerte email super admin:', error);
+    return false;
+  }
+};
+
 module.exports = {
   sendResetEmail,
   sendApprovalEmail,
   sendRejectionEmail,
   sendBlockEmail,
   sendNotificationEmail,
-  sendLoginNotificationEmail
+  sendLoginNotificationEmail,
+  sendRateLimitAlertEmail
 };

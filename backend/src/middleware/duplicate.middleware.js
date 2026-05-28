@@ -19,10 +19,23 @@ const storage = multer.diskStorage({
   }
 });
 
+const fileFilter = (req, file, cb) => {
+  const allowedTypes = /jpeg|jpg|png|pdf/i;
+  const extMatch = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+  const mimeMatch = allowedTypes.test(file.mimetype);
+
+  if (extMatch && mimeMatch) {
+      cb(null, true);
+  } else {
+      cb(new Error("Format de fichier non autorisé. Seuls PDF, JPG et PNG sont acceptés."), false);
+  }
+};
+
 // Multer upload - Changé de .single('file') à .array('files', 5) pour supporter plusieurs documents
 const upload = multer({
   storage: storage,
-  limits: { fileSize: 5 * 1024 * 1024 }
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: fileFilter
 }).array('files', 10); 
 
 //  Hash
