@@ -128,19 +128,24 @@ const UserDashboard = () => {
                 {statCards.map((stat, i) => {
                     const c = colorMap[stat.color];
                     return (
-                        <motion.div key={i} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: i * 0.05 }} whileHover={{ y: -5 }}
+                        <motion.div key={i} 
+                            initial={{ opacity: 0, scale: 0.95, y: 20 }} 
+                            animate={{ opacity: 1, scale: 1, y: 0 }} 
+                            transition={{ delay: i * 0.05, type: 'spring', stiffness: 100 }} 
+                            whileHover={{ y: -8, scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
                             onClick={() => navigate(stat.nav, stat.navState ? { state: stat.navState } : undefined)}
-                            className="p-8 rounded-[3rem] border border-slate-100 dark:border-white/5 bg-white/70 dark:bg-slate-900/50 backdrop-blur-xl flex flex-col gap-6 group hover:shadow-[0_30px_60px_-15px_rgba(0,0,0,0.1)] transition-all duration-500 relative cursor-pointer overflow-hidden shadow-sm"
+                            className="p-8 rounded-[3rem] border border-slate-100 dark:border-white/5 bg-white/70 dark:bg-slate-900/50 backdrop-blur-xl flex flex-col gap-6 group hover:shadow-[0_40px_80px_-20px_rgba(0,0,0,0.15)] transition-all duration-500 relative cursor-pointer overflow-hidden shadow-sm"
                         >
-                            <div className={`absolute -right-4 -top-4 w-32 h-32 blur-3xl rounded-full opacity-10 group-hover:opacity-20 transition-opacity ${c.blob}`} />
-                            <div className={`p-4 rounded-2xl shadow-inner w-fit flex items-center justify-center transition-transform group-hover:rotate-12 duration-500 ${c.bg}`}>
+                            <div className={`absolute -right-4 -top-4 w-32 h-32 blur-3xl rounded-full opacity-10 group-hover:opacity-30 transition-opacity duration-700 ${c.blob}`} />
+                            <div className={`p-4 rounded-2xl shadow-inner w-fit flex items-center justify-center transition-all group-hover:rotate-12 group-hover:scale-110 duration-500 ${c.bg}`}>
                                 <stat.icon size={26} className={c.text} />
                             </div>
                             <div className="space-y-1 relative z-10">
-                                <h3 className="text-4xl lg:text-5xl font-black tracking-tighter text-slate-900 dark:text-white group-hover:scale-110 transition-transform origin-left duration-500">
+                                <h3 className="text-4xl lg:text-5xl font-black tracking-tighter text-slate-900 dark:text-white transition-transform origin-left duration-500">
                                     {loading ? <span className="w-12 h-10 bg-slate-100 dark:bg-slate-800 rounded-xl animate-pulse inline-block" /> : stat.value}
                                 </h3>
-                                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">{stat.title}</p>
+                                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 group-hover:text-slate-600 dark:group-hover:text-slate-300 transition-colors">{stat.title}</p>
                             </div>
                         </motion.div>
                     );

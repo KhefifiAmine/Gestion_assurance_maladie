@@ -403,6 +403,18 @@ const UserLayout = () => {
             </motion.div>
           </AnimatePresence>
         </main>
+
+        {/* --- Mobile Floating Action Button (FAB) --- */}
+        <div className="lg:hidden fixed bottom-8 right-8 z-[60]">
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={() => setIsModalOpen(true)}
+            className="w-16 h-16 rounded-3xl bg-purple-600 text-white shadow-2xl flex items-center justify-center border-4 border-white/20 backdrop-blur-sm active:bg-purple-700 transition-colors"
+          >
+            <PlusCircle size={32} />
+          </motion.button>
+        </div>
       </div>
 
       <AddBulletinModal

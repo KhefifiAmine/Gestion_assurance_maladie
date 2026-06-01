@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     X, FileText, User, Activity, Upload, ChevronRight, ChevronDown,
-    Hash, Users, CheckCircle2, Lock, Eye, ExternalLink, Plus, Download
+    Hash, Users, CheckCircle2, Lock, Eye, ExternalLink, Plus, Download, Loader2
 } from 'lucide-react';
 import { createBulletin, updateBulletin, analyzeBulletinIA, downloadPreFilledBulletin, lookupPrestataires } from '../services/bulletinService';
 import { getMyBeneficiaries } from '../services/beneficiaryService';
@@ -372,6 +372,7 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
     const [previewIndex, setPreviewIndex] = useState(0);
     const [beneficiaries, setBeneficiaries] = useState([]);
     const [isBeneficiaryDropdownOpen, setIsBeneficiaryDropdownOpen] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const initialFormState = useMemo(() => ({
         numero_bulletin: '',
@@ -849,6 +850,7 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
         }
 
         try {
+            setIsSubmitting(true);
             const dataToSend = formData;
             const result = isEdit ? await updateBulletin(initialData.id, dataToSend, selectedFiles) : await createBulletin(formData, selectedFiles);
             onSubmit(result.bulletin);
@@ -856,6 +858,8 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
             onClose();
         } catch (error) {
             showToast(error?.message || "Erreur lors de l'opération", "error");
+        } finally {
+            setIsSubmitting(false);
         }
     }, [formData, isEdit, initialData, selectedFiles, onSubmit, onClose, showToast, initialFormState]);
 
@@ -1152,8 +1156,21 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
                                             {/* Footer Form */}
                                             <div className="pt-8 flex flex-col gap-4">
                                                 <div className="p-6 bg-slate-100 dark:bg-black rounded-3xl text-white flex items-center justify-center shadow-xl">
-                                                    <button type="submit" className="px-10 py-4 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-2xl font-black text-sm transition-all hover:scale-105 active:scale-95 shadow-xl shadow-purple-500/20 flex items-center gap-2">
-                                                        <CheckCircle2 size={20} /> {isEdit ? 'METTRE À JOUR' : 'VALIDER LE BULLETIN'}
+                                                    <button 
+                                                        type="submit" 
+                                                        disabled={isSubmitting}
+                                                        className="px-10 py-4 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-2xl font-black text-sm transition-all hover:scale-105 active:scale-95 shadow-xl shadow-purple-500/20 flex items-center gap-2 disabled:opacity-50 disabled:scale-100 disabled:cursor-not-allowed"
+                                                    >
+                                                        {isSubmitting ? (
+                                                            <>
+                                                                <Loader2 size={20} className="animate-spin" />
+                                                                CHARGEMENT...
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <CheckCircle2 size={20} /> {isEdit ? 'METTRE À JOUR' : 'VALIDER LE BULLETIN'}
+                                                            </>
+                                                        )}
                                                     </button>
                                                 </div>
                                                 <button type="button" onClick={() => setStep(1)} className="text-center p-4 text-slate-400 hover:text-slate-600 text-[10px] font-black uppercase tracking-widest transition-colors">Retour au scan</button>

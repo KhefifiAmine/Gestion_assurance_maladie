@@ -200,7 +200,8 @@ const UserBeneficiarie = () => {
                 </button>
             </div>
 
-            <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl border border-slate-100 dark:border-white/5 overflow-hidden">
+            {/* --- LIST DESKTOP (TABLE) --- */}
+            <div className="hidden lg:block bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl border border-slate-100 dark:border-white/5 overflow-hidden">
                 <div className="overflow-x-auto pb-4">
                     <table className="w-full border-separate border-spacing-y-3 px-8">
                         <thead>
@@ -345,6 +346,81 @@ const UserBeneficiarie = () => {
                         </tbody>
                     </table>
                 </div>
+            </div>
+
+            {/* --- LIST MOBILE (CARDS) --- */}
+            <div className="lg:hidden space-y-4 pb-20">
+                {listBeneficiaires.length === 0 ? (
+                    <div className="py-20 text-center bg-white dark:bg-slate-900 rounded-[2.5rem] border-2 border-dashed border-slate-100 dark:border-white/5">
+                        <UserPlus size={48} className="mx-auto text-slate-200 mb-4" />
+                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Aucun bénéficiaire</p>
+                    </div>
+                ) : listBeneficiaires.map((b, i) => (
+                    <motion.div
+                        key={b.id}
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: i * 0.05 }}
+                        className="p-6 bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-white/5 shadow-xl flex flex-col gap-6"
+                    >
+                        <div className="flex justify-between items-start">
+                            <div className="flex items-center gap-4">
+                                <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-white font-black text-lg shadow-inner" style={{ backgroundColor: b.bg }}>
+                                    {b.initials}
+                                </div>
+                                <div className="flex flex-col">
+                                    <h4 className="font-black text-slate-900 dark:text-white uppercase leading-none mb-1">{b.nom} {b.prenom}</h4>
+                                    <span className="text-[10px] font-black text-purple-600 dark:text-purple-400 uppercase tracking-widest">{b.relation}</span>
+                                </div>
+                            </div>
+                            <div className={`px-4 py-2 rounded-2xl text-[8px] font-black uppercase tracking-widest border ${
+                                b.statut === 'Validé' ? 'text-emerald-500 bg-emerald-50 border-emerald-100' :
+                                b.statut === 'Rejeté' ? 'text-red-500 bg-red-50 border-red-100' :
+                                'text-amber-500 bg-amber-50 border-amber-100'
+                            }`}>
+                                {b.statut || 'En attente'}
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4 py-4 border-y border-slate-50 dark:border-white/5">
+                            <div className="space-y-1">
+                                <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block">Sexe</span>
+                                <span className="text-xs font-bold text-slate-900 dark:text-white">{b.sexe === 'M' ? 'HOMME' : 'FEMME'}</span>
+                            </div>
+                            <div className="space-y-1 text-right">
+                                <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block">Âge</span>
+                                <span className="text-xs font-bold text-slate-900 dark:text-white">{calculateAge(b.ddn)} ans</span>
+                            </div>
+                        </div>
+
+                        <div className="flex gap-2">
+                            <button onClick={() => setViewingBeneficiary(b)} className="flex-1 py-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-2xl font-black text-[10px] uppercase tracking-widest">Détails</button>
+                            {b.statut === 'En attente' && (
+                                <button
+                                    onClick={() => {
+                                        setEditingBeneficiaryId(b.id);
+                                        setNewBeneficiary({
+                                            nom: b.nom, prenom: b.prenom, relation: b.relation,
+                                            ddn: b.ddn ? b.ddn.split('T')[0] : '', sexe: b.sexe,
+                                            handicape: b.handicape || false, etudiant: b.etudiant || false,
+                                            chomage: b.chomage || false, celibataire: b.celibataire || false
+                                        });
+                                        setDocumentFiles([]);
+                                        setIsAddModalOpen(true);
+                                    }}
+                                    className="p-4 bg-blue-50 text-blue-600 rounded-2xl"
+                                >
+                                    <Edit2 size={18} />
+                                </button>
+                            )}
+                            {b.statut === 'En attente' && (
+                                <button onClick={() => { setDeleteId(b.id); setIsDeleting(false); }} className="p-4 bg-red-50 text-red-600 rounded-2xl">
+                                    <X size={18} />
+                                </button>
+                            )}
+                        </div>
+                    </motion.div>
+                ))}
             </div>
 
 

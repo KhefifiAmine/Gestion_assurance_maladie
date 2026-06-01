@@ -75,7 +75,7 @@ async function resolvePatientForBulletin(userId, body) {
             }
         });
 
-        if (ben) {
+        if (!ben) {
             ben = await Beneficiary.create({
                 userId: adherent.id,
                 nom: adherent.nom,

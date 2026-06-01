@@ -9,8 +9,9 @@ export const ToastProvider = ({ children }) => {
 
     const showToast = useCallback((message, type = 'success', duration = 4000, persistent = false) => {
         const id = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        // Par défaut, tous les messages (bienvenue, alertes) sont désormais temporaires (persistent = false)
-        setToasts(prev => [...prev, { id, message, type, duration, persistent }]);
+        // Par défaut, les erreurs restent jusqu'à intervention de l'utilisateur
+        const isPersistent = type === 'error' ? true : persistent;
+        setToasts(prev => [...prev, { id, message, type, duration, persistent: isPersistent }]);
     }, []);
 
     const removeToast = useCallback((id) => {
