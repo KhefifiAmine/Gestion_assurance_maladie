@@ -1,5 +1,10 @@
 // utils/emailService.js
+console.log("📂 [Boot] Chargement du service Email...");
 const nodemailer = require('nodemailer');
+
+if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+  console.error("⚠️ [Email Service] ATTENTION: EMAIL_USER ou EMAIL_PASS n'est pas défini dans l'environnement !");
+}
 
 const transporter = nodemailer.createTransport({
   service: 'gmail',
@@ -7,14 +12,17 @@ const transporter = nodemailer.createTransport({
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
   },
+  connectionTimeout: 10000, 
+  greetingTimeout: 10000,
 });
 
-// Vérifier la connexion au démarrage
+// Vérifier la connexion au démarrage avec plus de détails
+console.log(`✉️ [Email Service] Tentative de connexion avec l'utilisateur : ${process.env.EMAIL_USER}`);
 transporter.verify((error, success) => {
   if (error) {
-    console.error("❌ Erreur de configuration Email:", error.message);
+    console.error("❌ [Email Service] Erreur de configuration:", error.message);
   } else {
-    console.log("✅ Serveur de messagerie prêt à envoyer des messages");
+    console.log("✅ [Email Service] Serveur prêt à envoyer les messages.");
   }
 });
 
@@ -48,10 +56,10 @@ const sendResetEmail = async (email, code) => {
       return true;
     }
     await transporter.sendMail(mailOptions);
-    console.log(`Email de réinitialisation envoyé à: ${email}`);
+    console.log(`✅ [Email Service] Réinitialisation envoyée à: ${email}`);
     return true;
   } catch (error) {
-    console.error('Erreur envoi email:', error);
+    console.error('❌ [Email Service] Erreur envoi reset password:', error);
     return false;
   }
 };
@@ -83,10 +91,10 @@ const sendApprovalEmail = async (email) => {
       return true;
     }
     await transporter.sendMail(mailOptions);
-    console.log(`Email d'approbation envoye a: ${email}`);
+    console.log(`✅ [Email Service] Approbation envoyée à: ${email}`);
     return true;
   } catch (error) {
-    console.error('Erreur envoi email d\'approbation:', error);
+    console.error('❌ [Email Service] Erreur envoi approbation:', error);
     return false;
   }
 };
@@ -260,10 +268,10 @@ const sendLoginNotificationEmail = async (email, prenom) => {
       return true;
     }
     await transporter.sendMail(mailOptions);
-    console.log(`Notification de connexion envoyée à: ${email}`);
+    console.log(`✅ [Email Service] Alerte login envoyée à: ${email}`);
     return true;
   } catch (error) {
-    console.error('Erreur envoi notification connexion:', error);
+    console.error('❌ [Email Service] Erreur envoi alerte login:', error);
     return false;
   }
 };
