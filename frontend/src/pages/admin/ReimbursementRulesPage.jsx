@@ -30,6 +30,7 @@ import {
 import { fetchReimbursementRules, updateReimbursementRules } from '../../services/api';
 import { useToast } from '../../context/ToastContext';
 import { useTheme } from '../../context/ThemeContext';
+import ConfirmModal from '../../components/ConfirmModal';
 
 // ==========================================
 // 1. CONSTANTS, TOOLTIPS & PRESETS DEFINITIONS
@@ -331,6 +332,7 @@ const ReimbursementRulesPage = () => {
   const [saving, setSaving] = useState(false);
   const [activeHistoryIndex, setActiveHistoryIndex] = useState(-1);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: '', message: '', type: 'purple', onConfirm: () => { } });
 
   // Simulation parameters for instant claims dry run
   const [simClaim, setSimClaim] = useState({ type: 'Pharmacie', honoraires: 100 });
@@ -520,17 +522,27 @@ const ReimbursementRulesPage = () => {
       return;
     }
     
-    try {
-      setSaving(true);
-      await updateReimbursementRules(state.draftRules);
-      dispatch({ type: 'SAVE_SUCCESS', user: 'Super Admin' });
-      localStorage.removeItem('reimbursement_rules_draft');
-      showToast("Les barèmes ont été publiés avec succès !", "success");
-    } catch (err) {
-      showToast(err.message || "Erreur de publication des barèmes", "error");
-    } finally {
-      setSaving(false);
-    }
+    
+    setConfirmModal({
+      isOpen: true,
+      title: "Publier les nouveaux barèmes",
+      message: "Êtes-vous sûr de vouloir appliquer ces nouveaux barèmes à l'ensemble du système ? Cette action affectera immédiatement le calcul de tous les futurs remboursements.",
+      type: "purple",
+      onConfirm: async () => {
+        try {
+          setSaving(true);
+          setConfirmModal(prev => ({ ...prev, isOpen: false }));
+          await updateReimbursementRules(state.draftRules);
+          dispatch({ type: 'SAVE_SUCCESS', user: 'Super Admin' });
+          localStorage.removeItem('reimbursement_rules_draft');
+          showToast("Les barèmes ont été publiés avec succès !", "success");
+        } catch (err) {
+          showToast(err.message || "Erreur de publication des barèmes", "error");
+        } finally {
+          setSaving(false);
+        }
+      }
+    });
   };
 
   // Export layout to dynamic JSON file
@@ -651,7 +663,16 @@ const ReimbursementRulesPage = () => {
             </div>
           </div>
           <button 
-            onClick={() => dispatch({ type: 'INIT_RULES', payload: state.activeRules })}
+            onClick={() => setConfirmModal({
+              isOpen: true,
+              title: "Annuler les modifications",
+              message: "Voulez-vous vraiment annuler toutes vos modifications locales et revenir à la version actuellement en ligne ? Toutes les données non publiées seront perdues.",
+              type: "warning",
+              onConfirm: () => {
+                dispatch({ type: 'INIT_RULES', payload: state.activeRules });
+                setConfirmModal(prev => ({ ...prev, isOpen: false }));
+              }
+            })}
             className="text-[10px] font-black uppercase bg-amber-500/20 hover:bg-amber-500/30 px-3 py-1.5 rounded-lg transition-colors"
           >
             Annuler
@@ -1290,6 +1311,16 @@ const ReimbursementRulesPage = () => {
         )}
       </AnimatePresence>
 
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        onClose={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={confirmModal.onConfirm}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        type={confirmModal.type}
+        confirmText="Confirmer"
+        cancelText="Annuler"
+      />
     </div>
   );
 };

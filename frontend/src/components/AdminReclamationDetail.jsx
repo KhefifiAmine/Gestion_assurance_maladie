@@ -105,35 +105,53 @@ const AdminReclamationDetail = ({ id, onBack, onReclamationUpdate, allBulletins 
   };
 
   const handleStatusChange = async (newStatut) => {
-    try {
-      const sentMsg = await sendReclamationMessage(id, { statusChange: newStatut });
-      setStatus(newStatut);
-      setReclamation(prev => ({
-        ...prev,
-        statut: newStatut,
-        messages: [...(prev.messages || []), sentMsg]
-      }));
-      if (onReclamationUpdate) onReclamationUpdate({ ...reclamation, statut: newStatut });
-      showToast(`Statut mis à jour : ${newStatut}`, 'success');
-    } catch (err) {
-      showToast(err.message || 'Erreur lors de la mise à jour du statut', 'error');
-    }
+    setConfirmModal({
+      isOpen: true,
+      title: "Changer le statut",
+      message: `Voulez-vous vraiment passer le statut de cette réclamation à "${newStatut}" ?`,
+      type: "warning",
+      onConfirm: async () => {
+        try {
+          setConfirmModal(prev => ({ ...prev, isOpen: false }));
+          const sentMsg = await sendReclamationMessage(id, { statusChange: newStatut });
+          setStatus(newStatut);
+          setReclamation(prev => ({
+            ...prev,
+            statut: newStatut,
+            messages: [...(prev.messages || []), sentMsg]
+          }));
+          if (onReclamationUpdate) onReclamationUpdate({ ...reclamation, statut: newStatut });
+          showToast(`Statut mis à jour : ${newStatut}`, 'success');
+        } catch (err) {
+          showToast(err.message || 'Erreur lors de la mise à jour du statut', 'error');
+        }
+      }
+    });
   };
 
   const handlePriorityChange = async (newPriority) => {
-    try {
-      const sentMsg = await sendReclamationMessage(id, { priorityChange: newPriority });
-      setPriority(newPriority);
-      setReclamation(prev => ({
-        ...prev,
-        priorite: newPriority,
-        messages: [...(prev.messages || []), sentMsg]
-      }));
-      if (onReclamationUpdate) onReclamationUpdate({ ...reclamation, priorite: newPriority });
-      showToast(`Priorité mise à jour`, 'success');
-    } catch (err) {
-      showToast(err.message || 'Erreur lors de la mise à jour de la priorité', 'error');
-    }
+    setConfirmModal({
+      isOpen: true,
+      title: "Changer la priorité",
+      message: `Voulez-vous vraiment changer la priorité à "${newPriority}" ?`,
+      type: "warning",
+      onConfirm: async () => {
+        try {
+          setConfirmModal(prev => ({ ...prev, isOpen: false }));
+          const sentMsg = await sendReclamationMessage(id, { priorityChange: newPriority });
+          setPriority(newPriority);
+          setReclamation(prev => ({
+            ...prev,
+            priorite: newPriority,
+            messages: [...(prev.messages || []), sentMsg]
+          }));
+          if (onReclamationUpdate) onReclamationUpdate({ ...reclamation, priorite: newPriority });
+          showToast(`Priorité mise à jour`, 'success');
+        } catch (err) {
+          showToast(err.message || 'Erreur lors de la mise à jour de la priorité', 'error');
+        }
+      }
+    });
   };
 
   if (isLoading) return <div className="flex flex-col items-center justify-center p-20 text-purple-600"><RefreshCw className="w-10 h-10 animate-spin mb-4" /><p className="font-bold tracking-widest uppercase text-[10px]">Chargement Dossier Admin...</p></div>;

@@ -78,17 +78,24 @@ const AdminDashboard = ({ mode = 'all' }) => {
     }, []);
 
     const handleStatusChange = async (id, newStatus) => {
-        // Direct changes without reason
+        // Approval (0 -> 1)
         if (newStatus === 1) {
-            try {
-                await updateUserStatus(id, newStatus);
-                showToast("Statut mis à jour avec succès", "success");
-                fetchUsers();
-            } catch (err) {
-                showToast("Échec de la mise à jour du statut", "error");
-            }
+            const user = users.find(u => u.id === id);
+            const isUnblocking = user?.statut === 3;
+
+            setModalConfig({
+                isOpen: true,
+                userId: id,
+                type: 'status',
+                title: isUnblocking ? "Débloquer l'utilisateur" : "Approuver l'utilisateur",
+                message: isUnblocking 
+                    ? `Êtes-vous sûr de vouloir débloquer l'utilisateur ${user?.nom} ${user?.prenom} ? Il pourra à nouveau se connecter.`
+                    : `Souhaitez-vous approuver l'inscription de ${user?.nom} ${user?.prenom} ? Un e-mail de confirmation lui sera envoyé.`,
+                newStatus: 1,
+                requireReason: false
+            });
         }
-        // Changes that require a reason
+        // Changes that require a reason (Refuse/Block)
         else if (newStatus === 2) {
             setModalConfig({
                 isOpen: true,
