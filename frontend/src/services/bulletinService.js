@@ -153,3 +153,12 @@ export const downloadPreFilledBulletin = async () => {
     link.click();
     link.remove();
 };
+
+export const lookupPrestataires = async (query) => {
+    const response = await fetch(`${API_URL}/prestataires/lookup?query=${encodeURIComponent(query)}`, {
+        method: 'GET',
+        credentials: 'include',
+    });
+
+    return handleResponse(response);
+};

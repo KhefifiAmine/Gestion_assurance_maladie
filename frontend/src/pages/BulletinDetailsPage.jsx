@@ -490,7 +490,7 @@ const MedicalActCard = ({ acte, index, isAdmin, onProcess, onSave }) => {
 
 // Composant pour les documents amélioré
 const DocumentCard = ({ doc, index, onPreview, isActive, isAdmin, expandedAiDocs, toggleAiDoc, uploadBase }) => {
-    const fileUrl = `${uploadBase}/uploads/${doc.fichier}`;
+    const fileUrl = `${UPLOADS_BASE}/uploads/${doc.fichier}`;
     const isPdf = doc.fichier?.toLowerCase().endsWith('.pdf');
     const isImage = !isPdf && (doc.fichier?.toLowerCase().endsWith('.jpg') || doc.fichier?.toLowerCase().endsWith('.jpeg') || doc.fichier?.toLowerCase().endsWith('.png'));
 
@@ -809,7 +809,7 @@ const BulletinDetailsPage = () => {
         : currentUser;
     const patientDisplayName = getPatientDisplayName(bulletin, patientNameContext);
     const careDate = getDerivedCareDate(bulletin);
-    const uploadBase = UPLOADS_BASE || 'http://localhost:5000';
+    const uploadBase = UPLOADS_BASE;
 
     const statusConfig = {
         0: { label: 'En attente', icon: Clock, color: 'slate', gradient: 'from-slate-500 to-slate-600' },

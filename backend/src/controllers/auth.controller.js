@@ -137,32 +137,35 @@ const login = async (req, res) => {
         // Check if user exists
         const user = await User.findOne({ where: { email: normalizedEmail } });
         if (!user) {
-            return res.status(401).json({ message: 'Identifiants invalides ou accès non autorisé.' });
+            return res.status(401).json({ message: 'Adresse email ou mot de passe incorrect.' });
         }
 
         const isAdminRole = ['ADMIN', 'RESPONSABLE_RH', 'SUPER_ADMIN'].includes(user.role);
 
-        // 🛡️ Vérification croisée stricte : message générique pour ne pas "fuiter" le rôle
+        // Messages spécifiques au lieu de génériques pour mieux orienter l'utilisateur
         if (req.body.isAdminLogin === true && !isAdminRole) {
-            return res.status(401).json({ message: 'Identifiants invalides ou accès non autorisé.' });
+            return res.status(401).json({ message: 'Accès non autorisé. Ce portail est réservé à l\'administration.' });
         }
 
         if (req.body.isAdminLogin !== true && isAdminRole) {
             return res.status(401).json({ message: 'Identifiants invalides ou accès non autorisé.' });
         }
 
-        // 1. Check if the account has a password set BEFORE validation to avoid server crash
+        // Check if the account has a password set BEFORE validation (utilisateur récemment inscrit en attente)
         if (!user.mot_de_passe) {
-            return res.status(401).json({ message: 'Identifiants invalides ou accès non autorisé.' });
+            return res.status(401).json({ message: 'Votre compte est en cours de création. Vous recevrez un email avec vos identifiants une fois validé.' });
         }
 
-        // 2. Validate password
+        // Validate password
         const validPassword = await comparePassword(password, user.mot_de_passe);
         if (!validPassword) {
-            return res.status(401).json({ message: 'Identifiants invalides ou accès non autorisé.' });
+            return res.status(401).json({ message: 'Adresse email ou mot de passe incorrect.' });
         }
 
-        // 3. Checking status (On ne vérifie plus le statut 0 pour permettre l'accès direct)
+        // Checking status
+        if (user.statut === 0) {
+            return res.status(403).json({ message: 'Votre compte est en attente d\'activation par l\'administration.' });
+        }
         if (user.statut === 2) {
             return res.status(403).json({ message: 'L\'accès à ce compte a été refusé par un administrateur. Veuillez contacter l\'administration.' });
         }
@@ -179,7 +182,7 @@ const login = async (req, res) => {
         const token = jwt.sign(
             { id: user.id, email: user.email, role: user.role },
             JWT_SECRET,
-            { expiresIn: '1d' }
+            { expiresIn: '24h' }
         );
 
 
@@ -204,12 +207,12 @@ const login = async (req, res) => {
         }
 
         // Définir le token dans un cookie HTTP-Only (inaccessible depuis JavaScript)
-        // SameSite: 'Lax' compatible avec le développement local (pas de HTTPS requis)
+        const isProd = process.env.NODE_ENV === 'production';
         res.cookie('token', token, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production', // HTTPS seulement en prod
-            sameSite: 'Lax',
-            maxAge: 24 * 60 * 60 * 1000 // 1 jour (correspondant à l'expiration JWT)
+            secure: isProd, // HTTPS seulement en prod
+            sameSite: isProd ? 'none' : 'lax', // 'none' requis pour cross-domain
+            maxAge: 24 * 60 * 60 * 1000 // 1 jour
         });
 
         res.status(200).json({
@@ -241,7 +244,12 @@ const logout = async (req, res) => {
         });
 
         // Effacer le cookie HTTP-Only
-        res.clearCookie('token', { httpOnly: true, sameSite: 'Lax', secure: process.env.NODE_ENV === 'production' });
+        const isProd = process.env.NODE_ENV === 'production';
+        res.clearCookie('token', { 
+            httpOnly: true, 
+            sameSite: isProd ? 'none' : 'lax', 
+            secure: isProd 
+        });
 
         res.status(200).json({ message: 'Déconnexion réussie' });
     } catch (error) {

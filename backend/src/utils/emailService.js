@@ -2,13 +2,20 @@
 const nodemailer = require('nodemailer');
 
 const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",
-  port: 465,
-  secure: true,
+  service: 'gmail',
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
   },
+});
+
+// Vérifier la connexion au démarrage
+transporter.verify((error, success) => {
+  if (error) {
+    console.error("❌ Erreur de configuration Email:", error.message);
+  } else {
+    console.log("✅ Serveur de messagerie prêt à envoyer des messages");
+  }
 });
 
 const sendResetEmail = async (email, code) => {

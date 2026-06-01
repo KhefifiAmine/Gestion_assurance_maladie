@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { getAllBeneficiaries, deleteBeneficiary, updateStatus } from '../../services/beneficiaryService';
+import { UPLOADS_BASE, API_BASE } from '../../services/api';
 import ConfirmModal from '../../components/ConfirmModal';
 import BeneficiaryDetailsModal from '../../components/BeneficiaryDetailsModal';
 import {
@@ -444,13 +445,13 @@ const AdminBeneficiarie = () => {
                             <div className="flex-1 bg-slate-100 dark:bg-[#0B1120] relative p-8 flex items-center justify-center overflow-auto pattern-grid">
                                 {previewDocument.toLowerCase().endsWith('.pdf') ? (
                                     <iframe
-                                        src={`http://localhost:5000/uploads/${previewDocument}`}
+                                        src={`${UPLOADS_BASE}/uploads/${previewDocument}`}
                                         className="w-full h-full rounded-2xl shadow-sm border border-slate-200 dark:border-white/5 bg-white"
                                         title="Document"
                                     />
                                 ) : (
                                     <img
-                                        src={`http://localhost:5000/uploads/${previewDocument}`}
+                                        src={`${UPLOADS_BASE}/uploads/${previewDocument}`}
                                         alt="Document Justificatif"
                                         className="max-w-full max-h-full object-contain rounded-2xl shadow-xl border border-slate-200 dark:border-white/5"
                                     />

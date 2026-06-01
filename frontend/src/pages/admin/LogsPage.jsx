@@ -31,6 +31,7 @@ import {
   Clock
 } from 'lucide-react';
 import { API_BASE } from "../../services/api";
+import { getLogs } from '../../services/logService';
 import { useTheme } from '../../context/ThemeContext';
 import { useToast } from '../../context/ToastContext';
 
@@ -58,26 +59,9 @@ const ACTION_MAP = {
     'PUT sur /api/profile/change-password': { label: 'Changement MDP', icon: RefreshCw, color: 'text-red-500', bg: 'bg-red-50' },
 };
 
-const getToken = () => localStorage.getItem('token');
+// Plus besoin de getToken car on utilise les cookies HTTP-Only
 
-const fetchLogs = async (filters) => {
-    const params = new URLSearchParams();
-    if (filters.action) params.append('action', filters.action);
-    if (filters.userName) params.append('userName', filters.userName);
-    if (filters.startDate) params.append('startDate', filters.startDate);
-    if (filters.endDate) params.append('endDate', filters.endDate);
-    params.append('page', filters.page);
-    params.append('limit', filters.limit);
-
-    const res = await fetch(`${API_BASE}/logs?${params.toString()}`, {
-        headers: {
-            'Authorization': `Bearer ${getToken()}`,
-            'Content-Type': 'application/json'
-        }
-    });
-    if (!res.ok) throw new Error('Erreur lors du chargement des logs');
-    return res.json();
-};
+// Fonctions de service déplacées dans logService.js
 
 const formatDate = (dateStr) => {
     if (!dateStr) return '—';
@@ -298,7 +282,7 @@ export default function LogsPage() {
         setLoading(true);
         setError(null);
         try {
-            const data = await fetchLogs(filters);
+            const data = await getLogs(filters);
             setLogs(data.logs);
             setTotal(data.total);
             setTotalPages(data.totalPages);
@@ -335,7 +319,7 @@ export default function LogsPage() {
                 showToast("Préparation de l'exportation complète...", "info");
             }
 
-            const dataAll = await fetchLogs({ ...filters, page: 1, limit: exportTotal });
+            const dataAll = await getLogs({ ...filters, page: 1, limit: exportTotal });
             const logsToExport = dataAll.logs;
 
             const headers = ["Utilisateur", "Email", "Rôle", "Action", "Adresse IP", "Ancienne valeur", "Nouvelle valeur", "Date action", "Horodatage"];

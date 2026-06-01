@@ -2,6 +2,7 @@ import React from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, User, FileText, Eye, ChevronRight, Hash, Users, CheckCircle2, Shield, Calendar, Info } from 'lucide-react';
+import { UPLOADS_BASE } from '../services/api';
 
 const DocumentPreview = ({ fileUrl }) => {
     if (!fileUrl) return null;
@@ -129,7 +130,7 @@ const BeneficiaryDetailsModal = ({ isOpen, beneficiary, onClose, onViewAdherent,
                                             </div>
                                         </div>
                                         <div className="flex-1 overflow-hidden">
-                                            <DocumentPreview fileUrl={`http://localhost:5000/uploads/${files[previewIndex]}`} />
+                                            <DocumentPreview fileUrl={`${UPLOADS_BASE}/uploads/${files[previewIndex]}`} />
                                         </div>
                                     </div>
                                 )}

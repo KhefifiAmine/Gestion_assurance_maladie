@@ -15,6 +15,7 @@ const verifyToken = async (req, res, next) => {
     }
 
     if (!token) {
+        console.warn(`[AUTH] Tentative d'accès sans token sur ${req.originalUrl}. Cookies présents: ${Object.keys(req.cookies || {}).join(', ')}`);
         return res.status(403).json({ message: 'Aucun token fourni!' });
     }
 

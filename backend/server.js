@@ -30,6 +30,9 @@ const { globalLimiter } = require("./src/middleware/rateLimite.middleware");
 
 const app = express();
 
+// Faire confiance au proxy (Railway, Heroku, etc.) pour les cookies sécurisés
+app.set('trust proxy', 1);
+
 /* ========================
    MIDDLEWARES
 ======================== */
@@ -49,6 +52,7 @@ app.use(cors({
     if (!origin || ALLOWED_ORIGINS.includes(origin)) {
       callback(null, true);
     } else {
+      console.warn(`[CORS] Origine bloquée : ${origin}. Vérifiez process.env.FRONTEND_URL.`);
       callback(new Error('Origine CORS non autorisée : ' + origin));
     }
   },
@@ -78,6 +82,22 @@ app.use("/api/reimbursement", reimbursementRoutes);
 app.use("/api/backups", backupRoutes);
 
 app.use("/uploads", express.static("uploads"));
+
+// Global Error Handler (par exemple: erreurs multer)
+app.use((err, req, res, next) => {
+  if (err instanceof require('multer').MulterError) {
+    // Une erreur Multer s'est produite lors du téléchargement.
+    return res.status(400).json({ message: `Erreur d'upload: ${err.message}` });
+  } else if (err) {
+    // Si l'erreur provient de notre fileFilter avec un message spécifique
+    if (err.message.includes('Format de fichier non autorisé')) {
+      return res.status(400).json({ message: err.message });
+    }
+  }
+  
+  console.error("Erreur interceptée par le Global Error Handler:", err);
+  res.status(500).json({ message: err.message || "Erreur interne du serveur." });
+});
 
 /* ========================
    CHECK ENV VARIABLES

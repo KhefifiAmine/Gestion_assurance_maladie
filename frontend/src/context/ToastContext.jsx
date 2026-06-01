@@ -17,6 +17,19 @@ export const ToastProvider = ({ children }) => {
         setToasts(prev => prev.filter(toast => toast.id !== id));
     }, []);
 
+    // Permet de déclencher un toast depuis l'extérieur du contexte (ex: AuthContext)
+    useEffect(() => {
+        const handleGlobalToast = (event) => {
+            if (event.detail) {
+                const { message, type, duration, persistent } = event.detail;
+                showToast(message, type, duration, persistent);
+            }
+        };
+
+        window.addEventListener('show-toast', handleGlobalToast);
+        return () => window.removeEventListener('show-toast', handleGlobalToast);
+    }, [showToast]);
+
     return (
         <ToastContext.Provider value={{ showToast }}>
             {children}

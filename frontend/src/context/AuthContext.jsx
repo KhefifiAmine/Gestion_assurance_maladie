@@ -26,6 +26,19 @@ export const AuthProvider = ({ children }) => {
     useEffect(() => {
         const handleAuthError = (event) => {
             const { message, isBlocked } = event.detail;
+
+            // Afficher le message d'erreur au front-end
+            if (message) {
+                window.dispatchEvent(new CustomEvent('show-toast', {
+                    detail: { 
+                        message: message, 
+                        type: 'error', 
+                        // Persistant si le compte a été bloqué pour que l'utilisateur le voie bien
+                        persistent: isBlocked 
+                    }
+                }));
+            }
+
             if (isBlocked) {
                 // On peut forcer la déconnexion immédiate
                 logout();

@@ -5,9 +5,9 @@ import {
     X, FileText, User, Activity, Upload, ChevronRight, ChevronDown,
     Hash, Users, CheckCircle2, Lock, Eye, ExternalLink, Plus, Download
 } from 'lucide-react';
-import { createBulletin, updateBulletin, analyzeBulletinIA, downloadPreFilledBulletin } from '../services/bulletinService';
+import { createBulletin, updateBulletin, analyzeBulletinIA, downloadPreFilledBulletin, lookupPrestataires } from '../services/bulletinService';
 import { getMyBeneficiaries } from '../services/beneficiaryService';
-import { UPLOADS_BASE } from '../services/api';
+import { UPLOADS_BASE, API_BASE } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 
@@ -120,17 +120,10 @@ const PrestataireSearchInput = memo(({ label, placeholder, value, onChange, onSe
 
         setLoading(true);
         try {
-            const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/bulletins/prestataires/lookup?query=${encodeURIComponent(val.trim())}`, {
-                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-            });
-            if (res.ok) {
-                const data = await res.json();
-                if (data.success && data.results) {
-                    setSuggestions(data.results);
-                    setShowSuggestions(true);
-                } else {
-                    setSuggestions([]);
-                }
+            const data = await lookupPrestataires(val.trim());
+            if (data.success && data.results) {
+                setSuggestions(data.results);
+                setShowSuggestions(true);
             } else {
                 setSuggestions([]);
             }
@@ -680,15 +673,10 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
     const handlePrestataireLookup = useCallback(async (queryValue, onFill) => {
         if (!queryValue || queryValue.trim().length < 3) return;
         try {
-            const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/bulletins/prestataires/lookup?query=${encodeURIComponent(queryValue.trim())}`, {
-                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-            });
-            if (res.ok) {
-                const data = await res.json();
-                if (data.success && data.data) {
-                    onFill(data.data);
-                    showToast("Prestataire chargé depuis la base de données !", "success");
-                }
+            const data = await lookupPrestataires(queryValue.trim());
+            if (data.success && data.data) {
+                onFill(data.data);
+                showToast("Prestataire chargé depuis la base de données !", "success");
             }
         } catch (e) {
             console.error("Error looking up prestataire:", e);
@@ -781,10 +769,6 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
                 const actDate = new Date(acte.date_acte);
                 if (actDate > today) {
                     showToast(`${actName} : La date de l'acte ne peut pas être dans le futur.`, "error");
-                    return;
-                }
-                if (actDate < limitDate) {
-                    showToast(`${actName} : La date de l'acte dépasse la limite de 60 jours.`, "error");
                     return;
                 }
 
@@ -1039,7 +1023,7 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
                                                                         <div className="p-2 bg-purple-100 dark:bg-purple-900 text-purple-600 rounded-lg"><User size={14} /></div>
                                                                         <div><p className="text-sm font-bold dark:text-white">{user.prenom} {user.nom}</p><p className="text-[10px] text-slate-500 uppercase font-bold">Titulaire (Adhérent)</p></div>
                                                                     </button>
-                                                                    {beneficiaries.map(b => (
+                                                                    {beneficiaries.map(b => b.statut === "En attente" && (
                                                                         <button key={b.id} type="button" className="w-full p-3 text-left hover:bg-purple-50 dark:hover:bg-purple-900/20 flex items-center gap-3 transition-colors border-b border-slate-50 dark:border-slate-700/50" onClick={() => { setFormData({ ...formData, nom_prenom_malade: `${b.prenom} ${b.nom}`, qualite_malade: b.relation, beneficiaireId: b.id, date_naissance_malade: b.ddn }); setIsBeneficiaryDropdownOpen(false); }}>
                                                                             <div className="p-2 bg-blue-100 dark:bg-blue-900 text-blue-600 rounded-lg"><Users size={14} /></div>
                                                                             <div><p className="text-sm font-bold dark:text-white">{b.prenom} {b.nom}</p><p className="text-[10px] text-slate-500 uppercase font-bold">{b.relation}</p></div>

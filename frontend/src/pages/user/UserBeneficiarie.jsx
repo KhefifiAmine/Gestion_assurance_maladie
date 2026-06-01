@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { useToast } from '../../context/ToastContext';
 import { useAuth } from '../../context/AuthContext';
 import { getMyBeneficiaries, addBeneficiary, deleteBeneficiary, updateBeneficiary } from '../../services/beneficiaryService';
+import { UPLOADS_BASE } from '../../services/api';
 import ConfirmModal from '../../components/ConfirmModal';
 import BeneficiaryDetailsModal from '../../components/BeneficiaryDetailsModal';
 import AddBeneficiaryModal from '../../components/AddBeneficiaryModal';
@@ -59,12 +60,12 @@ const UserBeneficiarie = () => {
                 try {
                     const files = JSON.parse(b.document);
                     if (Array.isArray(files)) {
-                        setDocumentPreviewUrls(files.map(f => `http://localhost:5000/uploads/${f}`));
+                        setDocumentPreviewUrls(files.map(f => `${UPLOADS_BASE}/uploads/${f}`));
                     } else {
-                        setDocumentPreviewUrls([`http://localhost:5000/uploads/${b.document}`]);
+                        setDocumentPreviewUrls([`${UPLOADS_BASE}/uploads/${b.document}`]);
                     }
                 } catch (e) {
-                    setDocumentPreviewUrls([`http://localhost:5000/uploads/${b.document}`]);
+                    setDocumentPreviewUrls([`${UPLOADS_BASE}/uploads/${b.document}`]);
                 }
             } else {
                 setDocumentPreviewUrls([]);
@@ -219,7 +220,7 @@ const UserBeneficiarie = () => {
                                             onClick={() => {
                                                 setEditingBeneficiaryId(null);
                                                 setNewBeneficiary(INITIAL_BENEFICIARY_STATE);
-                                                setDocumentFile(null);
+                                                setDocumentFiles([]);
                                                 setIsAddModalOpen(true);
                                             }}
                                             className="px-8 py-4 rounded-3xl border-2 border-dashed border-slate-200 dark:border-slate-700 font-black text-slate-400 uppercase tracking-widest text-xs hover:border-purple-500 hover:text-purple-600 transition-all"
@@ -415,13 +416,13 @@ const UserBeneficiarie = () => {
                         <div className="flex-1 bg-white dark:bg-slate-900 rounded-[40px] overflow-hidden shadow-2xl relative border border-white/10">
                             {previewDocument.toLowerCase().endsWith('.pdf') ? (
                                 <iframe 
-                                    src={`http://localhost:5000/uploads/${previewDocument}`} 
+                                    src={`${UPLOADS_BASE}/uploads/${previewDocument}`} 
                                     className="w-full h-full border-none"
                                     title="Full Preview"
                                 />
                             ) : (
                                 <img 
-                                    src={`http://localhost:5000/uploads/${previewDocument}`} 
+                                    src={`${UPLOADS_BASE}/uploads/${previewDocument}`} 
                                     alt="Full Preview" 
                                     className="w-full h-full object-contain"
                                 />

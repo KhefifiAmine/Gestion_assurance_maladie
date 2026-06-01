@@ -57,7 +57,7 @@ const updateProfile = async (req, res) => {
             }
         });
 
-        if (!ben) {
+        if (ben) {
             await ben.update(
                 {
                     nom: nom || ben.nom,
