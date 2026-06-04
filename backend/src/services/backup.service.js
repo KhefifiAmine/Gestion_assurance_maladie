@@ -29,7 +29,7 @@ const createDatabaseBackup = async () => {
     return { success: true, method: 'native', filename, path: backupPath };
   } catch (error) {
     console.warn(`[BackupService] Native mysqldump failed or is unavailable. Error: ${error.message}. Falling back to pure JS dumper...`);
-    
+
     try {
       // Fallback to pure JS exporter
       await runPureJsDump(backupPath);
@@ -51,7 +51,7 @@ const runNativeMysqldump = (backupPath) => {
     const user = process.env.DB_USER || 'root';
     const password = process.env.DB_PASSWORD || '';
     const database = process.env.DB_NAME || 'assurance_db';
-    const port = process.env.DB_port || '3306';
+    const port = process.env.DB_PORT || '3306';
 
     const passPart = password ? `-p"${password}"` : '';
     const cmd = `mysqldump -h ${host} -P ${port} -u ${user} ${passPart} ${database} --result-file="${backupPath}"`;
@@ -93,18 +93,18 @@ const runPureJsDump = async (backupPath) => {
     // 2. Get table schema definition
     const [[schemaResult]] = await sequelize.query(`SHOW CREATE TABLE \`${tableName}\``);
     const createTableSql = schemaResult['Create Table'] || schemaResult['Create View'];
-    
+
     writeStream.write(`${createTableSql};\n\n`);
 
     // 3. Dump data if it's a table (not a view)
     if (createTableSql.includes('CREATE TABLE')) {
       const [rows] = await sequelize.query(`SELECT * FROM \`${tableName}\``);
-      
+
       if (rows.length > 0) {
         writeStream.write(`-- Dumping data for table \`${tableName}\`\n\n`);
 
         const columns = Object.keys(rows[0]).map(col => `\`${col}\``).join(', ');
-        
+
         // Chunk inserts for efficiency
         const chunkSize = 100;
         for (let i = 0; i < rows.length; i += chunkSize) {
@@ -122,7 +122,7 @@ const runPureJsDump = async (backupPath) => {
 
   // Restore checks
   writeStream.write(`SET FOREIGN_KEY_CHECKS = 1;\n`);
-  
+
   // Close the file stream cleanly
   return new Promise((resolve, reject) => {
     writeStream.end();
@@ -176,24 +176,24 @@ const BACKUP_SCHEDULE_MINUTE = 0;
  */
 const scheduleAutoBackups = () => {
   const ONE_DAY = 24 * 60 * 60 * 1000;
-  
+
   const now = new Date();
   const nextBackup = new Date(now);
   nextBackup.setHours(BACKUP_SCHEDULE_HOUR, BACKUP_SCHEDULE_MINUTE, 0, 0);
-  
+
   if (now.getTime() >= nextBackup.getTime()) {
     nextBackup.setDate(nextBackup.getDate() + 1);
   }
-  
+
   const delay = nextBackup.getTime() - now.getTime();
-  
+
   console.log(`[BackupScheduler] Next automatic database backup scheduled for ${nextBackup.toLocaleString()} (in ${(delay / 1000 / 60).toFixed(1)} minutes).`);
-  
+
   setTimeout(() => {
     createDatabaseBackup()
       .then(() => console.log('[BackupScheduler] Automatic daily backup completed successfully.'))
       .catch(err => console.error('[BackupScheduler] Error during automatic daily backup:', err));
-      
+
     setInterval(() => {
       createDatabaseBackup()
         .then(() => console.log('[BackupScheduler] Automatic daily backup completed successfully.'))

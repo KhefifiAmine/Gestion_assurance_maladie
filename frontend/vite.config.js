@@ -4,6 +4,6 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   preview: {
-    allowedHosts: ['gestionassurancemaladie-production.up.railway.app']
+    allowedHosts: ['gestionassurancemaladie-production-783c.up.railway.app']
   }
 })
