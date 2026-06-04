@@ -11,6 +11,18 @@ const Journal = sequelize.define('Journal', {
         type: DataTypes.STRING,
         allowNull: false
     },
+       ancienneValeur: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    nouvelleValeur: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    dateAction: {
+        type: DataTypes.DATE,
+        allowNull: true
+    },
     adresse_ip: {
         type: DataTypes.STRING,
         allowNull: true
