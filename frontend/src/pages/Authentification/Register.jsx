@@ -18,6 +18,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import ttLogo from '../../assets/Tunisie_Telecom.jpg';
+import logoGat from '../../assets/logo_gat.png';
 
 // Composant InputField pour une cohérence parfaite et aucun problème de focus
 const InputField = ({ label, name, placeholder, icon: Icon, type = "text", error, value, onChange, onBlur, showToggle, onToggle, isVisible, max, readOnly }) => (
@@ -201,8 +202,27 @@ const Register = () => {
           width: auto;
         }
       `}</style>
+      {/* Top Branding Section */}
+      <div className="flex items-center justify-center gap-4 mb-6 mt-2">
+        {/* Logo 1: GAT Assurances */}
+        <div className="flex flex-col items-center group transition-all duration-300">
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-white rounded-xl group-hover:scale-105 transition-transform shadow-sm border border-slate-50">
+            <img src={logoGat} alt="GAT" className="h-10 w-auto object-contain" />
+          </div>
+        </div>
+
+        {/* Separator */}
+        <div className="w-px h-8 bg-slate-200 dark:bg-slate-700"></div>
+
+        {/* Logo 2: Tunisie Telecom */}
+        <div className="flex flex-col items-center group transition-all duration-300">
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-white rounded-xl group-hover:scale-105 transition-transform shadow-sm border border-slate-50">
+            <img src={ttLogo} alt="Tunisie Telecom" className="h-10 w-auto object-contain" />
+          </div>
+        </div>
+      </div>
+
       <div className="text-center mb-5">
-        <img src={ttLogo} alt="TT" className="h-10 mx-auto mb-2 object-contain" />
         <h2 className="text-xl font-black text-slate-900 dark:text-white tracking-tight uppercase">Créer un compte</h2>
       </div>
 
