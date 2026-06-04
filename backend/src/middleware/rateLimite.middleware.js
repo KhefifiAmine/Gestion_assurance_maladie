@@ -73,7 +73,7 @@ const globalLimiter = rateLimit({
 // 2. Limiteur pour l'authentification (brute-force sur login et register)
 // ────────────────────────────────────────────────────────────────────────────
 const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
+  windowMs: 15 * 60 * 1000, // 15 minutes
   max: 10,
   standardHeaders: true,
   legacyHeaders: false,
