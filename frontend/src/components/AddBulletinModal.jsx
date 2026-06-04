@@ -216,9 +216,9 @@ const ActeItem = memo(({ acte, index, onUpdate, onRemove, structure, onLookup })
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
                 <FormField label="Nature de l'acte">
-                    <select 
-                        className="w-full p-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white font-bold" 
-                        value={acte.acte || ''} 
+                    <select
+                        className="w-full p-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white font-bold"
+                        value={acte.acte || ''}
                         onChange={e => onUpdate(index, { acte: e.target.value })}
                     >
                         <option value="">Sélectionner...</option>
@@ -227,9 +227,9 @@ const ActeItem = memo(({ acte, index, onUpdate, onRemove, structure, onLookup })
                 </FormField>
 
                 <FormField label="Cote / Code">
-                    <select 
-                        className="w-full p-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white font-bold" 
-                        value={acte.cote || ''} 
+                    <select
+                        className="w-full p-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white font-bold"
+                        value={acte.cote || ''}
                         onChange={e => onUpdate(index, { cote: e.target.value })}
                     >
                         <option value="">Cote...</option>
@@ -239,14 +239,14 @@ const ActeItem = memo(({ acte, index, onUpdate, onRemove, structure, onLookup })
                 {acte.acte === "Dentaire" ? (
                     <>
                         <FormField label="Code acte">
-                            <input 
-                                placeholder="Code de l'acte" 
-                                className="w-full p-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white font-black" 
-                                value={acte.code_acte || ''} 
-                                onChange={e => onUpdate(index, { code_acte: e.target.value })} 
+                            <input
+                                placeholder="Code de l'acte"
+                                className="w-full p-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white font-black"
+                                value={acte.code_acte || ''}
+                                onChange={e => onUpdate(index, { code_acte: e.target.value })}
                             />
                         </FormField>
-                        
+
                         <FormField label="N° Dent">
                             <input placeholder="Ex: 14" className="w-full p-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white" value={acte.numero_dent || ''} onChange={e => onUpdate(index, { numero_dent: e.target.value })} />
                         </FormField>
@@ -260,7 +260,7 @@ const ActeItem = memo(({ acte, index, onUpdate, onRemove, structure, onLookup })
                     <input type="number" step="0.1" className="w-full p-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white font-black text-purple-600" value={acte.honoraires || 0} onChange={e => onUpdate(index, { honoraires: Number(e.target.value) })} />
                 </FormField>
 
-                <PrestataireSearchInput 
+                <PrestataireSearchInput
                     label="MF Médecin"
                     placeholder="MF"
                     value={acte.prestataire?.identifiant_unique_mf || ''}
@@ -268,7 +268,7 @@ const ActeItem = memo(({ acte, index, onUpdate, onRemove, structure, onLookup })
                     onSelectPrestataire={handleSelectPrestataire}
                 />
 
-                <PrestataireSearchInput 
+                <PrestataireSearchInput
                     label="Nom Prestataire"
                     placeholder="Nom"
                     value={acte.prestataire?.nom || ''}
@@ -291,7 +291,7 @@ const ActeItem = memo(({ acte, index, onUpdate, onRemove, structure, onLookup })
                 <FormField label="GSM">
                     <input placeholder="GSM" className="w-full p-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white" value={acte.prestataire?.gsm || ''} onChange={e => onUpdate(index, { prestataire: { ...(acte.prestataire || {}), gsm: e.target.value } })} />
                 </FormField>
-                
+
                 <div className="flex items-center gap-2 mt-2">
                     <input type="checkbox" id={`cachet-${index}`} className="w-3 h-3 rounded text-purple-600" checked={!!acte.est_cachet} onChange={e => onUpdate(index, { est_cachet: e.target.checked })} />
                     <label htmlFor={`cachet-${index}`} className="text-[9px] font-bold text-slate-500">Cachet/Signature</label>
@@ -312,11 +312,11 @@ const MedicamentItem = memo(({ med, index, onUpdate, onRemove }) => (
         </button>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
             <FormField label="Nom" className="lg:col-span-1">
-                <input 
-                    placeholder="Ex: Doliprane" 
-                    className="w-full p-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white font-bold" 
-                    value={med.nom_medicament || ''} 
-                    onChange={e => onUpdate(index, { nom_medicament: e.target.value })} 
+                <input
+                    placeholder="Ex: Doliprane"
+                    className="w-full p-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white font-bold"
+                    value={med.nom_medicament || ''}
+                    onChange={e => onUpdate(index, { nom_medicament: e.target.value })}
                 />
             </FormField>
             <FormField label="Dosage">
@@ -329,7 +329,7 @@ const MedicamentItem = memo(({ med, index, onUpdate, onRemove }) => (
                 <input type="number" step="0.001" className="w-full p-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white font-black text-blue-600" value={med.prix_unitaire || 0} onChange={e => onUpdate(index, { prix_unitaire: Number(e.target.value) })} />
             </FormField>
             <FormField label="M.T (TND)">
-                <input type="number" step="0.001" className="w-full p-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white font-black text-blue-600 cursor-not-allowed" value={med.montant_total} readOnly/>
+                <input type="number" step="0.001" className="w-full p-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white font-black text-blue-600 cursor-not-allowed" value={med.montant_total} readOnly />
             </FormField>
         </div>
     </div>
@@ -363,10 +363,10 @@ const FileItem = memo(({ file, index, isNew, onPreview, onRemove }) => (
 const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => {
     const { user } = useAuth();
     const { showToast } = useToast();
-    
+
     // UI State
     const [step, setStep] = useState(1);
-    const [subStep, setSubStep] = useState('choice'); 
+    const [subStep, setSubStep] = useState('choice');
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [selectedFiles, setSelectedFiles] = useState([]);
     const [previewIndex, setPreviewIndex] = useState(0);
@@ -552,7 +552,7 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
                         dosage: cleanIAValue(m.dosage) || '',
                         quantite: Number(m.quantite) || 1,
                         prix_unitaire: Number(m.prix_unitaire),
-                        montant_total: Number(( (Number(m.quantite) || 1) * (Number(m.prix_unitaire) || 0) ).toFixed(3))
+                        montant_total: Number(((Number(m.quantite) || 1) * (Number(m.prix_unitaire) || 0)).toFixed(3))
                     })) : [];
                     return {
                         identifiant_unique_mf: cleanIAValue(aiData.pharmacie.prestataire?.identifiant_unique_mf || aiData.pharmacie.identifiant_unique_mf) || '',
@@ -611,13 +611,13 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
     const addActe = useCallback(() => {
         setFormData(prev => ({
             ...prev,
-            actes: [...prev.actes, { 
-                date_acte: prev.date_soin, 
-                acte: '', 
-                cote: null, 
-                code_acte: '', 
-                numero_dent: '', 
-                honoraires: 0, 
+            actes: [...prev.actes, {
+                date_acte: prev.date_soin,
+                acte: '',
+                cote: null,
+                code_acte: '',
+                numero_dent: '',
+                honoraires: 0,
                 prestataire: {
                     identifiant_unique_mf: '',
                     nom: '',
@@ -626,9 +626,9 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
                     specialite: '',
                     gsm: ''
                 },
-                est_cachet: false, 
-                est_signature: false, 
-                date_cachet_signature: '', 
+                est_cachet: false,
+                est_signature: false,
+                date_cachet_signature: '',
             }]
         }));
     }, []);
@@ -656,7 +656,7 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
         setFormData(prev => {
             const newMeds = [...prev.pharmacie.medicaments];
             const updated = { ...newMeds[index], ...fields };
-            updated.montant_total = Number(( (Number(updated.quantite) || 0) * (Number(updated.prix_unitaire) || 0) ).toFixed(3));
+            updated.montant_total = Number(((Number(updated.quantite) || 0) * (Number(updated.prix_unitaire) || 0)).toFixed(3));
             newMeds[index] = updated;
             const totalPharma = newMeds.reduce((sum, m) => sum + (Number(m.montant_total) || 0), 0);
             return { ...prev, pharmacie: { ...prev.pharmacie, medicaments: newMeds, montant_pharmacie: Number(totalPharma.toFixed(3)) } };
@@ -686,9 +686,9 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
 
     const handleSubmit = useCallback(async (e) => {
         e.preventDefault();
-        
+
         // --- CONTROLE DE SAISIE GLOBAL ---
-        
+
         // 1. Validation du numéro de bulletin
         if (!formData.numero_bulletin || !formData.numero_bulletin.trim()) {
             showToast("Le numéro du bulletin est obligatoire.", "error");
@@ -723,7 +723,7 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
             showToast("La date de soin ne peut pas être dans le futur.", "error");
             return;
         }
-        
+
         // Limite de dépôt de 60 jours
         const limitDate = new Date();
         limitDate.setDate(limitDate.getDate() - 60);
@@ -741,7 +741,7 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
             }
             const accDate = new Date(formData.date_prevue_accouchement);
             const pastLimit = new Date();
-            pastLimit.setHours(0,0,0,0);
+            pastLimit.setHours(0, 0, 0, 0);
             if (accDate < pastLimit) {
                 showToast("La date prévue d'accouchement ne peut pas être dans le passé.", "error");
                 return;
@@ -766,7 +766,7 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
                     showToast(`${actName} : La date de l'acte est obligatoire.`, "error");
                     return;
                 }
-                
+
                 const actDate = new Date(acte.date_acte);
                 if (actDate > today) {
                     showToast(`${actName} : La date de l'acte ne peut pas être dans le futur.`, "error");
@@ -981,15 +981,15 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
                                                 <FormField label="Numéro du Bulletin" icon={Hash} className="col-span-full">
                                                     <input className="w-full p-3 bg-purple-50/30 dark:bg-purple-900/10 border border-purple-100 dark:border-purple-800 rounded-xl font-black text-sm text-purple-700 dark:text-purple-300 focus:ring-4 focus:ring-purple-500/20 outline-none" value={formData.numero_bulletin} onChange={e => setFormData({ ...formData, numero_bulletin: e.target.value })} placeholder="Ex: BS-12345678" />
                                                 </FormField>
-                                                
+
                                                 <FormField label="Matricule Adhérent">
                                                     <input className="w-full p-3 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-sm dark:text-white" value={formData.matricule_adherent} onChange={e => setFormData({ ...formData, matricule_adherent: e.target.value })} />
                                                 </FormField>
-                                                
+
                                                 <FormField label="Nom Adhérent">
                                                     <input className="w-full p-3 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-sm dark:text-white" value={formData.nom_prenom_adherent} onChange={e => setFormData({ ...formData, nom_prenom_adherent: e.target.value })} />
                                                 </FormField>
-                                                
+
                                                 <FormField label="Adresse Adhérent" className="col-span-full">
                                                     <input className="w-full p-3 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-sm dark:text-white" value={formData.adresse_adherent} onChange={e => setFormData({ ...formData, adresse_adherent: e.target.value })} />
                                                 </FormField>
@@ -997,45 +997,45 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
                                                 <div className="col-span-full relative">
                                                     <FormField label="Nom du Malade (Bénéficiaire)" icon={User}>
                                                         <div className="relative">
-                                                                <input 
-                                                                    className="w-full p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl font-black text-sm dark:text-white pr-10" 
-                                                                    value={formData.nom_prenom_malade} 
-                                                                    onChange={e => {
-                                                                        const value = e.target.value;
-                                                                        const lowerValue = value.toLowerCase().trim();
-                                                                        const matchedBeneficiary = beneficiaries.find(b => `${b.prenom} ${b.nom}`.toLowerCase() === lowerValue);
-                                                                        const isTitulaire = user && `${user.prenom} ${user.nom}`.toLowerCase() === lowerValue;
-                                                                        
-                                                                        if (matchedBeneficiary) {
-                                                                            setFormData({ ...formData, nom_prenom_malade: value, qualite_malade: matchedBeneficiary.relation, beneficiaireId: matchedBeneficiary.id, date_naissance_malade: matchedBeneficiary.ddn });
-                                                                        } else if (isTitulaire) {
-                                                                            setFormData({ ...formData, nom_prenom_malade: value, qualite_malade: 'Titulaire', beneficiaireId: null, date_naissance_malade: user.ddn });
-                                                                        } else {
-                                                                            setFormData({ ...formData, nom_prenom_malade: value });
-                                                                        }
-                                                                    }} 
-                                                                    onFocus={() => setIsBeneficiaryDropdownOpen(true)}
-                                                                />
-                                                                <button type="button" onClick={() => setIsBeneficiaryDropdownOpen(!isBeneficiaryDropdownOpen)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" aria-label="Ouvrir la liste des bénéficiaires"><ChevronDown size={18} /></button>
-                                                            </div>
-                                                        </FormField>
-                                                        {isBeneficiaryDropdownOpen && (
-                                                            <div className="absolute z-50 w-full mt-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-                                                                <div className="p-2 bg-slate-50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-700"><p className="text-[10px] font-black text-slate-400 uppercase px-2">Choisissez un bénéficiaire</p></div>
-                                                                <div className="max-h-60 overflow-y-auto">
-                                                                    <button type="button" className="w-full p-3 text-left hover:bg-purple-50 dark:hover:bg-purple-900/20 flex items-center gap-3 transition-colors border-b border-slate-50 dark:border-slate-700/50" onClick={() => { setFormData({ ...formData, nom_prenom_malade: `${user.prenom} ${user.nom}`, qualite_malade: 'Titulaire', beneficiaireId: null, date_naissance_malade: user.ddn }); setIsBeneficiaryDropdownOpen(false); }}>
-                                                                        <div className="p-2 bg-purple-100 dark:bg-purple-900 text-purple-600 rounded-lg"><User size={14} /></div>
-                                                                        <div><p className="text-sm font-bold dark:text-white">{user.prenom} {user.nom}</p><p className="text-[10px] text-slate-500 uppercase font-bold">Titulaire (Adhérent)</p></div>
+                                                            <input
+                                                                className="w-full p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl font-black text-sm dark:text-white pr-10"
+                                                                value={formData.nom_prenom_malade}
+                                                                onChange={e => {
+                                                                    const value = e.target.value;
+                                                                    const lowerValue = value.toLowerCase().trim();
+                                                                    const matchedBeneficiary = beneficiaries.find(b => `${b.prenom} ${b.nom}`.toLowerCase() === lowerValue);
+                                                                    const isTitulaire = user && `${user.prenom} ${user.nom}`.toLowerCase() === lowerValue;
+
+                                                                    if (matchedBeneficiary) {
+                                                                        setFormData({ ...formData, nom_prenom_malade: value, qualite_malade: matchedBeneficiary.relation, beneficiaireId: matchedBeneficiary.id, date_naissance_malade: matchedBeneficiary.ddn });
+                                                                    } else if (isTitulaire) {
+                                                                        setFormData({ ...formData, nom_prenom_malade: value, qualite_malade: 'Titulaire', beneficiaireId: null, date_naissance_malade: user.ddn });
+                                                                    } else {
+                                                                        setFormData({ ...formData, nom_prenom_malade: value });
+                                                                    }
+                                                                }}
+                                                                onFocus={() => setIsBeneficiaryDropdownOpen(true)}
+                                                            />
+                                                            <button type="button" onClick={() => setIsBeneficiaryDropdownOpen(!isBeneficiaryDropdownOpen)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" aria-label="Ouvrir la liste des bénéficiaires"><ChevronDown size={18} /></button>
+                                                        </div>
+                                                    </FormField>
+                                                    {isBeneficiaryDropdownOpen && (
+                                                        <div className="absolute z-50 w-full mt-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                                                            <div className="p-2 bg-slate-50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-700"><p className="text-[10px] font-black text-slate-400 uppercase px-2">Choisissez un bénéficiaire</p></div>
+                                                            <div className="max-h-60 overflow-y-auto">
+                                                                <button type="button" className="w-full p-3 text-left hover:bg-purple-50 dark:hover:bg-purple-900/20 flex items-center gap-3 transition-colors border-b border-slate-50 dark:border-slate-700/50" onClick={() => { setFormData({ ...formData, nom_prenom_malade: `${user.prenom} ${user.nom}`, qualite_malade: 'Titulaire', beneficiaireId: null, date_naissance_malade: user.ddn }); setIsBeneficiaryDropdownOpen(false); }}>
+                                                                    <div className="p-2 bg-purple-100 dark:bg-purple-900 text-purple-600 rounded-lg"><User size={14} /></div>
+                                                                    <div><p className="text-sm font-bold dark:text-white">{user.prenom} {user.nom}</p><p className="text-[10px] text-slate-500 uppercase font-bold">Titulaire (Adhérent)</p></div>
+                                                                </button>
+                                                                {beneficiaries.map(b => b.statut === "En attente" && (
+                                                                    <button key={b.id} type="button" className="w-full p-3 text-left hover:bg-purple-50 dark:hover:bg-purple-900/20 flex items-center gap-3 transition-colors border-b border-slate-50 dark:border-slate-700/50" onClick={() => { setFormData({ ...formData, nom_prenom_malade: `${b.prenom} ${b.nom}`, qualite_malade: b.relation, beneficiaireId: b.id, date_naissance_malade: b.ddn }); setIsBeneficiaryDropdownOpen(false); }}>
+                                                                        <div className="p-2 bg-blue-100 dark:bg-blue-900 text-blue-600 rounded-lg"><Users size={14} /></div>
+                                                                        <div><p className="text-sm font-bold dark:text-white">{b.prenom} {b.nom}</p><p className="text-[10px] text-slate-500 uppercase font-bold">{b.relation}</p></div>
                                                                     </button>
-                                                                    {beneficiaries.map(b => b.statut === "En attente" && (
-                                                                        <button key={b.id} type="button" className="w-full p-3 text-left hover:bg-purple-50 dark:hover:bg-purple-900/20 flex items-center gap-3 transition-colors border-b border-slate-50 dark:border-slate-700/50" onClick={() => { setFormData({ ...formData, nom_prenom_malade: `${b.prenom} ${b.nom}`, qualite_malade: b.relation, beneficiaireId: b.id, date_naissance_malade: b.ddn }); setIsBeneficiaryDropdownOpen(false); }}>
-                                                                            <div className="p-2 bg-blue-100 dark:bg-blue-900 text-blue-600 rounded-lg"><Users size={14} /></div>
-                                                                            <div><p className="text-sm font-bold dark:text-white">{b.prenom} {b.nom}</p><p className="text-[10px] text-slate-500 uppercase font-bold">{b.relation}</p></div>
-                                                                        </button>
-                                                                    ))}
-                                                                </div>
+                                                                ))}
                                                             </div>
-                                                        )}
+                                                        </div>
+                                                    )}
                                                 </div>
 
                                                 <FormField label="Qualité">
@@ -1070,8 +1070,8 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
                                                 <div className="flex items-center justify-between">
                                                     <div className="flex items-center gap-4">
                                                         <h3 className="text-xs font-black uppercase tracking-widest text-slate-400 flex items-center gap-2"><Activity size={14} className="text-blue-500" /> PHARMACIE / MÉDICAMENTS</h3>
-                                                        <button 
-                                                            type="button" 
+                                                        <button
+                                                            type="button"
                                                             onClick={() => setFormData(prev => ({ ...prev, pharmacie_detecte: !prev.pharmacie_detecte }))}
                                                             className={`px-3 py-1 rounded-full text-[10px] font-black transition-all ${formData.pharmacie_detecte ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'bg-slate-200 dark:bg-slate-800 text-slate-500'}`}
                                                         >
@@ -1082,18 +1082,18 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
                                                         <button type="button" onClick={addMedicament} className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-[10px] font-black transition-all hover:shadow-lg hover:shadow-blue-500/20"><Plus size={14} /> AJOUTER MÉDICAMENT</button>
                                                     )}
                                                 </div>
-                                                
+
                                                 {formData.pharmacie_detecte && (
                                                     <div className="p-6 bg-blue-50/30 dark:bg-blue-900/10 rounded-2xl border border-blue-100 dark:border-blue-800 space-y-4 animate-in zoom-in-95 duration-200">
                                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                            <PrestataireSearchInput 
+                                                            <PrestataireSearchInput
                                                                 label="MF Pharmacie"
                                                                 placeholder="MF Pharmacie"
                                                                 value={formData.pharmacie.prestataire?.identifiant_unique_mf || formData.pharmacie.identifiant_unique_mf || ''}
                                                                 onChange={val => setFormData({ ...formData, pharmacie: { ...formData.pharmacie, identifiant_unique_mf: val, prestataire: { ...(formData.pharmacie.prestataire || {}), identifiant_unique_mf: val } } })}
                                                                 onSelectPrestataire={p => setFormData(prev => ({ ...prev, pharmacie: { ...prev.pharmacie, identifiant_unique_mf: p.identifiant_unique_mf || '', prestataire: { ...(prev.pharmacie.prestataire || {}), identifiant_unique_mf: p.identifiant_unique_mf || '', nom: p.nom || '', telephone: p.telephone || '', adresse: p.adresse || '', specialite: p.specialite || '', gsm: p.gsm || '' } } }))}
                                                             />
-                                                            <PrestataireSearchInput 
+                                                            <PrestataireSearchInput
                                                                 label="Nom Pharmacie"
                                                                 placeholder="Nom Pharmacie"
                                                                 value={formData.pharmacie.prestataire?.nom || ''}
@@ -1141,12 +1141,12 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
                                                 <div className="grid grid-cols-1 gap-2">
                                                     {selectedFiles.map((f, idx) => <FileItem key={`new-${idx}`} file={f} index={idx} isNew={true} onPreview={setPreviewIndex} onRemove={(i) => setSelectedFiles(prev => prev.filter((_, idx) => idx !== i))} />)}
                                                     {(formData.fichiers || []).map((f, idx) => (
-                                                        <FileItem 
-                                                            key={`old-${idx}`} 
-                                                            file={f} 
-                                                            index={idx + selectedFiles.length} 
-                                                            isNew={false} 
-                                                            onPreview={setPreviewIndex} 
+                                                        <FileItem
+                                                            key={`old-${idx}`}
+                                                            file={f}
+                                                            index={idx + selectedFiles.length}
+                                                            isNew={false}
+                                                            onPreview={setPreviewIndex}
                                                             onRemove={() => setFormData(prev => ({ ...prev, fichiers: (prev.fichiers || []).filter((_, i) => i !== idx) }))}
                                                         />
                                                     ))}
@@ -1156,8 +1156,8 @@ const AddBulletinModal = ({ isOpen, onClose, onSubmit, initialData = null }) => 
                                             {/* Footer Form */}
                                             <div className="pt-8 flex flex-col gap-4">
                                                 <div className="p-6 bg-slate-100 dark:bg-black rounded-3xl text-white flex items-center justify-center shadow-xl">
-                                                    <button 
-                                                        type="submit" 
+                                                    <button
+                                                        type="submit"
                                                         disabled={isSubmitting}
                                                         className="px-10 py-4 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-2xl font-black text-sm transition-all hover:scale-105 active:scale-95 shadow-xl shadow-purple-500/20 flex items-center gap-2 disabled:opacity-50 disabled:scale-100 disabled:cursor-not-allowed"
                                                     >
