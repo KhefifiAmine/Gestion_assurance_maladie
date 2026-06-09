@@ -47,13 +47,13 @@ const buildHandler = (limiterName) => async (req, res) => {
 // ─── Messages d'erreur par limiteur ─────────────────────────────────────────
 const getMessageForLimiter = (name) => {
   const messages = {
-    'Global':              'Trop de requêtes. Veuillez patienter 15 minutes.',
-    'Authentification':    'Trop de tentatives de connexion ou d\'inscription. Veuillez réessayer dans 15 minutes.',
-    'Réinitialisation':    'Trop de tentatives de réinitialisation. Réessayez dans 15 minutes.',
-    'Analyse IA':          'Nombre maximum d\'analyses par IA atteint. Veuillez patienter 15 minutes.',
-    'Bulletin':            'Trop de soumissions de bulletins de soins. Veuillez patienter 15 minutes.',
-    'Réclamation':         'Trop de réclamations soumises. Veuillez patienter 15 minutes.',
-    'Sauvegarde':          'Trop d\'actions de sauvegarde de la base de données. Veuillez patienter 15 minutes.',
+    'Global': 'Trop de requêtes. Veuillez patienter 15 minutes.',
+    'Authentification': 'Trop de tentatives de connexion ou d\'inscription. Veuillez réessayer dans 15 minutes.',
+    'Réinitialisation': 'Trop de tentatives de réinitialisation. Réessayez dans 15 minutes.',
+    'Analyse IA': 'Nombre maximum d\'analyses par IA atteint. Veuillez patienter 15 minutes.',
+    'Bulletin': 'Trop de soumissions de bulletins de soins. Veuillez patienter 15 minutes.',
+    'Réclamation': 'Trop de réclamations soumises. Veuillez patienter 15 minutes.',
+    'Sauvegarde': 'Trop d\'actions de sauvegarde de la base de données. Veuillez patienter 15 minutes.',
   };
   return messages[name] || 'Trop de requêtes. Veuillez patienter.';
 };
@@ -62,7 +62,7 @@ const getMessageForLimiter = (name) => {
 // 1. Limiteur global (protection générale contre le spam et le flooding)
 // ────────────────────────────────────────────────────────────────────────────
 const globalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
+  windowMs: 3 * 60 * 1000, // 15 minutes
   max: 150,
   standardHeaders: true,
   legacyHeaders: false,

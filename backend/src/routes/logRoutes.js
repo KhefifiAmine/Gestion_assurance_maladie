@@ -1,9 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const { getAllLogs, createLog } = require('../controllers/logController');
-const { verifyToken, isAdminOrRH } = require('../middleware/auth.middleware');
+const { verifyToken, isSuperAdmin } = require('../middleware/auth.middleware');
 
-router.get('/', verifyToken, isAdminOrRH, getAllLogs);
+router.get('/', verifyToken, isSuperAdmin, getAllLogs);
 
 router.post('/', verifyToken, createLog);
 

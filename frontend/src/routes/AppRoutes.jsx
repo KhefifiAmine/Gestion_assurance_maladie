@@ -70,11 +70,11 @@ const AppRoutes = () => {
                 <Route path="dashboard" element={<AdminDashboard mode="all" />} />
                 <Route path="users" element={<ProtectedRoute allowedRoles={['RESPONSABLE_RH', 'SUPER_ADMIN']}><AdminDashboard mode="all" /></ProtectedRoute>} />
                 <Route path="bulletins" element={<ProtectedRoute allowedRoles={['ADMIN', 'SUPER_ADMIN']}><AdminBulletins /></ProtectedRoute>} />
-                <Route path="bulletins/:id" element={<ProtectedRoute allowedRoles={['ADMIN', 'RESPONSABLE_RH', 'SUPER_ADMIN']}><BulletinDetailsPage /></ProtectedRoute>} />
+                <Route path="bulletins/:id" element={<ProtectedRoute allowedRoles={['ADMIN', 'SUPER_ADMIN']}><BulletinDetailsPage /></ProtectedRoute>} />
                 <Route path="reclamations" element={<ProtectedRoute allowedRoles={['ADMIN', 'SUPER_ADMIN']}><AdminReclamation /></ProtectedRoute>} />
-                <Route path="statistiques" element={<ProtectedRoute allowedRoles={['ADMIN', 'RESPONSABLE_RH', 'SUPER_ADMIN']}><AdminStats /></ProtectedRoute>} />
+                <Route path="statistiques" element={<ProtectedRoute allowedRoles={['SUPER_ADMIN']}><AdminStats /></ProtectedRoute>} />
                 <Route path="beneficiaires" element={<ProtectedRoute allowedRoles={['RESPONSABLE_RH', 'SUPER_ADMIN']}><AdminBeneficiarie /></ProtectedRoute>} />
-                <Route path="logs" element={<ProtectedRoute allowedRoles={["RESPONSABLE_RH", "SUPER_ADMIN"]}><LogsPage /></ProtectedRoute>} /> {/* ← AJOUTER CETTE ROUTE */}
+                <Route path="logs" element={<ProtectedRoute allowedRoles={["SUPER_ADMIN"]}><LogsPage /></ProtectedRoute>} /> {/* ← AJOUTER CETTE ROUTE */}
                 <Route path="rules" element={<ProtectedRoute allowedRoles={['ADMIN', 'SUPER_ADMIN']}><ReimbursementRulesPage /></ProtectedRoute>} />
                 <Route path="backups" element={<ProtectedRoute allowedRoles={['SUPER_ADMIN']}><BackupPage /></ProtectedRoute>} />
             </Route>

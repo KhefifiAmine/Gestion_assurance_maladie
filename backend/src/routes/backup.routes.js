@@ -1,12 +1,12 @@
 const express = require('express');
 const router = express.Router();
-const { verifyToken, isAdmin } = require('../middleware/auth.middleware');
+const { verifyToken, isSuperAdmin } = require('../middleware/auth.middleware');
 const { backupLimiter } = require('../middleware/rateLimite.middleware');
 const backupController = require('../controllers/backup.controller');
 
 // All backup routes require authentication and Admin role
 router.use(verifyToken);
-router.use(isAdmin);
+router.use(isSuperAdmin);
 
 // Trigger a new database backup
 router.post('/', backupLimiter, backupController.triggerManualBackup);

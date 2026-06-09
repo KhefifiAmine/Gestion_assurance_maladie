@@ -116,8 +116,8 @@ const AdminLayout = () => {
     { name: 'Barèmes & Plafonds', path: '/admin/rules', icon: ShieldCheck, roles: ['ADMIN', 'SUPER_ADMIN'] },
 
     // Shared feature
-    { name: 'Finances & Stats', path: '/admin/statistiques', icon: BarChart2, roles: ['ADMIN', 'RESPONSABLE_RH', 'SUPER_ADMIN'] },
-    { name: 'Journal d\'activité', path: '/admin/logs', icon: Activity, roles: ['RESPONSABLE_RH', 'SUPER_ADMIN'] },
+    { name: 'Finances & Stats', path: '/admin/statistiques', icon: BarChart2, roles: ['SUPER_ADMIN'] },
+    { name: 'Journal d\'activité', path: '/admin/logs', icon: Activity, roles: ['SUPER_ADMIN'] },
     { name: 'Sauvegardes DB', path: '/admin/backups', icon: HardDrive, roles: ['SUPER_ADMIN'] },
     // Shortcut back
     { name: 'Espace Adhérent', path: '/dashboard', icon: UserIcon, roles: ['ADMIN', 'RESPONSABLE_RH', 'SUPER_ADMIN'] },
@@ -312,8 +312,8 @@ const AdminLayout = () => {
                             key={notif.id}
                             onClick={() => !notif.lu && handleMarkOneRead(notif.id)}
                             className={`px-4 py-3 border-b last:border-b-0 cursor-pointer transition-colors ${notif.lu
-                                ? theme === 'dark' ? 'border-white/5 hover:bg-white/5' : 'border-gray-100 hover:bg-gray-50'
-                                : theme === 'dark' ? 'bg-purple-900/30 border-purple-500/20 hover:bg-purple-900/50' : 'bg-purple-50 border-purple-100 hover:bg-purple-100'
+                              ? theme === 'dark' ? 'border-white/5 hover:bg-white/5' : 'border-gray-100 hover:bg-gray-50'
+                              : theme === 'dark' ? 'bg-purple-900/30 border-purple-500/20 hover:bg-purple-900/50' : 'bg-purple-50 border-purple-100 hover:bg-purple-100'
                               }`}
                           >
                             <div className="flex items-start gap-2">
