@@ -120,8 +120,8 @@ class FraudService {
         });
         metrics.repetition_montant = repeatedAmount;
         if (repeatedAmount >= 2) {
-            sqlRulesScore += repeatedAmount >= 4 ? 50 : 25;
-            reasons.push(`Répétition suspecte du montant total (${bulletin.montant_total} TND) par l'adhérent.`);
+            sqlRulesScore += repeatedAmount >= 4 ? 65 : 30;
+            reasons.push(`Répétition suspecte du montant total (${bulletin.montant_total} TND) par l'adhérent (${repeatedAmount} occurrences).`);
         }
 
         // 5. Nomadisme Médical (Doctor Shopping)
@@ -253,15 +253,15 @@ class FraudService {
 
             // Bébé avec traitement adulte
             if (ageInYears < 2 && hasAdultOnlyMed) {
-                sqlRulesScore += 80;
-                reasons.push(`Incohérence d'âge détectée : Le bénéficiaire est un nourrisson/bébé (${Math.round(ageInYears * 12)} mois) mais s'est vu prescrire un médicament réservé aux adultes (${adultMedName}).`);
+                sqlRulesScore += 90; // Signal critique : médicament adulte sur nourrisson
+                reasons.push(`⚠️ ALERTE CRITIQUE : Nourrisson (${Math.round(ageInYears * 12)} mois) avec médicament strictement réservé aux adultes (${adultMedName}).`);
                 metrics.incoherence_age_medicament = 1;
             }
 
             // Adulte avec traitement bébé/pédiatrique
             if (ageInYears >= 18 && hasPediatricMed) {
-                sqlRulesScore += 50;
-                reasons.push(`Incohérence d'âge détectée : Le bénéficiaire est un adulte (${Math.floor(ageInYears)} ans) mais le bulletin contient un médicament pédiatrique/bébé (${pediatricMedName}).`);
+                sqlRulesScore += 55;
+                reasons.push(`Incohérence d'âge détectée : Adulte (${Math.floor(ageInYears)} ans) avec médicament pédiatrique (${pediatricMedName}).`);
                 metrics.incoherence_age_medicament = 1;
             }
         }
@@ -383,11 +383,12 @@ class FraudService {
         const localScore = bulletin.suspicion_locale ? 100 : 0;
 
         // Si un doublon est détecté, le score est automatiquement de 100
+        // Formule ajustée : SQL (déterministe) = 65%, Anomalie (IA) = 25%, Local = 10%
         const finalScore = Math.max(
             sqlResult.metrics.duplicates_detected > 0 ? 100 : 0,
             Math.min(
                 100,
-                Math.round((localScore * 0.2) + (anomalyResult.score * 0.4) + (sqlResult.score * 0.4))
+                Math.round((localScore * 0.10) + (anomalyResult.score * 0.25) + (sqlResult.score * 0.65))
             )
         );
 
@@ -399,7 +400,8 @@ class FraudService {
 
         await bulletin.update({ fraud_score: finalScore });
 
-        if (finalScore >= 50) {
+        // Créer une alerte dès 40 (SUSPECT ou plus)
+        if (finalScore >= 40) {
             await this.createAlert(
                 'adherent',
                 bulletin.userId,
