@@ -8,7 +8,7 @@
         "V3": 50
     },
     "pharmacie": {
-        "taux": 0.1,
+        "taux": 0.9,
         "plafond_annuel": 1000
     },
     "actes_medicaux_courants": {
@@ -21,7 +21,7 @@
         }
     },
     "analyses": {
-        "taux": 0.15,
+        "taux": 1,
         "plafond_annuel": 800
     },
     "chirurgie": {
@@ -33,7 +33,7 @@
         "plafond_annuel": 600
     },
     "radiologie_electroradiologie": {
-        "taux": 0.13,
+        "taux": 1,
         "plafond_annuel": 600
     },
     "traitement_special": {
@@ -90,14 +90,14 @@
         }
     },
     "anesthesie": {
-        "taux": 0.14,
+        "taux": 0.15,
         "plafond_annuel": 250
     },
     "salle_operation": {
         "taux": 0.15,
         "plafond_annuel": "260"
     },
-    "plafond_annuel_global_par_prestataire": "200",
+    "plafond_annuel_global_par_prestataire": "4500",
     "defaultRules": {
         "consultations": {
             "C1": 35,

@@ -890,7 +890,7 @@ const ReimbursementRulesPage = () => {
                       label="Tarif C1 (Généraliste Cabinet) (TND)"
                       field="consultations.C1"
                       value={state.draftRules.consultations?.C1 || ''}
-                      onChange={(val) => dispatch({ type: 'UPDATE_FIELD', payload: { path: 'consultations.C1', value: parseFloat(val) || 0 } })}
+                      onChange={(val) => dispatch({ type: 'UPDATE_FIELD', payload: { path: 'consultations.C1', value: val === '' ? '' : parseFloat(val) } })}
                       error={state.errors['consultations.C1']}
                       icon={DollarSign}
                     />
@@ -898,7 +898,7 @@ const ReimbursementRulesPage = () => {
                       label="Tarif C2 (Spécialiste Cabinet) (TND)"
                       field="consultations.C2"
                       value={state.draftRules.consultations?.C2 || ''}
-                      onChange={(val) => dispatch({ type: 'UPDATE_FIELD', payload: { path: 'consultations.C2', value: parseFloat(val) || 0 } })}
+                      onChange={(val) => dispatch({ type: 'UPDATE_FIELD', payload: { path: 'consultations.C2', value: val === '' ? '' : parseFloat(val) } })}
                       error={state.errors['consultations.C2']}
                       icon={DollarSign}
                     />
@@ -906,7 +906,7 @@ const ReimbursementRulesPage = () => {
                       label="Tarif C3 (Professeur Cabinet) (TND)"
                       field="consultations.C3"
                       value={state.draftRules.consultations?.C3 || ''}
-                      onChange={(val) => dispatch({ type: 'UPDATE_FIELD', payload: { path: 'consultations.C3', value: parseFloat(val) || 0 } })}
+                      onChange={(val) => dispatch({ type: 'UPDATE_FIELD', payload: { path: 'consultations.C3', value: val === '' ? '' : parseFloat(val) } })}
                       error={state.errors['consultations.C3']}
                       icon={DollarSign}
                     />
@@ -916,7 +916,7 @@ const ReimbursementRulesPage = () => {
                       label="Tarif V1 (Généraliste Visite) (TND)"
                       field="consultations.V1"
                       value={state.draftRules.consultations?.V1 || ''}
-                      onChange={(val) => dispatch({ type: 'UPDATE_FIELD', payload: { path: 'consultations.V1', value: parseFloat(val) || 0 } })}
+                      onChange={(val) => dispatch({ type: 'UPDATE_FIELD', payload: { path: 'consultations.V1', value: val === '' ? '' : parseFloat(val) } })}
                       error={state.errors['consultations.V1']}
                       icon={DollarSign}
                     />
@@ -924,7 +924,7 @@ const ReimbursementRulesPage = () => {
                       label="Tarif V2 (Spécialiste Visite) (TND)"
                       field="consultations.V2"
                       value={state.draftRules.consultations?.V2 || ''}
-                      onChange={(val) => dispatch({ type: 'UPDATE_FIELD', payload: { path: 'consultations.V2', value: parseFloat(val) || 0 } })}
+                      onChange={(val) => dispatch({ type: 'UPDATE_FIELD', payload: { path: 'consultations.V2', value: val === '' ? '' : parseFloat(val) } })}
                       error={state.errors['consultations.V2']}
                       icon={DollarSign}
                     />
@@ -932,7 +932,7 @@ const ReimbursementRulesPage = () => {
                       label="Tarif V3 (Professeur Visite) (TND)"
                       field="consultations.V3"
                       value={state.draftRules.consultations?.V3 || ''}
-                      onChange={(val) => dispatch({ type: 'UPDATE_FIELD', payload: { path: 'consultations.V3', value: parseFloat(val) || 0 } })}
+                      onChange={(val) => dispatch({ type: 'UPDATE_FIELD', payload: { path: 'consultations.V3', value: val === '' ? '' : parseFloat(val) } })}
                       error={state.errors['consultations.V3']}
                       icon={DollarSign}
                     />
@@ -953,8 +953,8 @@ const ReimbursementRulesPage = () => {
                   <FormInput
                     label="Taux de Prise en Charge (%)"
                     field="pharmacie.taux"
-                    value={state.draftRules.pharmacie.taux * 100}
-                    onChange={(val) => dispatch({ type: 'UPDATE_FIELD', payload: { path: 'pharmacie.taux', value: parseFloat(val) / 100 } })}
+                    value={state.draftRules.pharmacie.taux === '' ? '' : state.draftRules.pharmacie.taux * 100}
+                    onChange={(val) => dispatch({ type: 'UPDATE_FIELD', payload: { path: 'pharmacie.taux', value: val === '' ? '' : parseFloat(val) / 100 } })}
                     error={state.errors['pharmacie.taux']}
                     icon={Percent}
                   />
@@ -983,8 +983,8 @@ const ReimbursementRulesPage = () => {
                     <FormInput
                       label="Analyses - Taux de Remboursement (%)"
                       field="analyses.taux"
-                      value={state.draftRules.analyses.taux * 100}
-                      onChange={(val) => dispatch({ type: 'UPDATE_FIELD', payload: { path: 'analyses.taux', value: parseFloat(val) / 100 } })}
+                      value={state.draftRules.analyses.taux === '' ? '' : state.draftRules.analyses.taux * 100}
+                      onChange={(val) => dispatch({ type: 'UPDATE_FIELD', payload: { path: 'analyses.taux', value: val === '' ? '' : parseFloat(val) / 100 } })}
                       error={state.errors['analyses.taux']}
                       icon={Percent}
                     />
@@ -1001,8 +1001,8 @@ const ReimbursementRulesPage = () => {
                     <FormInput
                       label="Imagerie - Taux de Remboursement (%)"
                       field="radiologie_electroradiologie.taux"
-                      value={state.draftRules.radiologie_electroradiologie.taux * 100}
-                      onChange={(val) => dispatch({ type: 'UPDATE_FIELD', payload: { path: 'radiologie_electroradiologie.taux', value: parseFloat(val) / 100 } })}
+                      value={state.draftRules.radiologie_electroradiologie.taux === '' ? '' : state.draftRules.radiologie_electroradiologie.taux * 100}
+                      onChange={(val) => dispatch({ type: 'UPDATE_FIELD', payload: { path: 'radiologie_electroradiologie.taux', value: val === '' ? '' : parseFloat(val) / 100 } })}
                       error={state.errors['radiologie_electroradiologie.taux']}
                       icon={Percent}
                     />
@@ -1032,8 +1032,8 @@ const ReimbursementRulesPage = () => {
                     <FormInput
                       label="Chirurgie - Taux (%)"
                       field="chirurgie.taux"
-                      value={state.draftRules.chirurgie.taux * 100}
-                      onChange={(val) => dispatch({ type: 'UPDATE_FIELD', payload: { path: 'chirurgie.taux', value: parseFloat(val) / 100 } })}
+                      value={state.draftRules.chirurgie.taux === '' ? '' : state.draftRules.chirurgie.taux * 100}
+                      onChange={(val) => dispatch({ type: 'UPDATE_FIELD', payload: { path: 'chirurgie.taux', value: val === '' ? '' : parseFloat(val) / 100 } })}
                       error={state.errors['chirurgie.taux']}
                       icon={Percent}
                     />
@@ -1050,8 +1050,8 @@ const ReimbursementRulesPage = () => {
                     <FormInput
                       label="Anesthésie - Taux (%)"
                       field="anesthesie.taux"
-                      value={state.draftRules.anesthesie.taux * 100}
-                      onChange={(val) => dispatch({ type: 'UPDATE_FIELD', payload: { path: 'anesthesie.taux', value: parseFloat(val) / 100 } })}
+                      value={state.draftRules.anesthesie.taux === '' ? '' : state.draftRules.anesthesie.taux * 100}
+                      onChange={(val) => dispatch({ type: 'UPDATE_FIELD', payload: { path: 'anesthesie.taux', value: val === '' ? '' : parseFloat(val) / 100 } })}
                       error={state.errors['anesthesie.taux']}
                       icon={Percent}
                     />
@@ -1068,8 +1068,8 @@ const ReimbursementRulesPage = () => {
                     <FormInput
                       label="Bloc Opératoire - Taux (%)"
                       field="salle_operation.taux"
-                      value={state.draftRules.salle_operation.taux * 100}
-                      onChange={(val) => dispatch({ type: 'UPDATE_FIELD', payload: { path: 'salle_operation.taux', value: parseFloat(val) / 100 } })}
+                      value={state.draftRules.salle_operation.taux === '' ? '' : state.draftRules.salle_operation.taux * 100}
+                      onChange={(val) => dispatch({ type: 'UPDATE_FIELD', payload: { path: 'salle_operation.taux', value: val === '' ? '' : parseFloat(val) / 100 } })}
                       error={state.errors['salle_operation.taux']}
                       icon={Percent}
                     />
@@ -1099,8 +1099,8 @@ const ReimbursementRulesPage = () => {
                     <FormInput
                       label="Soins Dentaires - Taux (%)"
                       field="dentaire.soins_protheses_implants.taux"
-                      value={state.draftRules.dentaire.soins_protheses_implants.taux * 100}
-                      onChange={(val) => dispatch({ type: 'UPDATE_FIELD', payload: { path: 'dentaire.soins_protheses_implants.taux', value: parseFloat(val) / 100 } })}
+                      value={state.draftRules.dentaire.soins_protheses_implants.taux === '' ? '' : state.draftRules.dentaire.soins_protheses_implants.taux * 100}
+                      onChange={(val) => dispatch({ type: 'UPDATE_FIELD', payload: { path: 'dentaire.soins_protheses_implants.taux', value: val === '' ? '' : parseFloat(val) / 100 } })}
                       error={state.errors['dentaire.soins_protheses_implants.taux']}
                       icon={Percent}
                     />
@@ -1394,7 +1394,7 @@ const FormInput = ({ label, field, value, onChange, error, icon: Icon, className
         </div>
         <input
           type="text"
-          value={value}
+          value={(value === undefined || value === null || (typeof value === 'number' && isNaN(value))) ? '' : value}
           onChange={(e) => onChange(e.target.value)}
           className={`w-full pl-11 pr-4 py-3.5 bg-white dark:bg-slate-900 border ${
             error 
