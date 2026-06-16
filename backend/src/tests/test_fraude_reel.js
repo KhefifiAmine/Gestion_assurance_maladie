@@ -1,7 +1,7 @@
 'use strict';
 /**
  * =====================================================================
- * TEST D'INTÉGRATION RÉEL - SYSTÈME ANTI-FRAUDE (PFE 2026)
+ * TEST D'INTÉGRATION - SYSTÈME ANTI-FRAUDE
  * =====================================================================
  * Ce fichier test le VRAI FraudService.calculateFraudScore() contre
  * une vraie base de données. Il effectue les opérations suivantes :
@@ -20,10 +20,10 @@ const FraudService = require('../services/fraud.service');
 
 // ─── Couleurs Console ────────────────────────────────────────────────────────
 const c = {
-    reset: "\x1b[0m",   bright: "\x1b[1m",   dim: "\x1b[2m",
-    green: "\x1b[32m",  yellow: "\x1b[33m",  cyan: "\x1b[36m",
-    magenta: "\x1b[35m",red: "\x1b[31m",     blue: "\x1b[34m",
-    white: "\x1b[37m",  gray: "\x1b[90m"
+    reset: "\x1b[0m", bright: "\x1b[1m", dim: "\x1b[2m",
+    green: "\x1b[32m", yellow: "\x1b[33m", cyan: "\x1b[36m",
+    magenta: "\x1b[35m", red: "\x1b[31m", blue: "\x1b[34m",
+    white: "\x1b[37m", gray: "\x1b[90m"
 };
 
 // ─── Helpers d'affichage ─────────────────────────────────────────────────────
@@ -41,8 +41,8 @@ function section(text) {
 
 function printResult(scenarioName, result, expectedSuspect) {
     let scoreColor = c.green;
-    let level      = 'SAIN           ';
-    if (result.score >= 80)      { scoreColor = c.red;    level = 'FRAUDE CRITIQUE'; }
+    let level = 'SAIN           ';
+    if (result.score >= 80) { scoreColor = c.red; level = 'FRAUDE CRITIQUE'; }
     else if (result.score >= 40) { scoreColor = c.yellow; level = 'ALERTE SUSPECT '; }
 
     const verdict = (expectedSuspect && result.score >= 40) || (!expectedSuspect && result.score < 40)
@@ -179,14 +179,14 @@ async function seedPharmacie(bulletinId, medicaments = [], prestataireId = null)
 async function cleanup() {
     section("NETTOYAGE DE LA BASE DE DONNÉES");
     try {
-        if (CREATED.fraudAlerts.length)  { await FraudAlert.destroy({ where: { id: CREATED.fraudAlerts } }); }
-        if (CREATED.medicaments.length)  { await Medicament.destroy({ where: { id: CREATED.medicaments } }); }
-        if (CREATED.pharmacies.length)   { await ActePharmacie.destroy({ where: { id: CREATED.pharmacies } }); }
-        if (CREATED.actes.length)        { await ActeMedical.destroy({ where: { id: CREATED.actes } }); }
-        if (CREATED.bulletins.length)    { await BulletinSoin.destroy({ where: { id: CREATED.bulletins } }); }
-        if (CREATED.beneficiaries.length){ await Beneficiary.destroy({ where: { id: CREATED.beneficiaries } }); }
+        if (CREATED.fraudAlerts.length) { await FraudAlert.destroy({ where: { id: CREATED.fraudAlerts } }); }
+        if (CREATED.medicaments.length) { await Medicament.destroy({ where: { id: CREATED.medicaments } }); }
+        if (CREATED.pharmacies.length) { await ActePharmacie.destroy({ where: { id: CREATED.pharmacies } }); }
+        if (CREATED.actes.length) { await ActeMedical.destroy({ where: { id: CREATED.actes } }); }
+        if (CREATED.bulletins.length) { await BulletinSoin.destroy({ where: { id: CREATED.bulletins } }); }
+        if (CREATED.beneficiaries.length) { await Beneficiary.destroy({ where: { id: CREATED.beneficiaries } }); }
         if (CREATED.prestataires.length) { await Prestataire.destroy({ where: { id: CREATED.prestataires } }); }
-        if (CREATED.users.length)        { await User.destroy({ where: { id: CREATED.users } }); }
+        if (CREATED.users.length) { await User.destroy({ where: { id: CREATED.users } }); }
 
         // Supprimer aussi les FraudAlerts créées pour les userId de test
         await FraudAlert.destroy({ where: { entity_id: CREATED.users, entity_type: 'adherent' } });
@@ -202,8 +202,8 @@ async function cleanup() {
 async function testNormal() {
     section("SCÉNARIO 1 : Comportement Normal (Attendu: SAIN)");
     const user = await seedUser({ nom: 'NORMAL', email: `fraud_normal_${Date.now()}@test.local` });
-    const ben  = await seedBeneficiary(user.id, '1990-05-15');
-    const b    = await seedBulletin(user.id, ben.id, { montant_total: 45 });
+    const ben = await seedBeneficiary(user.id, '1990-05-15');
+    const b = await seedBulletin(user.id, ben.id, { montant_total: 45 });
     await seedActe(b.id, { acte: 'Consultation', cote: 'C1', honoraires: 45 });
 
     const result = await FraudService.calculateFraudScore(b.id);
@@ -214,7 +214,7 @@ async function testNormal() {
 async function testDoublonActe() {
     section("SCÉNARIO 2 : Doublon Exact d'Acte (Attendu: FRAUDE CRITIQUE)");
     const user = await seedUser({ nom: 'DOUBLON', email: `fraud_doublon_${Date.now()}@test.local` });
-    const ben  = await seedBeneficiary(user.id, '1985-01-20');
+    const ben = await seedBeneficiary(user.id, '1985-01-20');
     const today = new Date().toISOString().slice(0, 10);
 
     // Bulletin 1 = déjà remboursé (passé)
@@ -233,7 +233,7 @@ async function testDoublonActe() {
 async function testNomadismeMedical() {
     section("SCÉNARIO 3 : Nomadisme Médical (Attendu: ALERTE)");
     const user = await seedUser({ nom: 'NOMADE', email: `fraud_nomade_${Date.now()}@test.local` });
-    const ben  = await seedBeneficiary(user.id, '1975-03-12');
+    const ben = await seedBeneficiary(user.id, '1975-03-12');
 
     // Créer 5 prestataires cardiologues différents (seuil >= 5 → score SQL = 70)
     const prests = [];
@@ -293,7 +293,7 @@ async function testIncoherenceAge() {
 async function testFrequenceExcessive() {
     section("SCÉNARIO 5 : Fréquence Excessive (Attendu: ALERTE)");
     const user = await seedUser({ nom: 'FREQUENCE', email: `fraud_freq_${Date.now()}@test.local` });
-    const ben  = await seedBeneficiary(user.id, '1982-07-22');
+    const ben = await seedBeneficiary(user.id, '1982-07-22');
 
     // Insérer 8 bulletins dans les 7 derniers jours
     const bulletinsPrecédents = [];
@@ -318,7 +318,7 @@ async function testFrequenceExcessive() {
 async function testRepetitionMontant() {
     section("SCÉNARIO 6 : Répétition de Montant Identique (Attendu: ALERTE)");
     const user = await seedUser({ nom: 'REPETITION', email: `fraud_rep_${Date.now()}@test.local` });
-    const ben  = await seedBeneficiary(user.id, '1979-11-04');
+    const ben = await seedBeneficiary(user.id, '1979-11-04');
     const MONTANT_FIXE = 199.99;
 
     // 6 bulletins avec exactement le même montant dans les 30j
@@ -338,9 +338,83 @@ async function testRepetitionMontant() {
     return result;
 }
 
+// ─── SCÉNARIO 7 : VALEURS ABERRANTES (Z-SCORE) ─────────────────────────────────
+async function testValeurAberrante() {
+    section("SCÉNARIO 7 : Valeurs Aberrantes / Outlier Statistique (Attendu: ANOMALIE DÉTECTÉE)");
+
+    // TAG unique pour isoler la baseline statistique de cette session de test
+    // (soins_cadre non-null → la requête AVG/STDDEV ne portera QUE sur ces bulletins)
+    const TAG = `OUTLIER_TEST_${Date.now()}`;
+    const MONTANT_NORMAL   = 50.0;    // Montant "banal"
+    const MONTANT_ABERRANT = 50000.0; // Montant extrême
+    const NB_NORMAUX = 30;            // Taille de la baseline
+
+    const user = await seedUser({ nom: 'ABERRANT', email: `fraud_aberrant_${Date.now()}@test.local` });
+    const ben  = await seedBeneficiary(user.id, '1975-06-15');
+    const today = new Date().toISOString().slice(0, 10);
+
+    console.log(`\n  ${c.dim}  Seeding ${NB_NORMAUX} bulletins normaux (${MONTANT_NORMAL} TND) pour établir la baseline...${c.reset}`);
+
+    // Seed 30 bulletins "normaux" avec le même soins_cadre → baseline isolée
+    for (let i = 0; i < NB_NORMAUX; i++) {
+        const dt = new Date();
+        dt.setDate(dt.getDate() - (i + 2)); // de -2j à -31j
+        await seedBulletin(user.id, ben.id, {
+            montant_total: MONTANT_NORMAL,
+            date_depot: today,
+            soins_cadre: TAG,
+            createdAt: dt
+        });
+    }
+
+    // Bulletin aberrant : 50 000 TND avec le même TAG
+    // Stats attendues avec 30x50 + 1x50000 :
+    //   avg  ≈ 1 661 TND
+    //   std  ≈ 8 825 TND
+    //   Z-score ≈ 5.48  → anomalyScore = 60 (seuil Z > 4)
+    const bAberrant = await seedBulletin(user.id, ben.id, {
+        montant_total: MONTANT_ABERRANT,
+        date_depot: today,
+        soins_cadre: TAG,
+        createdAt: new Date()
+    });
+    await seedActe(bAberrant.id, { acte: 'Chirurgie', honoraires: MONTANT_ABERRANT });
+
+    const result = await FraudService.calculateFraudScore(bAberrant.id);
+
+    const anomalyScore   = result.details?.anomalyScore ?? 0;
+    const zScoreDetected = result.reasons.some(r =>
+        r.toLowerCase().includes('z-score') ||
+        r.toLowerCase().includes('hors norme') ||
+        r.toLowerCase().includes('anormal')
+    );
+
+    // Verdict visuel spécial : on valide l'ANOMALIE, pas le score final
+    console.log(`\n  ${c.bright}Scénario : ${c.white}Bulletin ${MONTANT_ABERRANT} TND vs baseline ${NB_NORMAUX}×${MONTANT_NORMAL} TND (TAG isolé)${c.reset}`);
+    console.log(`  Score Final   : ${result.score >= 40 ? c.yellow : c.green}${c.bright}${result.score}/100${c.reset}`);
+    console.log(`  Score Anomalie: ${anomalyScore > 0 ? c.yellow : c.gray}${c.bright}${anomalyScore}/100${c.reset}`);
+    console.log(`  Z-score signal: ${zScoreDetected ? c.green + '✅ OUI (hors norme détecté)' : c.red + '❌ NON (baseline insuffisante?)'}${c.reset}`);
+
+    if (result.reasons.length > 0) {
+        console.log(`  Alertes :`);
+        result.reasons.forEach(r => console.log(`    ${c.red}×${c.reset} ${r}`));
+    }
+
+    // Calcul théorique pour vérification
+    const N = NB_NORMAUX + 1;
+    const sum = NB_NORMAUX * MONTANT_NORMAL + MONTANT_ABERRANT;
+    const avg = sum / N;
+    const variance = (NB_NORMAUX * Math.pow(MONTANT_NORMAL - avg, 2) + Math.pow(MONTANT_ABERRANT - avg, 2)) / N;
+    const std = Math.sqrt(variance);
+    const zScore = (MONTANT_ABERRANT - avg) / std;
+    console.log(`\n  ${c.dim}  Calcul théorique (baseline isolée) : avg=${avg.toFixed(0)} TND | std=${std.toFixed(0)} TND | Z=${zScore.toFixed(2)}${c.reset}`);
+
+    return { ...result, _anomalyDetected: anomalyScore > 0 };
+}
+
 // ─── RUNNER PRINCIPAL ─────────────────────────────────────────────────────────
 async function runRealFraudTests() {
-    header("TEST D'INTÉGRATION RÉEL - MOTEUR ANTI-FRAUDE (PFE 2026)");
+    header("TEST D'INTÉGRATION - MOTEUR ANTI-FRAUDE");
     console.log(`${c.dim}  Connexion à la base de données et exécution des tests réels...${c.reset}\n`);
 
     const results = [];
@@ -352,22 +426,24 @@ async function runRealFraudTests() {
         console.log(`  ${c.green}✅ Connexion à la base de données établie.${c.reset}`);
 
         // Exécuter tous les scénarios séquentiellement
-        results.push({ name: "Normal",             r: await testNormal() });
-        results.push({ name: "Doublon",            r: await testDoublonActe() });
-        results.push({ name: "Nomadisme",          r: await testNomadismeMedical() });
-        results.push({ name: "Âge/Médicament",     r: await testIncoherenceAge() });
-        results.push({ name: "Fréquence",          r: await testFrequenceExcessive() });
+        results.push({ name: "Normal", r: await testNormal() });
+        results.push({ name: "Doublon", r: await testDoublonActe() });
+        results.push({ name: "Nomadisme", r: await testNomadismeMedical() });
+        results.push({ name: "Âge/Médicament", r: await testIncoherenceAge() });
+        results.push({ name: "Fréquence", r: await testFrequenceExcessive() });
         results.push({ name: "Répétition Montant", r: await testRepetitionMontant() });
+        results.push({ name: "Outlier Stat.", r: await testValeurAberrante() });
 
         // Résumé
         section("RÉSUMÉ FINAL DES TESTS");
         const rows = [
-            { name: "CAS NORMAL",       score: results[0].r.score, expected: "= 0",   ok: results[0].r.score === 0 },
-            { name: "DOUBLON",          score: results[1].r.score, expected: "= 100", ok: results[1].r.score === 100 },
-            { name: "NOMADISME",        score: results[2].r.score, expected: ">= 45", ok: results[2].r.score >= 45 },
-            { name: "ÂGE/MED+FREQ",    score: results[3].r.score, expected: ">= 55", ok: results[3].r.score >= 55 },
-            { name: "FRÉQUENCE",        score: results[4].r.score, expected: ">= 40", ok: results[4].r.score >= 40 },
-            { name: "RÉPÉTITION MNTNT", score: results[5].r.score, expected: ">= 40", ok: results[5].r.score >= 40 },
+            { name: "CAS NORMAL",       score: results[0].r.score,  expected: "= 0",         ok: results[0].r.score === 0 },
+            { name: "DOUBLON",          score: results[1].r.score,  expected: "= 100",        ok: results[1].r.score === 100 },
+            { name: "NOMADISME",        score: results[2].r.score,  expected: ">= 45",        ok: results[2].r.score >= 45 },
+            { name: "ÂGE/MED+FREQ",    score: results[3].r.score,  expected: ">= 55",        ok: results[3].r.score >= 55 },
+            { name: "FRÉQUENCE",        score: results[4].r.score,  expected: ">= 40",        ok: results[4].r.score >= 40 },
+            { name: "RÉPÉTITION MNTNT", score: results[5].r.score,  expected: ">= 40",        ok: results[5].r.score >= 40 },
+            { name: "OUTLIER (Z-SCORE)",score: results[6].r.details?.anomalyScore ?? 0, expected: "> 0 (anom.)", ok: (results[6].r.details?.anomalyScore ?? 0) > 0 },
         ];
 
         console.log(`\n  ${'Scénario'.padEnd(22)} ${'Score'.padEnd(8)} ${'Attendu'.padEnd(12)} ${'Résultat'.padEnd(10)}`);
